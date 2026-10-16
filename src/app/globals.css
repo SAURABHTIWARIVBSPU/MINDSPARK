@@ -29,3 +29,55 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Print Styles: Ensure only the Candidate Admit Slip prints and eliminates 4-page homepage bloat */
+@media print {
+  /* Page setup for clean A4 printing */
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide everything on the page */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only make the Candidate Admit Slip and its children visible */
+  #candidate-admit-slip,
+  #candidate-admit-slip * {
+    visibility: visible;
+  }
+
+  #candidate-admit-slip {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1.5px solid #1e293b !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Completely remove interactive buttons, navbars, and headers from print */
+  header,
+  nav,
+  footer,
+  .no-print,
+  button,
+  a {
+    display: none !important;
+  }
+}
+

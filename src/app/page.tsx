@@ -80,14 +80,58 @@ export default function StudentPortalHomePage() {
     }
   };
 
+  const [printing, setPrinting] = useState(false);
+
   const copyRegNumber = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePrintSlip = () => {
-    window.print();
+  const handlePrintSlip = async () => {
+    if (!searchResult?.student?.registrationNumber) return;
+    setPrinting(true);
+
+    const pdfUrl = `/api/public/admit-card/download?regNo=${encodeURIComponent(
+      searchResult.student.registrationNumber
+    )}&dob=${encodeURIComponent(searchResult.student.dateOfBirth)}`;
+
+    try {
+      const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error('Failed to load PDF');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Use a hidden iframe to directly trigger the PDF print engine
+      let iframe = document.getElementById('admit-card-print-frame') as HTMLIFrameElement;
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'admit-card-print-frame';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+      }
+
+      iframe.src = blobUrl;
+      iframe.onload = () => {
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+          } catch {
+            window.open(blobUrl, '_blank');
+          }
+        }, 300);
+      };
+    } catch {
+      window.open(pdfUrl, '_blank');
+    } finally {
+      setPrinting(false);
+    }
   };
 
   return (
@@ -287,7 +331,7 @@ export default function StudentPortalHomePage() {
 
           {/* VERIFIED CANDIDATE ADMIT CARD OUTPUT SLIP */}
           {searchResult && (
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-md overflow-hidden animate-in fade-in duration-300">
+            <div id="candidate-admit-slip" className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-md overflow-hidden animate-in fade-in duration-300">
               {/* Slip Header Banner */}
               <div className="bg-slate-900 text-white p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800">
                 <div className="flex items-center space-x-3">
@@ -420,7 +464,7 @@ export default function StudentPortalHomePage() {
                 </div>
 
                 {/* Candidate Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <div className="no-print flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <a
                     href={`/api/public/admit-card/download?regNo=${encodeURIComponent(
                       searchResult.student.registrationNumber
@@ -435,10 +479,20 @@ export default function StudentPortalHomePage() {
                   <button
                     type="button"
                     onClick={handlePrintSlip}
-                    className="py-3.5 px-5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center space-x-2 border border-slate-800 transition-colors"
+                    disabled={printing}
+                    className="py-3.5 px-6 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 border border-slate-800 transition-colors cursor-pointer"
                   >
-                    <Printer className="w-4 h-4" />
-                    <span>Print Slip</span>
+                    {printing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Preparing PDF Print...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Printer className="w-4 h-4 text-indigo-400" />
+                        <span>Print Admit Card</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
