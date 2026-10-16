@@ -1,0 +1,452 @@
+import fs from 'fs';
+import path from 'path';
+import {
+  IDatabaseAdapter,
+  StudentQueryOptions,
+  StudentQueryResult,
+} from './adapter.interface';
+import {
+  Student,
+  ImportJob,
+  AdmitCard,
+  AdmitCardJob,
+  AuditLog,
+  SystemSettings,
+  User,
+} from '@/types';
+
+interface DatabaseSchema {
+  users: User[];
+  students: Student[];
+  imports: ImportJob[];
+  admitCards: AdmitCard[];
+  admitCardJobs: AdmitCardJob[];
+  auditLogs: AuditLog[];
+  settings: SystemSettings;
+}
+
+const DEFAULT_SETTINGS: SystemSettings = {
+  schoolName: 'Mind-Spark Inter-School Competition',
+  competitionTitle: 'Annual Mind-Spark Academic Olympiad 2026',
+  venue: process.env.DEFAULT_VENUE || 'MSITM DEGREE COLLEGE GONDA UTTAR PRADESH',
+  examDate: process.env.DEFAULT_EXAM_DATE || '01 Nov 2026',
+  reportingTime: '09:00 AM',
+  contactPhone: '9876543210',
+  contactEmail: 'admissions@mindspark.edu.in',
+  regNoPrefix: 'MS',
+  regNoYear: '26',
+  regNoSeqCurrent: 1000,
+};
+
+const DEFAULT_USERS: User[] = [
+  {
+    uid: 'superadmin_1',
+    email: 'superadmin@mindspark.edu.in',
+    displayName: 'Headmaster (Super Admin)',
+    role: 'SUPER_ADMIN',
+    active: true,
+    createdAt: new Date().toISOString(),
+    passwordHash: '$2b$10$BVhiyB/z2UR7IEDgzUjiX.vKgNsWI6AZwg8hzLCCEFqtm5vQ09fyS', // Admin@MindSpark2026!
+  },
+  {
+    uid: 'admin_1',
+    email: 'admin@mindspark.edu.in',
+    displayName: 'Exam Coordinator (Admin)',
+    role: 'ADMIN',
+    active: true,
+    createdAt: new Date().toISOString(),
+    passwordHash: '$2b$10$BVhiyB/z2UR7IEDgzUjiX.vKgNsWI6AZwg8hzLCCEFqtm5vQ09fyS', // Admin@MindSpark2026!
+  },
+  {
+    uid: 'reg_op_1',
+    email: 'operator@mindspark.edu.in',
+    displayName: 'Registration Operator',
+    role: 'REGISTRATION_OPERATOR',
+    active: true,
+    createdAt: new Date().toISOString(),
+    passwordHash: '$2b$10$TuwU6Ky.3qB2nsh3K/F/fufQsalufUpJW3sNP/rPR8Heg/N1GNzuK', // Operator@2026!
+  },
+  {
+    uid: 'excel_op_1',
+    email: 'excel@mindspark.edu.in',
+    displayName: 'Excel Operator',
+    role: 'EXCEL_OPERATOR',
+    active: true,
+    createdAt: new Date().toISOString(),
+    passwordHash: '$2b$10$TuwU6Ky.3qB2nsh3K/F/fufQsalufUpJW3sNP/rPR8Heg/N1GNzuK', // Operator@2026!
+  },
+  {
+    uid: 'readonly_1',
+    email: 'viewer@mindspark.edu.in',
+    displayName: 'Staff Viewer (Read-only)',
+    role: 'READ_ONLY',
+    active: true,
+    createdAt: new Date().toISOString(),
+    passwordHash: '$2b$10$9mU8MmMJUjRZaOHLT6YIl.9kXXv7MZrKtp1EAVsBFNS4Uc6p5xOQa', // Viewer@2026!
+  },
+];
+
+export class LocalJsonDbAdapter implements IDatabaseAdapter {
+  private filePath: string;
+  private data: DatabaseSchema;
+
+  constructor(customPath?: string) {
+    this.filePath = customPath || path.join(process.cwd(), '.data', 'mind_spark_db.json');
+    const dir = path.dirname(this.filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    this.data = this.loadData();
+  }
+
+  private loadData(): DatabaseSchema {
+    if (fs.existsSync(this.filePath)) {
+      try {
+        const content = fs.readFileSync(this.filePath, 'utf-8');
+        const parsed = JSON.parse(content);
+        return {
+          users: parsed.users || DEFAULT_USERS,
+          students: parsed.students || [],
+          imports: parsed.imports || [],
+          admitCards: parsed.admitCards || [],
+          admitCardJobs: parsed.admitCardJobs || [],
+          auditLogs: parsed.auditLogs || [],
+          settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+        };
+      } catch (err) {
+        console.error('Failed to parse database file, reinitializing', err);
+      }
+    }
+    const initial: DatabaseSchema = {
+      users: DEFAULT_USERS,
+      students: [],
+      imports: [],
+      admitCards: [],
+      admitCardJobs: [],
+      auditLogs: [],
+      settings: DEFAULT_SETTINGS,
+    };
+    this.saveData(initial);
+    return initial;
+  }
+
+  private saveData(data: DatabaseSchema): void {
+    fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
+  }
+
+  private persist(): void {
+    this.saveData(this.data);
+  }
+
+  // --- Students ---
+
+  async getStudents(options: StudentQueryOptions = {}): Promise<StudentQueryResult> {
+    let list = [...this.data.students];
+
+    // Filter by status (default to non-VOID unless specified)
+    if (options.status) {
+      list = list.filter((s) => s.status === options.status);
+    } else {
+      list = list.filter((s) => s.status !== 'VOID');
+    }
+
+    // Filter by competition
+    if (options.competition) {
+      list = list.filter(
+        (s) => s.competitionName.toLowerCase() === options.competition!.toLowerCase()
+      );
+    }
+
+    // Filter by class
+    if (options.className) {
+      list = list.filter(
+        (s) => s.className.toLowerCase() === options.className!.toLowerCase()
+      );
+    }
+
+    // Search query across fields
+    if (options.search && options.search.trim()) {
+      const q = options.search.toLowerCase().trim();
+      list = list.filter(
+        (s) =>
+          s.registrationNumber.toLowerCase().includes(q) ||
+          s.name.toLowerCase().includes(q) ||
+          s.fatherName.toLowerCase().includes(q) ||
+          s.phone.includes(q) ||
+          s.schoolOrCollege.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort descending by registrationNumber / createdAt
+    list.sort((a, b) => b.registrationNumber.localeCompare(a.registrationNumber));
+
+    const total = list.length;
+    const page = Math.max(1, options.page || 1);
+    const pageSize = Math.max(1, options.pageSize || 20);
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const startIndex = (page - 1) * pageSize;
+    const students = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      students,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    };
+  }
+
+  async getAllActiveStudents(): Promise<Student[]> {
+    return this.data.students.filter((s) => s.status === 'ACTIVE');
+  }
+
+  async getStudentById(studentId: string): Promise<Student | null> {
+    return this.data.students.find((s) => s.studentId === studentId) || null;
+  }
+
+  async getStudentByRegNo(regNo: string): Promise<Student | null> {
+    const clean = regNo.trim().toUpperCase();
+    return this.data.students.find((s) => s.registrationNumber.toUpperCase() === clean) || null;
+  }
+
+  async createStudent(
+    studentData: Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>
+  ): Promise<Student> {
+    let regNo = studentData.registrationNumber?.trim();
+    if (!regNo) {
+      regNo = await this.allocateNextRegistrationNumber();
+    } else {
+      // Check collision
+      const existing = await this.getStudentByRegNo(regNo);
+      if (existing) {
+        throw new Error(`Registration Number '${regNo}' already exists`);
+      }
+    }
+
+    const now = new Date().toISOString();
+    const student: Student = {
+      ...studentData,
+      studentId: `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      registrationNumber: regNo,
+      createdAt: now,
+      updatedAt: now,
+      dataVersion: 1,
+    };
+
+    this.data.students.push(student);
+    this.persist();
+    return student;
+  }
+
+  async updateStudent(studentId: string, updates: Partial<Student>): Promise<Student> {
+    const idx = this.data.students.findIndex((s) => s.studentId === studentId);
+    if (idx === -1) {
+      throw new Error(`Student '${studentId}' not found`);
+    }
+
+    const current = this.data.students[idx];
+
+    // If changing registration number, check for collisions
+    if (
+      updates.registrationNumber &&
+      updates.registrationNumber.toUpperCase() !== current.registrationNumber.toUpperCase()
+    ) {
+      const existing = await this.getStudentByRegNo(updates.registrationNumber);
+      if (existing && existing.studentId !== studentId) {
+        throw new Error(`Registration Number '${updates.registrationNumber}' already belongs to another student`);
+      }
+    }
+
+    const updated: Student = {
+      ...current,
+      ...updates,
+      studentId: current.studentId, // immutable
+      createdAt: current.createdAt, // immutable
+      updatedAt: new Date().toISOString(),
+      dataVersion: current.dataVersion + 1,
+    };
+
+    this.data.students[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
+  async archiveStudent(studentId: string, actorUid: string): Promise<boolean> {
+    const student = await this.getStudentById(studentId);
+    if (!student) return false;
+
+    await this.updateStudent(studentId, {
+      status: 'ARCHIVED',
+      updatedBy: actorUid,
+    });
+    return true;
+  }
+
+  async batchCreateStudents(
+    students: Array<Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>>
+  ): Promise<{ createdCount: number; studentIds: string[] }> {
+    const createdIds: string[] = [];
+    const now = new Date().toISOString();
+
+    for (const item of students) {
+      let regNo = item.registrationNumber?.trim();
+      if (!regNo) {
+        regNo = await this.allocateNextRegistrationNumber();
+      }
+
+      const student: Student = {
+        ...item,
+        studentId: `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        registrationNumber: regNo,
+        createdAt: now,
+        updatedAt: now,
+        dataVersion: 1,
+      };
+
+      this.data.students.push(student);
+      createdIds.push(student.studentId);
+    }
+
+    this.persist();
+    return { createdCount: createdIds.length, studentIds: createdIds };
+  }
+
+  // --- Registration Number Allocation (Atomic) ---
+
+  async allocateNextRegistrationNumber(prefix?: string, year?: string): Promise<string> {
+    const currentSettings = this.data.settings;
+    const pfx = prefix || currentSettings.regNoPrefix || 'MS';
+    const yr = year || currentSettings.regNoYear || '26';
+
+    currentSettings.regNoSeqCurrent += 1;
+    const seq = currentSettings.regNoSeqCurrent;
+    this.persist();
+
+    return `${pfx}${yr}${seq}`;
+  }
+
+  // --- Imports ---
+
+  async getImportJobs(): Promise<ImportJob[]> {
+    return [...this.data.imports].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  }
+
+  async getImportJobById(importId: string): Promise<ImportJob | null> {
+    return this.data.imports.find((j) => j.importId === importId) || null;
+  }
+
+  async createImportJob(job: ImportJob): Promise<ImportJob> {
+    this.data.imports.push(job);
+    this.persist();
+    return job;
+  }
+
+  async updateImportJob(importId: string, updates: Partial<ImportJob>): Promise<ImportJob> {
+    const idx = this.data.imports.findIndex((j) => j.importId === importId);
+    if (idx === -1) throw new Error(`Import job '${importId}' not found`);
+
+    const updated = { ...this.data.imports[idx], ...updates };
+    this.data.imports[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
+  // --- Admit Cards ---
+
+  async getAdmitCards(): Promise<AdmitCard[]> {
+    return [...this.data.admitCards];
+  }
+
+  async getAdmitCardByStudentId(studentId: string): Promise<AdmitCard | null> {
+    return this.data.admitCards.find((c) => c.studentId === studentId) || null;
+  }
+
+  async saveAdmitCard(card: AdmitCard): Promise<AdmitCard> {
+    const idx = this.data.admitCards.findIndex((c) => c.studentId === card.studentId);
+    if (idx !== -1) {
+      this.data.admitCards[idx] = card;
+    } else {
+      this.data.admitCards.push(card);
+    }
+    this.persist();
+    return card;
+  }
+
+  // --- Admit Card Jobs ---
+
+  async getAdmitCardJobs(): Promise<AdmitCardJob[]> {
+    return [...this.data.admitCardJobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async getAdmitCardJobById(jobId: string): Promise<AdmitCardJob | null> {
+    return this.data.admitCardJobs.find((j) => j.jobId === jobId) || null;
+  }
+
+  async createAdmitCardJob(job: AdmitCardJob): Promise<AdmitCardJob> {
+    this.data.admitCardJobs.push(job);
+    this.persist();
+    return job;
+  }
+
+  async updateAdmitCardJob(jobId: string, updates: Partial<AdmitCardJob>): Promise<AdmitCardJob> {
+    const idx = this.data.admitCardJobs.findIndex((j) => j.jobId === jobId);
+    if (idx === -1) throw new Error(`Admit card job '${jobId}' not found`);
+
+    const updated = { ...this.data.admitCardJobs[idx], ...updates };
+    this.data.admitCardJobs[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
+  // --- Audit Logs ---
+
+  async addAuditLog(log: Omit<AuditLog, 'eventId' | 'timestamp'>): Promise<AuditLog> {
+    const fullLog: AuditLog = {
+      ...log,
+      eventId: `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toISOString(),
+    };
+    this.data.auditLogs.push(fullLog);
+    this.persist();
+    return fullLog;
+  }
+
+  async getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
+    return [...this.data.auditLogs]
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .slice(0, limit);
+  }
+
+  // --- Settings ---
+
+  async getSettings(): Promise<SystemSettings> {
+    return { ...this.data.settings };
+  }
+
+  async updateSettings(settings: Partial<SystemSettings>): Promise<SystemSettings> {
+    this.data.settings = { ...this.data.settings, ...settings };
+    this.persist();
+    return { ...this.data.settings };
+  }
+
+  // --- Users ---
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.data.users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async getUserById(uid: string): Promise<User | null> {
+    return this.data.users.find((u) => u.uid === uid) || null;
+  }
+
+  async upsertUser(user: User): Promise<User> {
+    const idx = this.data.users.findIndex((u) => u.uid === user.uid || u.email.toLowerCase() === user.email.toLowerCase());
+    if (idx !== -1) {
+      this.data.users[idx] = { ...this.data.users[idx], ...user };
+    } else {
+      this.data.users.push(user);
+    }
+    this.persist();
+    return user;
+  }
+}
