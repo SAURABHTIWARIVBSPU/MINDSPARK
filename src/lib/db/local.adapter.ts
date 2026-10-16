@@ -118,19 +118,44 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
       try {
         const content = fs.readFileSync(this.filePath, 'utf-8');
         const parsed = JSON.parse(content);
-        return {
-          users: parsed.users || DEFAULT_USERS,
-          students: parsed.students || [],
-          imports: parsed.imports || [],
-          admitCards: parsed.admitCards || [],
-          admitCardJobs: parsed.admitCardJobs || [],
-          auditLogs: parsed.auditLogs || [],
-          settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
-        };
+        if (parsed.students && parsed.students.length > 0) {
+          return {
+            users: parsed.users || DEFAULT_USERS,
+            students: parsed.students || [],
+            imports: parsed.imports || [],
+            admitCards: parsed.admitCards || [],
+            admitCardJobs: parsed.admitCardJobs || [],
+            auditLogs: parsed.auditLogs || [],
+            settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+          };
+        }
       } catch (err) {
-        console.error('Failed to parse database file, reinitializing', err);
+        console.error('Failed to parse database file, checking seed data:', err);
       }
     }
+
+    // Check for bundled seed database (e.g. on Vercel / production deployment)
+    const seedPath = path.join(process.cwd(), 'src', 'data', 'seed_db.json');
+    if (fs.existsSync(seedPath)) {
+      try {
+        const seedContent = fs.readFileSync(seedPath, 'utf-8');
+        const parsedSeed = JSON.parse(seedContent);
+        const seeded: DatabaseSchema = {
+          users: parsedSeed.users || DEFAULT_USERS,
+          students: parsedSeed.students || [],
+          imports: parsedSeed.imports || [],
+          admitCards: parsedSeed.admitCards || [],
+          admitCardJobs: parsedSeed.admitCardJobs || [],
+          auditLogs: parsedSeed.auditLogs || [],
+          settings: { ...DEFAULT_SETTINGS, ...(parsedSeed.settings || {}) },
+        };
+        this.saveData(seeded);
+        return seeded;
+      } catch (err) {
+        console.warn('Failed to load seed database file:', err);
+      }
+    }
+
     const initial: DatabaseSchema = {
       users: DEFAULT_USERS,
       students: [],
