@@ -86,16 +86,30 @@ const DEFAULT_USERS: User[] = [
   },
 ];
 
+import os from 'os';
+
 export class LocalJsonDbAdapter implements IDatabaseAdapter {
   private filePath: string;
   private data: DatabaseSchema;
 
   constructor(customPath?: string) {
-    this.filePath = customPath || path.join(process.cwd(), '.data', 'mind_spark_db.json');
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    if (customPath) {
+      this.filePath = customPath;
+    } else if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      this.filePath = path.join(os.tmpdir(), 'mind_spark_db.json');
+    } else {
+      this.filePath = path.join(process.cwd(), '.data', 'mind_spark_db.json');
     }
+
+    try {
+      const dir = path.dirname(this.filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    } catch (err) {
+      console.warn('Could not create directory for database file, will maintain in memory:', err);
+    }
+
     this.data = this.loadData();
   }
 
@@ -131,7 +145,11 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
   }
 
   private saveData(data: DatabaseSchema): void {
-    fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to write database file, keeping in-memory:', err);
+    }
   }
 
   private persist(): void {

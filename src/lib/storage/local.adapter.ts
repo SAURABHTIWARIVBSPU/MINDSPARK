@@ -1,14 +1,26 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { IStorageAdapter } from './adapter.interface';
 
 export class LocalStorageAdapter implements IStorageAdapter {
   private baseDir: string;
 
   constructor(customDir?: string) {
-    this.baseDir = customDir || path.join(process.cwd(), 'storage', 'admit-cards');
-    if (!fs.existsSync(this.baseDir)) {
-      fs.mkdirSync(this.baseDir, { recursive: true });
+    if (customDir) {
+      this.baseDir = customDir;
+    } else if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      this.baseDir = path.join(os.tmpdir(), 'mind-spark-storage', 'admit-cards');
+    } else {
+      this.baseDir = path.join(process.cwd(), 'storage', 'admit-cards');
+    }
+
+    try {
+      if (!fs.existsSync(this.baseDir)) {
+        fs.mkdirSync(this.baseDir, { recursive: true });
+      }
+    } catch (err) {
+      console.warn('Could not create storage directory:', err);
     }
   }
 
@@ -18,7 +30,11 @@ export class LocalStorageAdapter implements IStorageAdapter {
     const fileId = `${Date.now()}_${safeName}`;
     const filePath = path.join(this.baseDir, fileId);
 
-    fs.writeFileSync(filePath, Buffer.from(buffer));
+    try {
+      fs.writeFileSync(filePath, Buffer.from(buffer));
+    } catch (err) {
+      console.warn('Could not write local storage file:', err);
+    }
     return { fileId, storageType: 'local' };
   }
 
