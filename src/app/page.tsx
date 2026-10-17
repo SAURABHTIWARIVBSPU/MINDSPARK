@@ -141,19 +141,19 @@ export default function StudentPortalHomePage() {
         <div className="relative z-10 p-6 sm:p-8 space-y-5">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded bg-[#5c000b] border border-amber-400/40 text-amber-200 text-[11px] font-bold uppercase tracking-wider">
             <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
-            <span>उत्तर प्रदेश परीक्षा एवं छात्रवृत्ति परिषद 2026</span>
+            <span>Mind-Spark Official Examination & Olympiad Council 2026</span>
           </div>
 
           <div className="max-w-3xl space-y-2">
             <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
-              {settings?.competitionTitle || 'माइंड-स्पार्क अंतर-विद्यालयीय अकादमिक परीक्षा 2026'}
+              {settings?.competitionTitle || 'Mind-Spark Inter-School Academic Olympiad 2026'}
             </h1>
             <p className="text-amber-100 text-xs sm:text-sm leading-relaxed">
-              आयोजक संस्थान:{' '}
+              Official candidate hall ticket portal organized by{' '}
               <strong className="text-white font-semibold">
-                {settings?.schoolName || 'माइंड-स्पार्क आयोजन समिति'}
+                {settings?.schoolName || 'Mind-Spark Organizing Body'}
               </strong>
-              । पंजीकृत अभ्यर्थी अपना अनुक्रमांक एवं जन्मतिथि दर्ज करके प्रवेश पत्र (Hall Ticket) सत्यापित एवं डाउनलोड करें।
+              . पंजीकृत अभ्यर्थी अपना अनुक्रमांक एवं जन्मतिथि दर्ज करके प्रवेश पत्र (Hall Ticket) सत्यापित एवं डाउनलोड करें।
             </p>
           </div>
 

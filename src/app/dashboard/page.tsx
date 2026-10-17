@@ -64,7 +64,7 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="text-[11px] uppercase tracking-wider font-semibold text-amber-300">
-              उत्तर प्रदेश परीक्षा एवं छात्रवृत्ति प्रबंधन प्रणाली | Operations Dashboard
+              Mind-Spark Examination & Competition Console | Operations Dashboard
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-white">
               {settings?.schoolName || 'Mind-Spark Competition Portal'}
