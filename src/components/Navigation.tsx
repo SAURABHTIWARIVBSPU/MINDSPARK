@@ -114,21 +114,26 @@ export default function Navigation() {
   ];
 
   return (
-    <header className="bg-slate-950 border-b border-slate-800 text-white sticky top-0 z-50">
+    <header className="bg-[#7a0c16] border-b-4 border-amber-500 text-white sticky top-0 z-50 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo - Clean, Minimal MINDSPARK */}
+          {/* Brand Logo - UP Scholarship / Examination Portal Style */}
           <div className="flex items-center space-x-3">
             <Link
               href="/"
               className="flex items-center space-x-2.5 font-bold text-base sm:text-lg text-white group focus:outline-none"
             >
-              <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:border-indigo-500/60 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:border-amber-400 transition-colors">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <span className="tracking-tight text-white font-extrabold text-base sm:text-lg">
-                MIND<span className="text-indigo-400 font-medium">SPARK</span>
-              </span>
+              <div className="leading-tight">
+                <span className="tracking-tight text-white font-extrabold text-base sm:text-lg block">
+                  MIND<span className="text-amber-400 font-bold">SPARK</span>
+                </span>
+                <span className="text-[10px] text-amber-200/90 font-medium tracking-wide hidden sm:block">
+                  परीक्षा एवं छात्रवृत्ति पोर्टल
+                </span>
+              </div>
             </Link>
           </div>
 
@@ -144,10 +149,10 @@ export default function Navigation() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
                         isActive
-                          ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                          : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                          ? 'bg-[#5c000b] text-amber-300 font-bold border border-amber-500/40 shadow-xs'
+                          : 'text-rose-100 hover:bg-[#5c000b]/60 hover:text-white'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -161,19 +166,19 @@ export default function Navigation() {
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <Link
                   href="/#about"
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-100 hover:text-white hover:bg-[#5c000b]/60 transition-colors"
                 >
                   About
                 </Link>
                 <Link
                   href="/#rules"
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-100 hover:text-white hover:bg-[#5c000b]/60 transition-colors"
                 >
                   Rules & Venue
                 </Link>
                 <Link
                   href="/#admit-card"
-                  className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm transition-all"
+                  className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-sm transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Admit Card</span>
@@ -190,16 +195,16 @@ export default function Navigation() {
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 hover:text-white transition-colors focus:outline-none"
+                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg bg-[#5c000b] hover:bg-[#4a0009] border border-amber-500/30 text-white transition-colors focus:outline-none"
                 >
-                  <div className="w-6 h-6 rounded-md bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center text-[11px] font-bold uppercase">
+                  <div className="w-6 h-6 rounded-md bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center justify-center text-[11px] font-bold uppercase">
                     {user.displayName?.charAt(0) || 'U'}
                   </div>
                   <span className="text-xs font-semibold max-w-[120px] truncate hidden sm:inline-block">
                     {user.displayName}
                   </span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                    className={`w-3.5 h-3.5 text-amber-300/80 transition-transform duration-200 ${
                       profileDropdownOpen ? 'rotate-180 text-white' : ''
                     }`}
                   />
@@ -207,23 +212,23 @@ export default function Navigation() {
 
                 {/* Elegant Floating Profile Dropdown Menu */}
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-64 bg-[#5c000b] border border-amber-500/40 rounded-xl shadow-2xl py-2 z-50 text-white">
                     {/* User Header */}
-                    <div className="px-4 py-2.5 border-b border-slate-800">
+                    <div className="px-4 py-2.5 border-b border-amber-500/20">
                       <div className="font-semibold text-xs text-white truncate">
                         {user.displayName}
                       </div>
-                      <div className="text-[11px] text-slate-400 truncate">{user.email}</div>
+                      <div className="text-[11px] text-amber-200/80 truncate">{user.email}</div>
                       <div className="mt-1.5">
-                        <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-950 text-indigo-300 border border-indigo-800/80">
+                        <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/50">
                           {user.role.replace('_', ' ')}
                         </span>
                       </div>
                     </div>
 
                     {/* Quick Role Switcher */}
-                    <div className="px-2 py-2 border-b border-slate-800">
-                      <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-2 pb-1.5">
+                    <div className="px-2 py-2 border-b border-amber-500/20">
+                      <div className="text-[10px] uppercase font-bold tracking-wider text-amber-300/70 px-2 pb-1.5">
                         Switch Active Role
                       </div>
                       <div className="space-y-0.5">
@@ -239,12 +244,12 @@ export default function Navigation() {
                               }}
                               className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                                 isCurrent
-                                  ? 'bg-indigo-600/20 text-indigo-300 font-semibold border border-indigo-500/30'
-                                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                  ? 'bg-[#7a0c16] text-amber-300 font-semibold border border-amber-500/40'
+                                  : 'text-rose-100 hover:bg-[#7a0c16]/70 hover:text-white'
                               }`}
                             >
                               <span>{r.label}</span>
-                              {isCurrent && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                              {isCurrent && <Check className="w-3.5 h-3.5 text-amber-400" />}
                             </button>
                           );
                         })}
@@ -256,9 +261,9 @@ export default function Navigation() {
                       <Link
                         href="/"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-rose-100 hover:bg-[#7a0c16] hover:text-white transition-colors"
                       >
-                        <Globe className="w-3.5 h-3.5 text-slate-400" />
+                        <Globe className="w-3.5 h-3.5 text-amber-300" />
                         <span>Public Student Portal</span>
                       </Link>
 
@@ -268,7 +273,7 @@ export default function Navigation() {
                           setProfileDropdownOpen(false);
                           handleLogout();
                         }}
-                        className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
+                        className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-rose-200 hover:bg-rose-950/60 hover:text-rose-100 transition-colors"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>Sign Out of Console</span>
@@ -281,9 +286,9 @@ export default function Navigation() {
               // Public Staff Login CTA
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-white border border-slate-800 transition-colors"
+                className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#5c000b] hover:bg-[#4a0009] text-amber-200 hover:text-white border border-amber-500/40 transition-colors"
               >
-                <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
                 <span>Staff Portal</span>
               </Link>
             )}
@@ -292,7 +297,7 @@ export default function Navigation() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle Navigation Menu"
-              className="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 border border-slate-800 focus:outline-none"
+              className="md:hidden p-2 rounded-lg text-rose-100 hover:text-white hover:bg-[#5c000b] border border-amber-500/30 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -302,12 +307,12 @@ export default function Navigation() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-5 space-y-3 animate-in slide-in-from-top duration-200">
+        <div className="md:hidden border-t border-amber-500/30 bg-[#5c000b] px-4 pt-3 pb-5 space-y-3 animate-in slide-in-from-top duration-200">
           {user ? (
             <div className="space-y-3">
-              <div className="pb-2 border-b border-slate-800 text-xs">
-                <div className="font-semibold text-slate-200">{user.displayName}</div>
-                <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
+              <div className="pb-2 border-b border-amber-500/20 text-xs">
+                <div className="font-semibold text-white">{user.displayName}</div>
+                <div className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">
                   {user.role.replace('_', ' ')}
                 </div>
               </div>
@@ -322,8 +327,8 @@ export default function Navigation() {
                       href={item.href}
                       className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium ${
                         isActive
-                          ? 'bg-indigo-600 text-white font-semibold'
-                          : 'text-slate-300 hover:bg-slate-900'
+                          ? 'bg-amber-500 text-slate-950 font-bold'
+                          : 'text-rose-100 hover:bg-[#7a0c16]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -333,18 +338,18 @@ export default function Navigation() {
                 })}
               </div>
 
-              <div className="pt-2 border-t border-slate-800 space-y-2">
+              <div className="pt-2 border-t border-amber-500/20 space-y-2">
                 <Link
                   href="/"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 border border-slate-800"
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
                 >
-                  <Globe className="w-4 h-4 text-slate-400" />
+                  <Globe className="w-4 h-4 text-amber-300" />
                   <span>Student Portal View</span>
                 </Link>
 
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center space-x-2 py-2 text-xs font-medium text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg hover:bg-red-950/50"
+                  className="w-full flex items-center justify-center space-x-2 py-2 text-xs font-medium text-rose-200 bg-rose-950/40 border border-rose-800/40 rounded-lg hover:bg-rose-950/60"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Out of Console</span>
@@ -355,7 +360,7 @@ export default function Navigation() {
             <div className="space-y-2">
               <Link
                 href="/#admit-card"
-                className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm"
+                className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-sm"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Admit Card</span>
@@ -364,24 +369,24 @@ export default function Navigation() {
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <Link
                   href="/#about"
-                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 border border-slate-800"
+                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
                 >
                   About
                 </Link>
                 <Link
                   href="/#rules"
-                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 border border-slate-800"
+                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
                 >
                   Rules & Venue
                 </Link>
               </div>
 
-              <div className="pt-2 border-t border-slate-800">
+              <div className="pt-2 border-t border-amber-500/20">
                 <Link
                   href="/login"
-                  className="flex items-center justify-center space-x-2 w-full py-2 px-4 rounded-lg text-xs font-semibold text-slate-300 bg-slate-900/80 border border-slate-800 hover:text-white"
+                  className="flex items-center justify-center space-x-2 w-full py-2 px-4 rounded-lg text-xs font-semibold text-amber-200 bg-[#7a0c16] border border-amber-500/30 hover:text-white"
                 >
-                  <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
                   <span>Staff Portal</span>
                 </Link>
               </div>

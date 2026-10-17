@@ -7,6 +7,7 @@ import {
 } from './adapter.interface';
 import {
   Student,
+  WhatsAppStatus,
   ImportJob,
   AdmitCard,
   AdmitCardJob,
@@ -113,15 +114,19 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     this.data = this.loadData();
   }
 
+  public reload(): void {
+    this.data = this.loadData();
+  }
+
   private loadData(): DatabaseSchema {
     if (fs.existsSync(this.filePath)) {
       try {
         const content = fs.readFileSync(this.filePath, 'utf-8');
         const parsed = JSON.parse(content);
-        if (parsed.students && parsed.students.length > 0) {
+        if (parsed && Array.isArray(parsed.students)) {
           return {
             users: parsed.users || DEFAULT_USERS,
-            students: parsed.students || [],
+            students: parsed.students,
             imports: parsed.imports || [],
             admitCards: parsed.admitCards || [],
             admitCardJobs: parsed.admitCardJobs || [],
@@ -204,6 +209,20 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     if (options.className) {
       list = list.filter(
         (s) => s.className.toLowerCase() === options.className!.toLowerCase()
+      );
+    }
+
+    // Filter by school/college
+    if (options.schoolOrCollege) {
+      list = list.filter(
+        (s) => s.schoolOrCollege.toLowerCase().includes(options.schoolOrCollege!.toLowerCase())
+      );
+    }
+
+    // Filter by WhatsApp Status
+    if (options.whatsappStatus && options.whatsappStatus !== 'ALL') {
+      list = list.filter(
+        (s) => (s.whatsappStatus || 'NOT_SENT') === options.whatsappStatus
       );
     }
 
@@ -312,6 +331,31 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     this.data.students[idx] = updated;
     this.persist();
     return updated;
+  }
+
+  async batchUpdateStudentWhatsAppStatus(studentIds: string[], status: WhatsAppStatus): Promise<number> {
+    if (!studentIds || studentIds.length === 0) return 0;
+    const now = new Date().toISOString();
+    const idSet = new Set(studentIds);
+    let updatedCount = 0;
+
+    for (let i = 0; i < this.data.students.length; i++) {
+      if (idSet.has(this.data.students[i].studentId)) {
+        this.data.students[i] = {
+          ...this.data.students[i],
+          whatsappStatus: status,
+          whatsappSentAt: (status === 'SENT' || status === 'OPENED') ? now : this.data.students[i].whatsappSentAt,
+          updatedAt: now,
+          dataVersion: this.data.students[i].dataVersion + 1,
+        };
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      this.persist();
+    }
+    return updatedCount;
   }
 
   async archiveStudent(studentId: string, actorUid: string): Promise<boolean> {

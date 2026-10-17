@@ -1,5 +1,6 @@
 import {
   Student,
+  WhatsAppStatus,
   ImportJob,
   AdmitCard,
   AdmitCardJob,
@@ -14,7 +15,9 @@ export interface StudentQueryOptions {
   search?: string;
   competition?: string;
   className?: string;
+  schoolOrCollege?: string;
   status?: string;
+  whatsappStatus?: string;
 }
 
 export interface StudentQueryResult {
@@ -33,6 +36,7 @@ export interface IDatabaseAdapter {
   getStudentByRegNo(regNo: string): Promise<Student | null>;
   createStudent(student: Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>): Promise<Student>;
   updateStudent(studentId: string, updates: Partial<Student>): Promise<Student>;
+  batchUpdateStudentWhatsAppStatus(studentIds: string[], status: WhatsAppStatus): Promise<number>;
   archiveStudent(studentId: string, actorUid: string): Promise<boolean>;
   batchCreateStudents(students: Array<Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>>): Promise<{ createdCount: number; studentIds: string[] }>;
 

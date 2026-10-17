@@ -18,4 +18,9 @@ export function getDb(): IDatabaseAdapter {
   return instance;
 }
 
+export function resetDbInstance(): void {
+  instance = null;
+}
+
 export * from './adapter.interface';
+

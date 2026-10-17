@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import { ExcelImporter } from '@/lib/excel/importer';
-import { getDb } from '@/lib/db';
+import { getDb, resetDbInstance } from '@/lib/db';
 
 describe('Excel Import End-to-End on datagenrate.xlsx', () => {
   const sampleFilePath = path.join(process.cwd(), 'datagenrate.xlsx');
@@ -18,6 +18,7 @@ describe('Excel Import End-to-End on datagenrate.xlsx', () => {
         fs.writeFileSync(dbPath, JSON.stringify(content, null, 2), 'utf-8');
       } catch (e) {}
     }
+    resetDbInstance();
   });
 
   it('verifies datagenrate.xlsx exists and has data', () => {

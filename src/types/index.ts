@@ -37,6 +37,8 @@ export interface User {
 
 export type StudentStatus = 'ACTIVE' | 'ARCHIVED' | 'VOID';
 
+export type WhatsAppStatus = 'NOT_SENT' | 'OPENED' | 'SENT' | 'FAILED';
+
 export interface Student {
   studentId: string;
   registrationNumber: string;
@@ -48,6 +50,8 @@ export interface Student {
   className: string;
   competitionName: string;
   status: StudentStatus;
+  whatsappStatus?: WhatsAppStatus;
+  whatsappSentAt?: string;
   sourceImportId?: string;
   createdAt: string;
   createdBy: string;
@@ -117,7 +121,7 @@ export interface AuditLog {
   actorUid: string;
   actorEmail: string;
   action: string;
-  targetType: 'STUDENT' | 'IMPORT' | 'ADMIT_CARD' | 'EXPORT' | 'USER' | 'SETTINGS';
+  targetType: 'STUDENT' | 'IMPORT' | 'ADMIT_CARD' | 'EXPORT' | 'USER' | 'SETTINGS' | 'WHATSAPP';
   targetId: string;
   timestamp: string;
   details?: Record<string, any>;
@@ -134,4 +138,7 @@ export interface SystemSettings {
   regNoPrefix: string;
   regNoYear: string;
   regNoSeqCurrent: number;
+  whatsappCloudToken?: string;
+  whatsappPhoneNumberId?: string;
+  whatsappTemplateName?: string;
 }

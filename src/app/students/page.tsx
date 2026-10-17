@@ -166,28 +166,30 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header and Add button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Student Directory</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Search, manage registrations, download admit cards and prepare messages ({total} total records)
+      {/* Official UP Portal Header and Add button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            छात्र प्रबंधन एवं सूची (Student Directory)
+          </h1>
+          <p className="text-xs text-slate-600 mt-0.5">
+            पंजीकृत छात्रों की खोज, विवरण संशोधन, प्रवेश पत्र डाउनलोड एवं सत्यापन ({total} छात्र रिकॉर्ड्स)
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          <span>New Registration</span>
+          <Plus className="w-4 h-4 text-amber-300" />
+          <span>नया पंजीकरण (New Registration)</span>
         </button>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
             value={search}
@@ -195,8 +197,8 @@ export default function StudentsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search Reg No, Name, Phone, School..."
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="पंजीकरण संख्या, नाम, मोबाइल या स्कूल खोजें..."
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
         </div>
 
@@ -208,8 +210,8 @@ export default function StudentsPage() {
               setCompetition(e.target.value);
               setPage(1);
             }}
-            placeholder="Filter by Competition"
-            className="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="प्रतियोगिता (Category)"
+            className="text-xs border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
 
           <input
@@ -219,8 +221,8 @@ export default function StudentsPage() {
               setClassName(e.target.value);
               setPage(1);
             }}
-            placeholder="Filter by Class"
-            className="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="कक्षा (Class)"
+            className="text-xs border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
 
           {(search || competition || className) && (
@@ -231,7 +233,7 @@ export default function StudentsPage() {
                 setClassName('');
                 setPage(1);
               }}
-              className="text-xs text-slate-500 hover:text-slate-800 underline px-2 py-1"
+              className="text-xs text-[#7a0c16] hover:underline px-2 py-1 font-semibold"
             >
               Reset
             </button>
@@ -240,53 +242,53 @@ export default function StudentsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+            <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-3 px-4">Reg No</th>
-                <th className="py-3 px-4">Student Name</th>
-                <th className="py-3 px-4">Father Name</th>
-                <th className="py-3 px-4">DOB</th>
-                <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4">School / College</th>
-                <th className="py-3 px-4">Class</th>
-                <th className="py-3 px-4">Competition</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4">पंजीकरण सं. (Reg No)</th>
+                <th className="py-3 px-4">छात्र का नाम (Name)</th>
+                <th className="py-3 px-4">पिता का नाम (Father)</th>
+                <th className="py-3 px-4">जन्म तिथि (DOB)</th>
+                <th className="py-3 px-4">मोबाइल (Contact)</th>
+                <th className="py-3 px-4">विद्यालय (Institution)</th>
+                <th className="py-3 px-4">कक्षा (Class)</th>
+                <th className="py-3 px-4">प्रतियोगिता (Category)</th>
+                <th className="py-3 px-4 text-right">कार्यवाही (Actions)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    Loading student directory...
+                    छात्र रिकॉर्ड लोड हो रहे हैं...
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    No student records found. Click &quot;New Registration&quot; or upload an Excel workbook.
+                    कोई छात्र रिकॉर्ड उपलब्ध नहीं है। &quot;नया पंजीकरण&quot; करें अथवा एक्सेल फाइल अपलोड करें।
                   </td>
                 </tr>
               ) : (
                 students.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-bold text-indigo-600">
+                  <tr key={student.studentId} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 font-bold font-mono text-[#7a0c16]">
                       {student.registrationNumber}
                     </td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">
+                    <td className="py-3 px-4 font-semibold text-slate-900">
                       {student.name}
                     </td>
-                    <td className="py-3 px-4 text-slate-600">{student.fatherName}</td>
-                    <td className="py-3 px-4 text-slate-500">{student.dateOfBirth}</td>
-                    <td className="py-3 px-4 text-slate-600 font-mono">{student.phone}</td>
+                    <td className="py-3 px-4 text-slate-700">{student.fatherName}</td>
+                    <td className="py-3 px-4 text-slate-500 font-mono">{student.dateOfBirth}</td>
+                    <td className="py-3 px-4 text-slate-700 font-mono">{student.phone}</td>
                     <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={student.schoolOrCollege}>
                       {student.schoolOrCollege}
                     </td>
-                    <td className="py-3 px-4 text-slate-500">{student.className || '-'}</td>
+                    <td className="py-3 px-4 text-slate-600">{student.className || '-'}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full">
+                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 rounded">
                         {student.competitionName}
                       </span>
                     </td>
@@ -296,8 +298,8 @@ export default function StudentsPage() {
                         href={`/api/admit-cards/download/${student.studentId}`}
                         target="_blank"
                         rel="noreferrer"
-                        title="Download Official Admit Card PDF"
-                        className="p-1.5 inline-block text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded"
+                        title="प्रवेश पत्र (Admit Card PDF) डाउनलोड करें"
+                        className="p-1.5 inline-block text-slate-600 hover:text-[#7a0c16] hover:bg-rose-50 rounded transition-colors"
                       >
                         <FileText className="w-4 h-4" />
                       </a>
@@ -308,8 +310,8 @@ export default function StudentsPage() {
                           href={generateWhatsAppLink(student, settings)}
                           target="_blank"
                           rel="noreferrer"
-                          title="Open WhatsApp Confirmation Chat"
-                          className="p-1.5 inline-block text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded"
+                          title="व्हाट्सएप संदेश भेजें"
+                          className="p-1.5 inline-block text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" />
                         </a>
@@ -358,7 +360,7 @@ export default function StudentsPage() {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="px-2 py-1 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="px-2 py-1 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -412,15 +414,15 @@ export default function StudentsPage() {
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
-            <div className="bg-slate-900 p-4 text-white flex items-center justify-between">
-              <h3 className="font-bold text-sm">
-                {editingStudent ? `Edit Registration (${editingStudent.registrationNumber})` : 'New Student Registration'}
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div className="bg-[#7a0c16] p-4 text-white flex items-center justify-between border-b-2 border-amber-500">
+              <h3 className="font-bold text-sm text-white">
+                {editingStudent ? `छात्र विवरण संशोधन (${editingStudent.registrationNumber})` : 'नया छात्र पंजीकरण'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-amber-200 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -436,27 +438,27 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Registration Number
+                    पंजीकरण सं. (Reg No)
                   </label>
                   <input
                     type="text"
                     value={formData.registrationNumber}
                     onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                    placeholder="Auto-allocated if blank"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="स्वतः जनरेट हेतु खाली छोड़ें"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Student Full Name *
+                    छात्र का नाम (Student Name) *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                   />
                 </div>
               </div>
@@ -464,20 +466,20 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Father&apos;s Name *
+                    पिता का नाम (Father&apos;s Name) *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.fatherName}
                     onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Date of Birth (YYYY-MM-DD) *
+                    जन्म तिथि (YYYY-MM-DD) *
                   </label>
                   <input
                     type="text"
@@ -485,7 +487,7 @@ export default function StudentsPage() {
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     placeholder="2008-05-31"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
               </div>
@@ -493,56 +495,56 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Contact / WhatsApp Phone *
+                    मोबाइल नंबर (10 Digits) *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="10 digits (e.g. 7007440076)"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="10 अंक (उदा. 9876543210)"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Class / Grade
+                    कक्षा (Class / Grade)
                   </label>
                   <input
                     type="text"
                     value={formData.className}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                     placeholder="e.g. 12 or B.SC"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  School / College / Institution *
+                  विद्यालय / संस्थान का नाम *
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.schoolOrCollege}
                   onChange={(e) => setFormData({ ...formData, schoolOrCollege: e.target.value })}
-                  placeholder="e.g. AIMS INTERNATIONAL"
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                  placeholder="विद्यालय/कॉलेज का नाम"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Competition Name
+                  प्रतियोगिता श्रेणी (Category)
                 </label>
                 <input
                   type="text"
                   value={formData.competitionName}
                   onChange={(e) => setFormData({ ...formData, competitionName: e.target.value })}
                   placeholder="e.g. ONLINE QUIZ"
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                 />
               </div>
 
@@ -552,14 +554,14 @@ export default function StudentsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
                 >
-                  Cancel
+                  रद्द करें (Cancel)
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : editingStudent ? 'Update Student' : 'Create Student'}
+                  {submitting ? 'सुरक्षित कर रहे हैं...' : editingStudent ? 'विवरण अपडेट करें' : 'पंजीकरण सुरक्षित करें'}
                 </button>
               </div>
             </form>

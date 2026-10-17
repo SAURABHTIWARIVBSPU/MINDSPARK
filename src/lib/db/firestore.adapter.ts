@@ -5,6 +5,7 @@ import {
 } from './adapter.interface';
 import {
   Student,
+  WhatsAppStatus,
   ImportJob,
   AdmitCard,
   AdmitCardJob,
@@ -49,6 +50,10 @@ export class FirestoreAdapter implements IDatabaseAdapter {
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>): Promise<Student> {
+    throw new Error('Firestore adapter requires production Firebase Admin credentials');
+  }
+
+  async batchUpdateStudentWhatsAppStatus(studentIds: string[], status: WhatsAppStatus): Promise<number> {
     throw new Error('Firestore adapter requires production Firebase Admin credentials');
   }
 

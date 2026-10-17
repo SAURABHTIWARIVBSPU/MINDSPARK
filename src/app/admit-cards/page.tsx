@@ -169,18 +169,14 @@ export default function AdmitCardsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
-      {/* Page Title & Main Actions */}
+      {/* Official UP Portal Page Title & Main Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="inline-flex items-center space-x-1.5 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-wider mb-1.5">
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>Admit Card Operations & Dispatch</span>
-          </div>
+        <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Admit Card Management
+            प्रवेश पत्र प्रबंधन एवं डाउनलोड (Admit Card Desk)
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
-            High-performance A4 admit card compilation, SHA-256 data caching, and instant single/bulk ZIP dispatch.
+          <p className="text-xs text-slate-600 mt-0.5 max-w-2xl">
+            छात्रों के प्रवेश पत्र (A4 Hall Tickets) का निर्माण एवं व्यक्तिगत या बल्क ZIP डाउनलोड ({total} छात्र)।
           </p>
         </div>
 
@@ -189,14 +185,14 @@ export default function AdmitCardsPage() {
           <button
             onClick={startBatchGeneration}
             disabled={generating || total === 0}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#4a0009] text-white text-xs font-bold rounded-lg shadow-xs transition-colors disabled:opacity-50"
           >
             {generating ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
             ) : (
-              <Play className="w-3.5 h-3.5" />
+              <Play className="w-3.5 h-3.5 text-amber-300" />
             )}
-            <span>{generating ? 'Processing Chunks...' : 'Run Batch Generation'}</span>
+            <span>{generating ? 'प्रक्रिया जारी...' : 'बैच जनरेशन (Generate Batch)'}</span>
           </button>
 
           {/* Bulk Download Zip */}
@@ -204,94 +200,94 @@ export default function AdmitCardsPage() {
             <button
               type="submit"
               disabled={total === 0}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors disabled:opacity-50"
             >
-              <Archive className="w-3.5 h-3.5 text-slate-300" />
-              <span>Download Bulk ZIP</span>
+              <Archive className="w-3.5 h-3.5 text-white" />
+              <span>बल्क ज़िप डाउनलोड (Download ZIP)</span>
             </button>
           </form>
         </div>
       </div>
 
-      {/* Overview Stat Metrics */}
+      {/* Overview Stat Metrics - UP Scholarship Style */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-            Total Candidates
+        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            कुल पंजीकृत छात्र
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">
             {total}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            Indexed across {totalPages} page{totalPages !== 1 ? 's' : ''}
+            सत्यापित छात्र रिकॉर्ड्स
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-            Admit Card Standard
+        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            प्रवेश पत्र प्रारूप
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-indigo-600 mt-1">
-            Official v1.0
+          <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
+            मानक A4 प्रारूप
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            Standard A4 with verification barcode
+            सत्यापन बारकोड सहित
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-            Compilation Engine
+        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            डाउनलोड स्थिति
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">
-            {generating ? 'Batch Active' : 'Ready on Demand'}
+          <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">
+            {generating ? 'बैच सक्रिय' : 'डाउनलोड हेतु तैयार'}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            SHA-256 incremental caching
+            तत्काल डाउनलोड उपलब्ध
           </div>
         </div>
       </div>
 
       {/* Progress Card when generation is active */}
       {progress && (
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 animate-in fade-in duration-200">
+        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-3 animate-in fade-in duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
             <div className="font-bold text-slate-900 flex items-center space-x-2">
-              <Layers className="w-4 h-4 text-indigo-600" />
-              <span>Batch Compilation Progress: {percent}%</span>
+              <Layers className="w-4 h-4 text-[#7a0c16]" />
+              <span>बैच जनरेशन प्रगति: {percent}%</span>
             </div>
             <div className="text-slate-500 font-mono text-[11px]">
-              {progress.processed} / {progress.total} processed &bull; {progress.succeeded} ok,{' '}
-              {progress.failed} failed
+              {progress.processed} / {progress.total} प्रसंस्कृत &bull; {progress.succeeded} सफल,{' '}
+              {progress.failed} विफल
             </div>
           </div>
 
           <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
             <div
-              className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+              className="bg-[#7a0c16] h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${percent}%` }}
             />
           </div>
 
           {progress.isFinished && (
-            <div className="flex items-center space-x-2 text-xs text-emerald-800 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+            <div className="flex items-center space-x-2 text-xs text-emerald-800 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>All admit cards compiled and cached in storage. Ready for distribution.</span>
+              <span>सभी प्रवेश पत्र सफलतापूर्वक जनरेट हो चुके हैं। डाउनलोड हेतु उपलब्ध हैं।</span>
             </div>
           )}
         </div>
       )}
 
       {/* Student List & Paginated Data Section */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
         {/* Search, Filter & Page Size Controls */}
         <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <div>
             <h2 className="font-bold text-sm text-slate-900">
-              Candidate Admit Cards Directory
+              छात्र प्रवेश पत्र सूची
             </h2>
             <p className="text-[11px] text-slate-500">
-              Showing {startRecord}–{endRecord} of {total} registered candidates
+              प्रदर्शित: {startRecord}–{endRecord} (कुल {total} छात्र)
             </p>
           </div>
 
@@ -304,8 +300,8 @@ export default function AdmitCardsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, reg no, school..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="पंजीकरण संख्या, नाम या स्कूल खोजें..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
               />
             </div>
 
@@ -316,9 +312,9 @@ export default function AdmitCardsPage() {
                 setCompetitionFilter(e.target.value);
                 setPage(1);
               }}
-              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
             >
-              <option value="">All Competitions</option>
+              <option value="">सभी प्रतियोगिताएं (All)</option>
               <option value="ONLINE QUIZ">Online Quiz</option>
               <option value="MATH OLYMPIAD">Math Olympiad</option>
               <option value="SCIENCE CHALLENGE">Science Challenge</option>
@@ -326,14 +322,14 @@ export default function AdmitCardsPage() {
 
             {/* Page Size Selector */}
             <div className="flex items-center space-x-1.5 text-xs text-slate-500">
-              <span className="hidden sm:inline">Per page:</span>
+              <span className="hidden sm:inline">प्रति पृष्ठ:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                className="px-2 py-1.5 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16] font-medium"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -351,11 +347,12 @@ export default function AdmitCardsPage() {
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Reg No</th>
-                <th className="py-3 px-4">Candidate Name</th>
-                <th className="py-3 px-4">Competition Category</th>
-                <th className="py-3 px-4">Affiliated School</th>
-                <th className="py-3 px-4">Admit Status</th>
-                <th className="py-3 px-4 text-right">PDF Download</th>
+                <th className="py-3 px-4">पंजीकरण सं. (Reg No)</th>
+                <th className="py-3 px-4">छात्र का नाम (Name)</th>
+                <th className="py-3 px-4">प्रतियोगिता (Category)</th>
+                <th className="py-3 px-4">विद्यालय (Institution)</th>
+                <th className="py-3 px-4">स्थिति (Status)</th>
+                <th className="py-3 px-4 text-right">प्रवेश पत्र (Download)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -363,8 +360,8 @@ export default function AdmitCardsPage() {
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Fetching candidate records...</span>
+                      <div className="w-4 h-4 border-2 border-[#7a0c16] border-t-transparent rounded-full animate-spin" />
+                      <span>छात्र रिकॉर्ड लोड हो रहे हैं...</span>
                     </div>
                   </td>
                 </tr>
@@ -372,24 +369,24 @@ export default function AdmitCardsPage() {
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     {debouncedQuery || competitionFilter
-                      ? 'No candidate matching your search filters.'
-                      : 'No students registered yet. Please upload an Excel workbook first.'}
+                      ? 'खोज के अनुसार कोई छात्र नहीं मिला।'
+                      : 'कोई छात्र पंजीकृत नहीं है। कृपया पहले एक्सेल फाइल अपलोड करें।'}
                   </td>
                 </tr>
               ) : (
                 students.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-indigo-700">
+                  <tr key={student.studentId} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-[#7a0c16]">
                       {student.registrationNumber}
                     </td>
-                    <td className="py-3 px-4 font-medium text-slate-900">{student.name}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-900">{student.name}</td>
                     <td className="py-3 px-4 text-slate-600">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
+                      <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold">
                         {student.competitionName}
                       </span>
                     </td>
                     <td
-                      className="py-3 px-4 text-slate-500 max-w-[220px] truncate"
+                      className="py-3 px-4 text-slate-600 max-w-[220px] truncate"
                       title={student.schoolOrCollege}
                     >
                       {student.schoolOrCollege}
@@ -397,7 +394,7 @@ export default function AdmitCardsPage() {
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full">
                         <Check className="w-3 h-3" />
-                        <span>READY</span>
+                        <span>तैयार (READY)</span>
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -405,10 +402,10 @@ export default function AdmitCardsPage() {
                         href={`/api/admit-cards/download/${student.studentId}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center space-x-1.5 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-semibold text-xs transition-colors"
+                        className="inline-flex items-center space-x-1.5 px-3 py-1 bg-rose-50 hover:bg-rose-100 text-[#7a0c16] border border-rose-200 rounded-lg font-bold text-xs transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>PDF</span>
+                        <span>डाउनलोड PDF</span>
                       </a>
                     </td>
                   </tr>
@@ -422,20 +419,18 @@ export default function AdmitCardsPage() {
         <div className="sm:hidden divide-y divide-slate-100">
           {loading ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              Loading records...
+              <div className="w-5 h-5 border-2 border-[#7a0c16] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              लोड हो रहा है...
             </div>
           ) : students.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              {debouncedQuery || competitionFilter
-                ? 'No matching students.'
-                : 'No students registered yet. Please upload an Excel workbook first.'}
+              कोई छात्र उपलब्ध नहीं है।
             </div>
           ) : (
             students.map((student) => (
               <div key={student.studentId} className="p-4 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-100">
+                  <span className="font-mono text-xs font-bold text-[#7a0c16] bg-rose-50 px-2.5 py-0.5 rounded border border-rose-200">
                     {student.registrationNumber}
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
@@ -449,7 +444,7 @@ export default function AdmitCardsPage() {
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                  <span className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-medium">
                     {student.competitionName}
                   </span>
 
@@ -457,10 +452,10 @@ export default function AdmitCardsPage() {
                     href={`/api/admit-cards/download/${student.studentId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+                    className="inline-flex items-center space-x-1 px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download PDF</span>
+                    <span>डाउनलोड PDF</span>
                   </a>
                 </div>
               </div>
@@ -468,7 +463,7 @@ export default function AdmitCardsPage() {
           )}
         </div>
 
-        {/* Top-Tier Pagination Bar */}
+        {/* Pagination Bar */}
         <div className="p-4 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
           <div>
             Showing <strong className="text-slate-900">{startRecord}</strong> to{' '}
@@ -512,9 +507,9 @@ export default function AdmitCardsPage() {
                   <button
                     key={`page-${p}`}
                     onClick={() => setPage(Number(p))}
-                    className={`min-w-[32px] h-8 px-2 rounded-lg font-semibold text-xs transition-colors ${
+                    className={`min-w-[32px] h-8 px-2 rounded-lg font-bold text-xs transition-colors ${
                       isCurrent
-                        ? 'bg-indigo-600 text-white shadow-xs'
+                        ? 'bg-[#7a0c16] text-white shadow-xs'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
