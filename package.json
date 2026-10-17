@@ -12,6 +12,7 @@
     "restore": "node scripts/restore.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
