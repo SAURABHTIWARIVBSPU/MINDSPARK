@@ -51,7 +51,7 @@ export default function SettingsPage() {
   if (loading || !settings) {
     return (
       <div className="p-12 text-center text-xs text-slate-500 font-medium">
-        विन्यास लोड हो रहा है (Loading system parameters)...
+        Loading system configuration parameters...
       </div>
     );
   }
@@ -60,17 +60,17 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-4xl">
       <div className="border-l-4 border-[#7a0c16] pl-3 py-1">
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-          सिस्टम सेटिंग्स एवं विन्यास (System Settings)
+          System Configuration & Settings
         </h1>
         <p className="text-xs text-slate-600 mt-0.5">
-          परीक्षा विनिर्देश, विद्यालय विवरण, सहायता केंद्र एवं अनुक्रमांक प्रारूप विन्यास
+          Manage competition parameters, exam venue, reporting schedule, helpdesk info, and registration numbering rules.
         </p>
       </div>
 
       {saved && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md text-xs flex items-center space-x-2 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-          <span>सिस्टम सेटिंग्स सफलतापूर्वक सुरक्षित की गईं (Configuration saved successfully).</span>
+          <span>System configuration successfully updated and audited.</span>
         </div>
       )}
 
@@ -84,12 +84,12 @@ export default function SettingsPage() {
         {/* School & Competition Details */}
         <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
           <h2 className="font-bold text-sm text-[#7a0c16] border-b border-slate-200 pb-2">
-            संस्थान एवं परीक्षा विवरण (Institution & Exam Profile)
+            Institution & Competition Profile
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">विद्यालय / आयोजक संस्था का नाम</label>
+              <label className="block font-semibold text-slate-700 mb-1">School / Organizing Body Name</label>
               <input
                 type="text"
                 value={settings.schoolName}
@@ -100,7 +100,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">प्रतियोगिता / परीक्षा शीर्षक</label>
+              <label className="block font-semibold text-slate-700 mb-1">Competition / Examination Title</label>
               <input
                 type="text"
                 value={settings.competitionTitle}
@@ -111,7 +111,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">परीक्षा केंद्र / स्थल (Exam Venue)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Examination Venue / Campus</label>
               <input
                 type="text"
                 value={settings.venue}
@@ -126,12 +126,12 @@ export default function SettingsPage() {
         {/* Schedule & Helpdesk */}
         <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
           <h2 className="font-bold text-sm text-[#7a0c16] border-b border-slate-200 pb-2">
-            समय-सारणी एवं सहायता केंद्र (Schedule & Candidate Helpdesk)
+            Schedule & Candidate Helpdesk
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">परीक्षा तिथि (YYYY-MM-DD)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Examination Date (YYYY-MM-DD)</label>
               <input
                 type="text"
                 value={settings.examDate}
@@ -142,7 +142,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">उपस्थिति समय (Reporting Time)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Reporting Time</label>
               <input
                 type="text"
                 value={settings.reportingTime}
@@ -153,7 +153,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">हेल्पडेस्क संपर्क दूरभाष (Phone)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Helpdesk Contact Phone</label>
               <input
                 type="text"
                 value={settings.contactPhone}
@@ -164,7 +164,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">आधिकारिक ईमेल (Official Email)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Helpdesk Official Email</label>
               <input
                 type="email"
                 value={settings.contactEmail}
@@ -179,12 +179,12 @@ export default function SettingsPage() {
         {/* Registration Number Format */}
         <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
           <h2 className="font-bold text-sm text-[#7a0c16] border-b border-slate-200 pb-2">
-            पंजीकरण क्रमांक प्रारूप (Registration Number Sequence)
+            Registration Number Sequence
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">उपसर्ग (Prefix)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Prefix</label>
               <input
                 type="text"
                 value={settings.regNoPrefix}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">वर्ष कोड (Year Code)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Year Code</label>
               <input
                 type="text"
                 value={settings.regNoYear}
@@ -206,7 +206,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">वर्तमान अनुक्रम गणना (Counter)</label>
+              <label className="block font-semibold text-slate-700 mb-1">Current Sequence Counter</label>
               <input
                 type="number"
                 value={settings.regNoSeqCurrent}
@@ -218,7 +218,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-900 flex items-center justify-between">
-            <span className="font-medium">अगला आवंटित होने वाला अनुक्रमांक (Next Allocated Reg No):</span>
+            <span className="font-medium">Next Allocated Number Preview:</span>
             <strong className="text-[#7a0c16] font-mono text-sm bg-white px-2 py-0.5 rounded border border-amber-300">
               {settings.regNoPrefix}{settings.regNoYear}{settings.regNoSeqCurrent + 1}
             </strong>
@@ -229,16 +229,16 @@ export default function SettingsPage() {
         <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3 text-xs text-slate-600">
           <h3 className="font-bold text-slate-800 flex items-center space-x-1.5">
             <Shield className="w-4 h-4 text-[#7a0c16]" />
-            <span>सिस्टम डेटाबेस एवं संचयन स्थिति (Storage Providers)</span>
+            <span>Database & Storage Providers</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div className="p-3 bg-white rounded-md border border-slate-200 flex items-center space-x-3">
               <Database className="w-5 h-5 text-[#7a0c16] flex-shrink-0" />
               <div>
-                <div className="font-semibold text-slate-800">डेटाबेस एडॉप्टर (Database)</div>
+                <div className="font-semibold text-slate-800">Database Adapter</div>
                 <div className="text-slate-500 text-[11px]">
-                  स्थानीय JSON / फ़ायरबेस फ़ायरस्टोर (Active)
+                  Local JSON / Cloud Firestore (Active)
                 </div>
               </div>
             </div>
@@ -246,9 +246,9 @@ export default function SettingsPage() {
             <div className="p-3 bg-white rounded-md border border-slate-200 flex items-center space-x-3">
               <HardDrive className="w-5 h-5 text-emerald-700 flex-shrink-0" />
               <div>
-                <div className="font-semibold text-slate-800">फ़ाइल संचयन (Storage)</div>
+                <div className="font-semibold text-slate-800">Storage Adapter</div>
                 <div className="text-slate-500 text-[11px]">
-                  स्थानीय सुरक्षित संचयन / गूगल ड्राइव एपीआई
+                  Local Secure Storage / Google Drive API v3
                 </div>
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
             className="px-6 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-md text-xs font-bold flex items-center space-x-1.5 shadow-xs transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'सुरक्षित किया जा रहा है...' : 'सेटिंग्स सुरक्षित करें (Save Configuration)'}</span>
+            <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
           </button>
         </div>
       </form>

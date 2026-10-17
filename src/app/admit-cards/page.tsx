@@ -173,10 +173,10 @@ export default function AdmitCardsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            प्रवेश पत्र प्रबंधन एवं डाउनलोड (Admit Card Desk)
+            Admit Card Management & Download
           </h1>
           <p className="text-xs text-slate-600 mt-0.5 max-w-2xl">
-            छात्रों के प्रवेश पत्र (A4 Hall Tickets) का निर्माण एवं व्यक्तिगत या बल्क ZIP डाउनलोड ({total} छात्र)।
+            Generate candidate hall tickets (Standard A4 format) and download individual PDFs or bulk ZIP archive ({total} candidates).
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export default function AdmitCardsPage() {
             ) : (
               <Play className="w-3.5 h-3.5 text-amber-300" />
             )}
-            <span>{generating ? 'प्रक्रिया जारी...' : 'बैच जनरेशन (Generate Batch)'}</span>
+            <span>{generating ? 'Processing Batch...' : 'Generate Batch'}</span>
           </button>
 
           {/* Bulk Download Zip */}
@@ -203,7 +203,7 @@ export default function AdmitCardsPage() {
               className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors disabled:opacity-50"
             >
               <Archive className="w-3.5 h-3.5 text-white" />
-              <span>बल्क ज़िप डाउनलोड (Download ZIP)</span>
+              <span>Download Bulk ZIP</span>
             </button>
           </form>
         </div>
@@ -213,37 +213,37 @@ export default function AdmitCardsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            कुल पंजीकृत छात्र
+            Total Candidates
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">
             {total}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            सत्यापित छात्र रिकॉर्ड्स
+            Verified Student Records
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            प्रवेश पत्र प्रारूप
+            Admit Card Format
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            मानक A4 प्रारूप
+            Standard A4 Format
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            सत्यापन बारकोड सहित
+            With Verification Barcode
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            डाउनलोड स्थिति
+            Download Status
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">
-            {generating ? 'बैच सक्रिय' : 'डाउनलोड हेतु तैयार'}
+            {generating ? 'Batch Active' : 'Ready for Download'}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            तत्काल डाउनलोड उपलब्ध
+            Instant Download Available
           </div>
         </div>
       </div>
@@ -254,11 +254,11 @@ export default function AdmitCardsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
             <div className="font-bold text-slate-900 flex items-center space-x-2">
               <Layers className="w-4 h-4 text-[#7a0c16]" />
-              <span>बैच जनरेशन प्रगति: {percent}%</span>
+              <span>Batch Generation Progress: {percent}%</span>
             </div>
             <div className="text-slate-500 font-mono text-[11px]">
-              {progress.processed} / {progress.total} प्रसंस्कृत &bull; {progress.succeeded} सफल,{' '}
-              {progress.failed} विफल
+              {progress.processed} / {progress.total} processed &bull; {progress.succeeded} successful,{' '}
+              {progress.failed} failed
             </div>
           </div>
 
@@ -272,7 +272,7 @@ export default function AdmitCardsPage() {
           {progress.isFinished && (
             <div className="flex items-center space-x-2 text-xs text-emerald-800 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>सभी प्रवेश पत्र सफलतापूर्वक जनरेट हो चुके हैं। डाउनलोड हेतु उपलब्ध हैं।</span>
+              <span>All admit cards have been generated successfully and are ready for download.</span>
             </div>
           )}
         </div>
@@ -284,10 +284,10 @@ export default function AdmitCardsPage() {
         <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <div>
             <h2 className="font-bold text-sm text-slate-900">
-              छात्र प्रवेश पत्र सूची
+              Candidate Admit Cards
             </h2>
             <p className="text-[11px] text-slate-500">
-              प्रदर्शित: {startRecord}–{endRecord} (कुल {total} छात्र)
+              Showing: {startRecord}–{endRecord} (Total {total} candidates)
             </p>
           </div>
 
@@ -300,7 +300,7 @@ export default function AdmitCardsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="पंजीकरण संख्या, नाम या स्कूल खोजें..."
+                placeholder="Search by registration no, name, or school..."
                 className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
               />
             </div>
@@ -314,7 +314,7 @@ export default function AdmitCardsPage() {
               }}
               className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
             >
-              <option value="">सभी प्रतियोगिताएं (All)</option>
+              <option value="">All Competitions</option>
               <option value="ONLINE QUIZ">Online Quiz</option>
               <option value="MATH OLYMPIAD">Math Olympiad</option>
               <option value="SCIENCE CHALLENGE">Science Challenge</option>
@@ -322,7 +322,7 @@ export default function AdmitCardsPage() {
 
             {/* Page Size Selector */}
             <div className="flex items-center space-x-1.5 text-xs text-slate-500">
-              <span className="hidden sm:inline">प्रति पृष्ठ:</span>
+              <span className="hidden sm:inline">Per page:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -347,12 +347,11 @@ export default function AdmitCardsPage() {
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Reg No</th>
-                <th className="py-3 px-4">पंजीकरण सं. (Reg No)</th>
-                <th className="py-3 px-4">छात्र का नाम (Name)</th>
-                <th className="py-3 px-4">प्रतियोगिता (Category)</th>
-                <th className="py-3 px-4">विद्यालय (Institution)</th>
-                <th className="py-3 px-4">स्थिति (Status)</th>
-                <th className="py-3 px-4 text-right">प्रवेश पत्र (Download)</th>
+                <th className="py-3 px-4">Candidate Name</th>
+                <th className="py-3 px-4">Competition Category</th>
+                <th className="py-3 px-4">School / College</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Download PDF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -361,7 +360,7 @@ export default function AdmitCardsPage() {
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-4 h-4 border-2 border-[#7a0c16] border-t-transparent rounded-full animate-spin" />
-                      <span>छात्र रिकॉर्ड लोड हो रहे हैं...</span>
+                      <span>Loading candidate records...</span>
                     </div>
                   </td>
                 </tr>
@@ -369,8 +368,8 @@ export default function AdmitCardsPage() {
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     {debouncedQuery || competitionFilter
-                      ? 'खोज के अनुसार कोई छात्र नहीं मिला।'
-                      : 'कोई छात्र पंजीकृत नहीं है। कृपया पहले एक्सेल फाइल अपलोड करें।'}
+                      ? 'No candidates found matching the query.'
+                      : 'No candidates registered yet. Please upload an Excel sheet first.'}
                   </td>
                 </tr>
               ) : (
@@ -394,7 +393,7 @@ export default function AdmitCardsPage() {
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full">
                         <Check className="w-3 h-3" />
-                        <span>तैयार (READY)</span>
+                        <span>READY</span>
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -405,7 +404,7 @@ export default function AdmitCardsPage() {
                         className="inline-flex items-center space-x-1.5 px-3 py-1 bg-rose-50 hover:bg-rose-100 text-[#7a0c16] border border-rose-200 rounded-lg font-bold text-xs transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>डाउनलोड PDF</span>
+                        <span>Download PDF</span>
                       </a>
                     </td>
                   </tr>
@@ -420,11 +419,11 @@ export default function AdmitCardsPage() {
           {loading ? (
             <div className="p-8 text-center text-slate-400 text-xs">
               <div className="w-5 h-5 border-2 border-[#7a0c16] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              लोड हो रहा है...
+              Loading...
             </div>
           ) : students.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              कोई छात्र उपलब्ध नहीं है।
+              No candidates found.
             </div>
           ) : (
             students.map((student) => (
@@ -455,7 +454,7 @@ export default function AdmitCardsPage() {
                     className="inline-flex items-center space-x-1 px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>डाउनलोड PDF</span>
+                    <span>Download PDF</span>
                   </a>
                 </div>
               </div>

@@ -83,10 +83,10 @@ export default function AuditLogsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            सुरक्षा एवं ऑडिट लॉग (Security & Audit Logs)
+            Security & Audit Logs
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
-            सिस्टम में ऑपरेटरों द्वारा किए गए परिवर्तनों, आयात, प्रवेश पत्र निर्गमन एवं लॉगिन का ऑडिट विवरण
+            Audit trail of operator logins, data imports, candidate edits, and admit card runs.
           </p>
         </div>
 
@@ -94,10 +94,10 @@ export default function AuditLogsPage() {
           onClick={fetchLogs}
           disabled={loading}
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-100 transition-colors text-xs font-semibold self-start sm:self-auto shadow-xs"
-          title="ताज़ा करें"
+          title="Refresh"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#7a0c16]' : ''}`} />
-          <span>ताज़ा करें (Refresh)</span>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -110,7 +110,7 @@ export default function AuditLogsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="खोजें: गतिविधि, प्रयोक्ता ईमेल, संदर्भ आईडी..."
+              placeholder="Search action, actor email, target ID..."
               className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
             />
           </div>
@@ -120,7 +120,7 @@ export default function AuditLogsPage() {
             onChange={(e) => setActionFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
           >
-            <option value="">सभी गतिविधि प्रकार (All Actions)</option>
+            <option value="">All Action Types</option>
             {uniqueActions.map((action) => (
               <option key={action} value={action}>
                 {action}
@@ -131,7 +131,7 @@ export default function AuditLogsPage() {
 
         <div className="flex items-center justify-between sm:justify-end space-x-3 text-xs text-slate-600">
           <div className="flex items-center space-x-1.5">
-            <span>प्रति पृष्ठ:</span>
+            <span>Per page:</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
@@ -145,7 +145,7 @@ export default function AuditLogsPage() {
             </select>
           </div>
           <span className="font-bold text-slate-800 tabular-nums bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-            कुल प्रविष्टियां: {total}
+            Total Records: {total}
           </span>
         </div>
       </div>
@@ -156,12 +156,12 @@ export default function AuditLogsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-2.5 px-4">समय (Timestamp)</th>
-                <th className="py-2.5 px-4">प्रयोक्ता (Actor)</th>
-                <th className="py-2.5 px-4">गतिविधि (Action)</th>
-                <th className="py-2.5 px-4">लक्ष्य प्रकार (Target)</th>
-                <th className="py-2.5 px-4">संदर्भ सं. (ID)</th>
-                <th className="py-2.5 px-4">विवरण (Details)</th>
+                <th className="py-2.5 px-4">Timestamp</th>
+                <th className="py-2.5 px-4">Actor</th>
+                <th className="py-2.5 px-4">Action</th>
+                <th className="py-2.5 px-4">Target Type</th>
+                <th className="py-2.5 px-4">Target ID</th>
+                <th className="py-2.5 px-4">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -170,7 +170,7 @@ export default function AuditLogsPage() {
                   <td colSpan={6} className="py-10 text-center text-slate-500">
                     <div className="flex items-center justify-center space-x-2 font-medium">
                       <div className="w-4 h-4 border-2 border-[#7a0c16] border-t-transparent rounded-full animate-spin" />
-                      <span>ऑडिट रिकॉर्ड लोड हो रहे हैं...</span>
+                      <span>Loading audit records...</span>
                     </div>
                   </td>
                 </tr>
@@ -178,8 +178,8 @@ export default function AuditLogsPage() {
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-slate-400">
                     {search || actionFilter
-                      ? 'खोज मापदंड के अनुसार कोई ऑडिट रिकॉर्ड नहीं मिला।'
-                      : 'अभी तक कोई ऑडिट रिकॉर्ड दर्ज नहीं हुआ है।'}
+                      ? 'No audit events match your search criteria.'
+                      : 'No security records logged yet.'}
                   </td>
                 </tr>
               ) : (
@@ -212,9 +212,9 @@ export default function AuditLogsPage() {
         {/* Pagination Bar */}
         <div className="p-3.5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
           <div>
-            प्रदर्शित: <strong className="text-slate-900">{startRecord}</strong> से{' '}
-            <strong className="text-slate-900">{endRecord}</strong> (कुल:{' '}
-            <strong className="text-[#7a0c16]">{total}</strong> प्रविष्टियां)
+            Showing <strong className="text-slate-900">{startRecord}</strong> to{' '}
+            <strong className="text-slate-900">{endRecord}</strong> of{' '}
+            <strong className="text-[#7a0c16]">{total}</strong> records
           </div>
 
           <div className="flex items-center space-x-1.5">
@@ -236,7 +236,7 @@ export default function AuditLogsPage() {
             </button>
 
             <span className="px-2 font-semibold text-slate-800 whitespace-nowrap">
-              पृष्ठ {page} / {totalPages}
+              Page {page} of {totalPages}
             </span>
 
             <button

@@ -7,16 +7,16 @@ export default function NotFound() {
       <div className="w-16 h-16 bg-amber-50 rounded-lg flex items-center justify-center text-[#7a0c16] mb-4 border border-amber-200">
         <FileQuestion className="w-8 h-8 text-[#7a0c16]" />
       </div>
-      <h2 className="text-xl font-bold text-slate-800">404 - पृष्ठ प्राप्त नहीं हुआ (Page Not Found)</h2>
+      <h2 className="text-xl font-bold text-slate-800">404 - Page Not Found</h2>
       <p className="text-xs text-slate-600 mt-1 max-w-md">
-        आप जिस पृष्ठ को खोज रहे हैं वह उपलब्ध नहीं है अथवा हटा दिया गया है।
+        The page you are looking for does not exist or has been moved.
       </p>
       <Link
         href="/"
         className="mt-5 inline-flex items-center space-x-2 px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-md transition-colors shadow-xs"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>छात्र पोर्टल पर वापस जाएं (Return to Home)</span>
+        <span>Return to Student Portal</span>
       </Link>
     </div>
   );

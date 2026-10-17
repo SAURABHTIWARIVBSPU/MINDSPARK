@@ -153,7 +153,7 @@ export default function StudentPortalHomePage() {
               <strong className="text-white font-semibold">
                 {settings?.schoolName || 'Mind-Spark Organizing Body'}
               </strong>
-              . पंजीकृत अभ्यर्थी अपना अनुक्रमांक एवं जन्मतिथि दर्ज करके प्रवेश पत्र (Hall Ticket) सत्यापित एवं डाउनलोड करें।
+              . Registered candidates can search, verify, and download their official examination Admit Card / Hall Ticket.
             </p>
           </div>
 
@@ -164,7 +164,7 @@ export default function StudentPortalHomePage() {
               className="inline-flex items-center justify-center space-x-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs sm:text-sm font-bold shadow-xs transition-colors"
             >
               <Download className="w-4 h-4" />
-              <span>प्रवेश पत्र डाउनलोड करें (Download Admit Card)</span>
+              <span>Download Admit Card</span>
             </a>
 
             <a
@@ -172,7 +172,7 @@ export default function StudentPortalHomePage() {
               className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#5c000b] hover:bg-[#4a0008] text-white border border-amber-400/40 rounded-md text-xs sm:text-sm font-medium transition-colors"
             >
               <FileText className="w-4 h-4 text-amber-400" />
-              <span>परीक्षा केंद्र एवं नियम (Rules & Venue)</span>
+              <span>Examination Directives & Venue</span>
             </a>
           </div>
 
@@ -183,7 +183,7 @@ export default function StudentPortalHomePage() {
                 <Calendar className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] text-amber-200 uppercase font-semibold">परीक्षा तिथि (Date)</div>
+                <div className="text-[10px] text-amber-200 uppercase font-semibold">Exam Date</div>
                 <div className="font-bold text-white truncate">
                   {settings?.examDate || '01 Nov 2026'}
                 </div>
@@ -195,7 +195,7 @@ export default function StudentPortalHomePage() {
                 <Clock className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] text-amber-200 uppercase font-semibold">उपस्थिति समय (Reporting)</div>
+                <div className="text-[10px] text-amber-200 uppercase font-semibold">Reporting Time</div>
                 <div className="font-bold text-white truncate">
                   {settings?.reportingTime || '09:00 AM'}
                 </div>
@@ -207,9 +207,9 @@ export default function StudentPortalHomePage() {
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] text-amber-200 uppercase font-semibold">परीक्षा स्थल (Venue)</div>
-                <div className="font-bold text-white truncate" title={settings?.venue || 'केंद्रीय परिसर'}>
-                  {settings?.venue || 'केंद्रीय परिसर (Central Campus)'}
+                <div className="text-[10px] text-amber-200 uppercase font-semibold">Exam Venue</div>
+                <div className="font-bold text-white truncate" title={settings?.venue || 'Central Examination Venue'}>
+                  {settings?.venue || 'Central Examination Campus'}
                 </div>
               </div>
             </div>
@@ -227,10 +227,10 @@ export default function StudentPortalHomePage() {
                 <FileCheck2 className="w-5 h-5 text-[#7a0c16]" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-                प्रवेश पत्र सत्यापन एवं खोज (Admit Card Verification)
+                Candidate Admit Card Verification
               </h2>
               <p className="text-xs text-slate-600">
-                अपना पंजीकरण अनुक्रमांक एवं जन्मतिथि दर्ज करके प्रवेश पत्र खोजें एवं डाउनलोड करें।
+                Enter your registration number and date of birth to verify and download your provisional admit card.
               </p>
             </div>
 
@@ -238,7 +238,7 @@ export default function StudentPortalHomePage() {
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs flex items-start space-x-2.5 font-medium">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
                 <div className="flex-1">
-                  <span>सत्यापन सूचना: </span>
+                  <span>Verification Notice: </span>
                   {error}
                 </div>
               </div>
@@ -249,7 +249,7 @@ export default function StudentPortalHomePage() {
                 {/* Registration Number Field */}
                 <div>
                   <label htmlFor="regNoInput" className="block text-xs font-semibold text-slate-700 mb-1">
-                    पंजीकरण अनुक्रमांक (Registration Number) <span className="text-red-500">*</span>
+                    Registration Number <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -259,19 +259,19 @@ export default function StudentPortalHomePage() {
                       required
                       value={regNo}
                       onChange={(e) => setRegNo(e.target.value)}
-                      placeholder="उदा. MS211001"
+                      placeholder="e.g. MS211001"
                       className="w-full pl-9 pr-3 py-2 text-xs font-mono uppercase tracking-wider border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
                     />
                   </div>
                   <span className="block text-[11px] text-slate-500 mt-1">
-                    प्रारूप: MS के साथ आवंटित संख्या
+                    Format: Registration number with MS prefix
                   </span>
                 </div>
 
                 {/* Date of Birth Field */}
                 <div>
                   <label htmlFor="dobInput" className="block text-xs font-semibold text-slate-700 mb-1">
-                    जन्मतिथि (Date of Birth) <span className="text-red-500">*</span>
+                    Date of Birth (DOB) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -280,11 +280,11 @@ export default function StudentPortalHomePage() {
                       required
                       value={dob}
                       onChange={(e) => setDob(e.target.value)}
-                      placeholder="YYYY-MM-DD अथवा DD/MM/YYYY"
+                      placeholder="YYYY-MM-DD or DD/MM/YYYY"
                       className="w-full pl-3 pr-10 py-2 text-xs font-mono border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
                     />
                     <div
-                      title="दिनांक चुनें"
+                      title="Select Date"
                       className="absolute right-2.5 top-2 w-6 h-6 flex items-center justify-center cursor-pointer text-slate-400 hover:text-[#7a0c16] transition-colors"
                     >
                       <Calendar className="w-4 h-4 pointer-events-none" />
@@ -302,7 +302,7 @@ export default function StudentPortalHomePage() {
                     </div>
                   </div>
                   <span className="block text-[11px] text-slate-500 mt-1">
-                    सीधे लिखें या कैलेंडर आइकॉन पर क्लिक करें
+                    Enter directly or use calendar picker
                   </span>
                 </div>
               </div>
@@ -315,12 +315,12 @@ export default function StudentPortalHomePage() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>सत्यापन किया जा रहा है...</span>
+                    <span>Verifying credentials...</span>
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4" />
-                    <span>प्रवेश पत्र खोजें एवं सत्यापित करें (Verify & Fetch)</span>
+                    <span>Verify & Fetch Admit Card</span>
                   </>
                 )}
               </button>
@@ -338,17 +338,17 @@ export default function StudentPortalHomePage() {
                   </div>
                   <div>
                     <div className="text-[10px] uppercase font-bold tracking-widest text-amber-300">
-                      प्रवेश पर्ची (Provisional Admit Slip) &bull; परीक्षा 2026
+                      Provisional Admit Slip &bull; Examination 2026
                     </div>
                     <div className="text-sm sm:text-base font-bold text-white tracking-tight">
-                      माइंड-स्पार्क परीक्षा परिषद
+                      Mind-Spark Examination Council
                     </div>
                   </div>
                 </div>
 
                 <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded bg-amber-100 border border-amber-300 text-[#7a0c16] text-xs font-bold">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>पंजीकरण सत्यापित (VERIFIED)</span>
+                  <span>REGISTRATION VERIFIED</span>
                 </div>
               </div>
 
@@ -358,7 +358,7 @@ export default function StudentPortalHomePage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-amber-50/60 rounded-md border border-amber-200 gap-3">
                   <div className="space-y-0.5">
                     <span className="text-[11px] text-amber-900 font-semibold uppercase tracking-wider">
-                      अभ्यर्थी का नाम (Candidate Name)
+                      Candidate Name
                     </span>
                     <h3 className="text-lg font-bold text-slate-900 tracking-tight">
                       {searchResult.student.name}
@@ -368,7 +368,7 @@ export default function StudentPortalHomePage() {
                   <div className="flex items-center space-x-2">
                     <div className="text-right">
                       <div className="text-[10px] text-slate-500 uppercase font-semibold">
-                        पंजीकरण अनुक्रमांक
+                        Registration Number
                       </div>
                       <div className="font-mono text-base font-bold text-[#7a0c16] tracking-wider">
                         {searchResult.student.registrationNumber}
@@ -377,7 +377,7 @@ export default function StudentPortalHomePage() {
                     <button
                       type="button"
                       onClick={() => copyRegNumber(searchResult.student.registrationNumber)}
-                      title="अनुक्रमांक कॉपी करें"
+                      title="Copy Registration Number"
                       className="p-1.5 rounded border border-slate-300 bg-white text-slate-600 hover:text-[#7a0c16] hover:border-amber-400 transition-colors"
                     >
                       {copied ? (
@@ -393,16 +393,16 @@ export default function StudentPortalHomePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
                   <div className="p-3 bg-slate-50 rounded-md border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">
-                      पिता / अभिभावक का नाम
+                      Father / Guardian's Name
                     </span>
                     <p className="font-semibold text-slate-900 text-sm">
-                      {searchResult.student.fatherName || 'उल्लेखित नहीं'}
+                      {searchResult.student.fatherName || 'Not Specified'}
                     </p>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-md border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">
-                      जन्मतिथि (DOB)
+                      Date of Birth (DOB)
                     </span>
                     <p className="font-mono font-semibold text-slate-900 text-sm">
                       {searchResult.student.dateOfBirth}
@@ -411,7 +411,7 @@ export default function StudentPortalHomePage() {
 
                   <div className="p-3 bg-slate-50 rounded-md border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">
-                      प्रतियोगिता वर्ग / कक्षा
+                      Competition Category / Class
                     </span>
                     <div>
                       <span className="px-2 py-0.5 bg-amber-50 text-amber-900 font-bold rounded text-xs border border-amber-200">
@@ -422,7 +422,7 @@ export default function StudentPortalHomePage() {
 
                   <div className="sm:col-span-2 lg:col-span-3 p-3 bg-slate-50 rounded-md border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-semibold">
-                      विद्यालय / महाविद्यालय का नाम
+                      School / College / Institution
                     </span>
                     <p className="font-semibold text-slate-900 text-sm">
                       {searchResult.student.schoolOrCollege}
@@ -434,26 +434,26 @@ export default function StudentPortalHomePage() {
                 <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-md space-y-2.5">
                   <div className="flex items-center space-x-2 text-[#7a0c16] font-bold text-xs uppercase tracking-wider">
                     <MapPin className="w-4 h-4 text-[#7a0c16]" />
-                    <span>आवंटित परीक्षा केंद्र एवं समय-सारणी</span>
+                    <span>Allocated Examination Venue & Schedule</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-0.5">
                     <div className="space-y-0.5">
-                      <span className="text-[11px] text-slate-600">परीक्षा तिथि:</span>
+                      <span className="text-[11px] text-slate-600">Exam Date:</span>
                       <p className="font-bold text-slate-900 text-sm">
                         {searchResult.schedule.examDate}
                       </p>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[11px] text-slate-600">उपस्थिति समय:</span>
+                      <span className="text-[11px] text-slate-600">Reporting Time:</span>
                       <p className="font-bold text-slate-900 text-sm">
                         {searchResult.schedule.reportingTime}
                       </p>
                     </div>
 
                     <div className="space-y-0.5 sm:col-span-1">
-                      <span className="text-[11px] text-slate-600">परीक्षा स्थल:</span>
+                      <span className="text-[11px] text-slate-600">Exam Venue:</span>
                       <p className="font-bold text-slate-900 text-sm">
                         {searchResult.schedule.venue}
                       </p>
@@ -471,7 +471,7 @@ export default function StudentPortalHomePage() {
                     className="flex-1 py-2.5 px-5 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#450007] text-white rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2 shadow-xs transition-colors text-center"
                   >
                     <Download className="w-4 h-4" />
-                    <span>आधिकारिक प्रवेश पत्र डाउनलोड करें (PDF)</span>
+                    <span>Download Official Admit Card (PDF)</span>
                   </a>
 
                   <button
@@ -483,12 +483,12 @@ export default function StudentPortalHomePage() {
                     {printing ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>प्रिंट तैयार हो रहा है...</span>
+                        <span>Preparing print document...</span>
                       </>
                     ) : (
                       <>
                         <Printer className="w-4 h-4 text-amber-400" />
-                        <span>प्रवेश पत्र प्रिंट करें</span>
+                        <span>Print Admit Slip</span>
                       </>
                     )}
                   </button>
@@ -497,12 +497,12 @@ export default function StudentPortalHomePage() {
                 {/* Candidate Pre-Exam Instructions Checklist */}
                 <div className="pt-3 border-t border-slate-200">
                   <div className="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2">
-                    अभ्यर्थियों हेतु अनिवार्य निर्देश (Directives):
+                    Essential Examination Day Directives:
                   </div>
                   <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-                    <li>डाउनलोड किए गए प्रवेश पत्र का A4 आकार में स्पष्ट प्रिंट साथ लाएं।</li>
-                    <li>प्रवेश सत्यापन हेतु अपने विद्यालय/कॉलेज का मूल पहचान पत्र साथ लाएं।</li>
-                    <li>उपस्थिति समय से कम से कम 30 मिनट पूर्व परीक्षा केंद्र पर पहुंचें।</li>
+                    <li>Bring a clear printed A4 copy of the downloaded Admit Card to the exam center.</li>
+                    <li>Bring your original school or college photo ID card for verification.</li>
+                    <li>Report to the examination center at least 30 minutes before the scheduled time.</li>
                   </ul>
                 </div>
               </div>
@@ -515,10 +515,10 @@ export default function StudentPortalHomePage() {
       <section id="about" className="space-y-4">
         <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-            परीक्षा एवं छात्रवृत्ति विशेषताएं (Academic Features)
+            Academic Competition Highlights
           </h2>
           <p className="text-xs text-slate-600">
-            माइंड-स्पार्क अंतर-विद्यालयीय अकादमिक मूल्यांकन एवं छात्रवृत्ति कार्यक्रम
+            Mind-Spark Inter-School Academic Evaluation & Scholarship Program
           </p>
         </div>
 
@@ -527,9 +527,9 @@ export default function StudentPortalHomePage() {
             <div className="w-8 h-8 bg-amber-50 text-[#7a0c16] rounded flex items-center justify-center border border-amber-200">
               <Award className="w-4 h-4 text-[#7a0c16]" />
             </div>
-            <h3 className="font-bold text-xs text-slate-900">योग्यता एवं छात्रवृत्ति (Merit Awards)</h3>
+            <h3 className="font-bold text-xs text-slate-900">Merit Awards & Scholarships</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              शीर्ष स्थान प्राप्त करने वाले मेधावी छात्र-छात्राओं को योग्यता प्रमाण पत्र एवं छात्रवृत्ति सम्मान प्रदान किया जाता है।
+              Top performing meritorious students are awarded certificates of excellence and scholarship awards.
             </p>
           </div>
 
@@ -537,9 +537,9 @@ export default function StudentPortalHomePage() {
             <div className="w-8 h-8 bg-amber-50 text-[#7a0c16] rounded flex items-center justify-center border border-amber-200">
               <BookOpen className="w-4 h-4 text-[#7a0c16]" />
             </div>
-            <h3 className="font-bold text-xs text-slate-900">अकादमिक संकाय (Subject Disciplines)</h3>
+            <h3 className="font-bold text-xs text-slate-900">Subject Disciplines</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              गणितीय अभिरुचि, विज्ञान, तार्किक क्षमता एवं सामान्य ज्ञान का स्तरवार मानकीकृत मूल्यांकन।
+              Comprehensive evaluation across Mathematical Aptitude, Science, Logical Reasoning, and General Knowledge.
             </p>
           </div>
 
@@ -547,9 +547,9 @@ export default function StudentPortalHomePage() {
             <div className="w-8 h-8 bg-amber-50 text-[#7a0c16] rounded flex items-center justify-center border border-amber-200">
               <ShieldCheck className="w-4 h-4 text-[#7a0c16]" />
             </div>
-            <h3 className="font-bold text-xs text-slate-900">पारदर्शी एवं निष्पक्ष (Standardized Evaluation)</h3>
+            <h3 className="font-bold text-xs text-slate-900">Standardized Evaluation</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              बारकोड आधारित प्रवेश सत्यापन, सुरक्षित बैठक व्यवस्था एवं पूर्ण निष्पक्षता से परिणाम तैयार किया जाता है।
+              Barcode-enabled entry verification, fair seating arrangements, and unbiased evaluation standards.
             </p>
           </div>
         </div>
@@ -559,10 +559,10 @@ export default function StudentPortalHomePage() {
       <section id="rules" className="space-y-4">
         <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-            परीक्षार्थियों हेतु महत्वपूर्ण दिशा-निर्देश (Examination Rules)
+            Important Examination Directives & Guidelines
           </h2>
           <p className="text-xs text-slate-600">
-            परीक्षा केंद्र पर प्रवेश एवं अनुशासन हेतु अनिवार्य नियम
+            Mandatory code of conduct and entry rules for all candidates at the examination venue
           </p>
         </div>
 
@@ -572,10 +572,10 @@ export default function StudentPortalHomePage() {
               <span className="w-5 h-5 rounded bg-[#7a0c16] text-white flex items-center justify-center text-[10px] font-bold">
                 01
               </span>
-              <span>मूल प्रवेश पत्र एवं छात्र पहचान पत्र</span>
+              <span>Printed Admit Card & Student Photo ID</span>
             </div>
             <p className="text-slate-600 pl-7 leading-relaxed">
-              परीक्षार्थियों को A4 पेपर पर मुद्रित मूल प्रवेश पत्र और विद्यालय/महाविद्यालय का पहचान पत्र अनिवार्य रूप से साथ लाना होगा।
+              Candidates must carry their printed A4 admit card along with their original school/college identity card.
             </p>
           </div>
 
@@ -584,10 +584,10 @@ export default function StudentPortalHomePage() {
               <span className="w-5 h-5 rounded bg-[#7a0c16] text-white flex items-center justify-center text-[10px] font-bold">
                 02
               </span>
-              <span>समय का पालन एवं मुख्य द्वार बंद होना</span>
+              <span>Punctuality & Center Gate Closure</span>
             </div>
             <p className="text-slate-600 pl-7 leading-relaxed">
-              परीक्षा प्रारंभ होने के 15 मिनट पूर्व परीक्षा केंद्र के मुख्य द्वार बंद कर दिए जाएंगे। विलंब से आने पर प्रवेश नहीं मिलेगा।
+              Examination center gates will close 15 minutes prior to commencement. Late entry will not be permitted.
             </p>
           </div>
 
@@ -596,10 +596,10 @@ export default function StudentPortalHomePage() {
               <span className="w-5 h-5 rounded bg-[#7a0c16] text-white flex items-center justify-center text-[10px] font-bold">
                 03
               </span>
-              <span>प्रतिबंधित इलेक्ट्रॉनिक उपकरण</span>
+              <span>Prohibited Electronic Items</span>
             </div>
             <p className="text-slate-600 pl-7 leading-relaxed">
-              मोबाइल फोन, स्मार्टवॉच, कैलकुलेटर, ब्लूटूथ उपकरण अथवा कोई भी अन्य इलेक्ट्रॉनिक सामग्री परीक्षा कक्ष में पूर्णतः वर्जित है।
+              Mobile phones, smartwatches, calculators, Bluetooth devices, and digital gadgets are strictly prohibited.
             </p>
           </div>
 
@@ -608,10 +608,10 @@ export default function StudentPortalHomePage() {
               <span className="w-5 h-5 rounded bg-[#7a0c16] text-white flex items-center justify-center text-[10px] font-bold">
                 04
               </span>
-              <span>परीक्षा अनुशासन एवं सदाचार</span>
+              <span>Examination Hall Conduct</span>
             </div>
             <p className="text-slate-600 pl-7 leading-relaxed">
-              परीक्षा कक्ष में पूर्ण शांति बनाए रखें। अनुचित साधनों के प्रयोग अथवा प्रतिरूपण (Impersonation) पर तत्काल निष्कासन होगा।
+              Maintain silence and decorum. Any use of unfair means, malpractice, or impersonation will lead to immediate disqualification.
             </p>
           </div>
         </div>
@@ -622,10 +622,10 @@ export default function StudentPortalHomePage() {
         <div className="space-y-1.5">
           <div className="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-900">
             <HelpCircle className="w-4 h-4 text-[#7a0c16]" />
-            <span>परीक्षार्थी सहायता केंद्र (Candidate Helpdesk)</span>
+            <span>Candidate Examination Helpdesk</span>
           </div>
           <h3 className="text-sm sm:text-base font-bold text-slate-900">
-            पंजीकरण अथवा प्रवेश पत्र में सहायता हेतु संपर्क करें
+            Contact helpdesk for assistance with registration or admit card retrieval
           </h3>
           <div className="flex flex-wrap gap-3 text-xs text-slate-700 pt-0.5">
             <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded border border-amber-300">
@@ -645,7 +645,7 @@ export default function StudentPortalHomePage() {
             className="w-full md:w-auto inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-md text-xs font-bold shadow-xs transition-colors"
           >
             <Lock className="w-3.5 h-3.5 text-amber-300" />
-            <span>विभागीय लॉगिन (Staff Login)</span>
+            <span>Staff Administration Login</span>
           </Link>
         </div>
       </section>

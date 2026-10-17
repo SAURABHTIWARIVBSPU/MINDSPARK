@@ -170,10 +170,10 @@ export default function StudentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
         <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            छात्र प्रबंधन एवं सूची (Student Directory)
+            Student Directory & Management
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
-            पंजीकृत छात्रों की खोज, विवरण संशोधन, प्रवेश पत्र डाउनलोड एवं सत्यापन ({total} छात्र रिकॉर्ड्स)
+            Search, filter, edit, download admit cards, and verify registered candidates ({total} records)
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function StudentsPage() {
           className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
         >
           <Plus className="w-4 h-4 text-amber-300" />
-          <span>नया पंजीकरण (New Registration)</span>
+          <span>New Registration</span>
         </button>
       </div>
 
@@ -197,7 +197,7 @@ export default function StudentsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="पंजीकरण संख्या, नाम, मोबाइल या स्कूल खोजें..."
+            placeholder="Search Reg No, Name, Mobile, or School..."
             className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
         </div>
@@ -210,7 +210,7 @@ export default function StudentsPage() {
               setCompetition(e.target.value);
               setPage(1);
             }}
-            placeholder="प्रतियोगिता (Category)"
+            placeholder="Category Filter"
             className="text-xs border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
 
@@ -221,7 +221,7 @@ export default function StudentsPage() {
               setClassName(e.target.value);
               setPage(1);
             }}
-            placeholder="कक्षा (Class)"
+            placeholder="Class Filter"
             className="text-xs border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
           />
 
@@ -247,28 +247,28 @@ export default function StudentsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-3 px-4">पंजीकरण सं. (Reg No)</th>
-                <th className="py-3 px-4">छात्र का नाम (Name)</th>
-                <th className="py-3 px-4">पिता का नाम (Father)</th>
-                <th className="py-3 px-4">जन्म तिथि (DOB)</th>
-                <th className="py-3 px-4">मोबाइल (Contact)</th>
-                <th className="py-3 px-4">विद्यालय (Institution)</th>
-                <th className="py-3 px-4">कक्षा (Class)</th>
-                <th className="py-3 px-4">प्रतियोगिता (Category)</th>
-                <th className="py-3 px-4 text-right">कार्यवाही (Actions)</th>
+                <th className="py-3 px-4">Reg No</th>
+                <th className="py-3 px-4">Candidate Name</th>
+                <th className="py-3 px-4">Father Name</th>
+                <th className="py-3 px-4">DOB</th>
+                <th className="py-3 px-4">Contact</th>
+                <th className="py-3 px-4">School / College</th>
+                <th className="py-3 px-4">Class</th>
+                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    छात्र रिकॉर्ड लोड हो रहे हैं...
+                    Loading candidate records...
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    कोई छात्र रिकॉर्ड उपलब्ध नहीं है। &quot;नया पंजीकरण&quot; करें अथवा एक्सेल फाइल अपलोड करें।
+                    No candidate records found. Click &quot;New Registration&quot; or import an Excel file.
                   </td>
                 </tr>
               ) : (
@@ -298,7 +298,7 @@ export default function StudentsPage() {
                         href={`/api/admit-cards/download/${student.studentId}`}
                         target="_blank"
                         rel="noreferrer"
-                        title="प्रवेश पत्र (Admit Card PDF) डाउनलोड करें"
+                        title="Download Admit Card PDF"
                         className="p-1.5 inline-block text-slate-600 hover:text-[#7a0c16] hover:bg-rose-50 rounded transition-colors"
                       >
                         <FileText className="w-4 h-4" />
@@ -310,7 +310,7 @@ export default function StudentsPage() {
                           href={generateWhatsAppLink(student, settings)}
                           target="_blank"
                           rel="noreferrer"
-                          title="व्हाट्सएप संदेश भेजें"
+                          title="Send WhatsApp Message"
                           className="p-1.5 inline-block text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -418,7 +418,7 @@ export default function StudentsPage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
             <div className="bg-[#7a0c16] p-4 text-white flex items-center justify-between border-b-2 border-amber-500">
               <h3 className="font-bold text-sm text-white">
-                {editingStudent ? `छात्र विवरण संशोधन (${editingStudent.registrationNumber})` : 'नया छात्र पंजीकरण'}
+                {editingStudent ? `Edit Candidate Record (${editingStudent.registrationNumber})` : 'New Student Registration'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -438,20 +438,20 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    पंजीकरण सं. (Reg No)
+                    Registration No
                   </label>
                   <input
                     type="text"
                     value={formData.registrationNumber}
                     onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                    placeholder="स्वतः जनरेट हेतु खाली छोड़ें"
+                    placeholder="Leave empty to auto-generate"
                     className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    छात्र का नाम (Student Name) *
+                    Student Full Name *
                   </label>
                   <input
                     type="text"
@@ -466,7 +466,7 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    पिता का नाम (Father&apos;s Name) *
+                    Father&apos;s Name *
                   </label>
                   <input
                     type="text"
@@ -479,7 +479,7 @@ export default function StudentsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    जन्म तिथि (YYYY-MM-DD) *
+                    Date of Birth (YYYY-MM-DD) *
                   </label>
                   <input
                     type="text"
@@ -495,21 +495,21 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    मोबाइल नंबर (10 Digits) *
+                    Mobile Number (10 Digits) *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="10 अंक (उदा. 9876543210)"
+                    placeholder="e.g. 9876543210"
                     className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    कक्षा (Class / Grade)
+                    Class / Grade
                   </label>
                   <input
                     type="text"
@@ -523,21 +523,21 @@ export default function StudentsPage() {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  विद्यालय / संस्थान का नाम *
+                  Institution / School / College *
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.schoolOrCollege}
                   onChange={(e) => setFormData({ ...formData, schoolOrCollege: e.target.value })}
-                  placeholder="विद्यालय/कॉलेज का नाम"
+                  placeholder="School or College Name"
                   className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  प्रतियोगिता श्रेणी (Category)
+                  Competition Category
                 </label>
                 <input
                   type="text"
@@ -554,14 +554,14 @@ export default function StudentsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
                 >
-                  रद्द करें (Cancel)
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50"
                 >
-                  {submitting ? 'सुरक्षित कर रहे हैं...' : editingStudent ? 'विवरण अपडेट करें' : 'पंजीकरण सुरक्षित करें'}
+                  {submitting ? 'Saving...' : editingStudent ? 'Update Details' : 'Save Registration'}
                 </button>
               </div>
             </form>

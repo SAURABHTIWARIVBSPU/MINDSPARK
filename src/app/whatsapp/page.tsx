@@ -466,10 +466,10 @@ export default function WhatsAppPage() {
         <div>
           <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              व्हाट्सएप प्रेषण एवं संचार केंद्र (WhatsApp Dispatch Desk)
+              WhatsApp Dispatch & Messaging Console
             </h1>
             <p className="text-xs text-slate-600 mt-0.5">
-              छात्रों को परीक्षा तिथि, केंद्र विवरण एवं प्रवेश पत्र सूचना व्हाट्सएप द्वारा प्रेषित करें।
+              Dispatch examination schedules, admit card links, and venue updates to candidates via WhatsApp.
             </p>
           </div>
         </div>
@@ -481,7 +481,7 @@ export default function WhatsAppPage() {
             className="inline-flex items-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
           >
             <Play className="w-3.5 h-3.5 text-amber-300" />
-            <span>बल्क प्रेषण शुरू करें (Start Queue)</span>
+            <span>Start Bulk Queue</span>
           </button>
 
           <form action="/api/whatsapp/export" method="POST" target="_blank" className="inline">
@@ -491,7 +491,7 @@ export default function WhatsAppPage() {
               className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-xs transition-colors"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-amber-600" />
-              <span>एक्सेल रिपोर्ट डाउनलोड</span>
+              <span>Download Excel Report</span>
             </button>
           </form>
         </div>
@@ -501,49 +501,49 @@ export default function WhatsAppPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            कुल छात्र (Total)
+            Total Students
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">
             {stats.totalActive}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            पंजीकृत छात्र रिकॉर्ड्स
+            Registered Student Records
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            संदेश प्रेषित (Sent)
+            Dispatched (Sent)
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 tabular-nums">
             {stats.sentCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            सफलतापूर्वक भेजे गए
+            Successfully Delivered
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            लंबित (Pending)
+            Pending Queue
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1 tabular-nums">
             {stats.pendingCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            प्रेषण हेतु शेष
+            Awaiting Dispatch
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-slate-700">
           <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            प्रेषण विधि (Mode)
+            Dispatch Mode
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            ब्राउज़र कतार
+            Browser Queue
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            डायरेक्ट व क्लाउड API
+            Direct & Cloud API
           </div>
         </div>
       </div>
@@ -559,7 +559,7 @@ export default function WhatsAppPage() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>बल्क प्रेषण (Bulk Queue)</span>
+          <span>Bulk Dispatch</span>
           {selectedCount > 0 && (
             <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-900 rounded-full text-[10px]">
               {selectedCount}
@@ -576,7 +576,7 @@ export default function WhatsAppPage() {
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>व्यक्तिगत संदेश (Single Chat)</span>
+          <span>Single Chat</span>
         </button>
 
         <button
@@ -588,7 +588,7 @@ export default function WhatsAppPage() {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>संपर्क सूची (Broadcast Contacts)</span>
+          <span>Broadcast List</span>
         </button>
 
         <button
@@ -600,7 +600,7 @@ export default function WhatsAppPage() {
           }`}
         >
           <Settings2 className="w-4 h-4" />
-          <span>सेटिंग्स (Cloud API)</span>
+          <span>Cloud API Settings</span>
         </button>
       </div>
 
@@ -653,8 +653,8 @@ export default function WhatsAppPage() {
               {/* Merge Tag Chips */}
               <div className="space-y-1.5">
                 <div className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
-                  <span>वेरिएबल टैग जोड़ें (Click to insert):</span>
-                  <span className="text-[10px] text-slate-400 font-normal">प्रत्येक छात्र के अनुसार स्वचालित परिवर्तन</span>
+                  <span>Insert Dynamic Tag:</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Automatically personalized for each student</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200/80">
                   {WHATSAPP_MERGE_TAGS.map((tagItem) => (
@@ -678,7 +678,7 @@ export default function WhatsAppPage() {
                   value={customText}
                   onChange={(e) => setCustomText(e.target.value)}
                   rows={8}
-                  placeholder="संदेश टाइप करें..."
+                  placeholder="Type your WhatsApp message..."
                   className="w-full p-3.5 text-xs font-mono leading-relaxed border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
                 />
                 <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
@@ -694,7 +694,7 @@ export default function WhatsAppPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
                   <div className="flex items-center space-x-2">
                     <Smartphone className="w-4 h-4 text-emerald-600" />
-                    <h2 className="font-bold text-sm text-slate-900">संदेश पूर्वावलोकन (Preview)</h2>
+                    <h2 className="font-bold text-sm text-slate-900">Message Preview</h2>
                   </div>
                   {previewCandidate && (
                     <button
@@ -763,10 +763,10 @@ export default function WhatsAppPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">
-                    छात्र सूची (Candidate Directory - {total} कुल)
+                    Student Directory ({total} Total)
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    संदेश प्रेषण हेतु छात्रों का चयन करें
+                    Select candidate recipients for dispatch
                   </p>
                 </div>
 
@@ -779,7 +779,7 @@ export default function WhatsAppPage() {
                     className="px-3.5 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                   >
                     <Play className="w-3.5 h-3.5 text-amber-300" />
-                    <span>कतार शुरू करें ({selectedCount > 0 ? selectedCount : total})</span>
+                    <span>Start Queue ({selectedCount > 0 ? selectedCount : total})</span>
                   </button>
 
                   <button
@@ -789,7 +789,7 @@ export default function WhatsAppPage() {
                     className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                   >
                     <Send className="w-3 h-3" />
-                    <span>{isCloudSending ? 'Sending Cloud...' : 'क्लाउड API भेजें'}</span>
+                    <span>{isCloudSending ? 'Sending Cloud...' : 'Send via Cloud API'}</span>
                   </button>
 
                   <button

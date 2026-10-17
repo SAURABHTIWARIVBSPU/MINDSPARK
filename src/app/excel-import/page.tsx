@@ -96,10 +96,10 @@ export default function ExcelImportPage() {
       {/* Official UP Portal Header */}
       <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          एक्सेल डेटा अपलोड एवं सत्यापन (Excel Data Import)
+          Excel Data Ingestion & Validation
         </h1>
         <p className="text-xs text-slate-600 mt-0.5">
-          छात्रों की एक्सेल फाइल (.xlsx, .xls, .csv) अपलोड करें, डेटा सत्यापित करें एवं सुरक्षित रूप से सेव करें।
+          Upload student Excel spreadsheet (.xlsx, .xls, .csv), validate data integrity, and commit records securely.
         </p>
       </div>
 
@@ -116,9 +116,9 @@ export default function ExcelImportPage() {
           <div className="mx-auto w-12 h-12 bg-rose-50 text-[#7a0c16] rounded-xl flex items-center justify-center mb-4">
             <UploadCloud className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-slate-800">एक्सेल स्प्रेडशीट चुनें (Select Excel File)</h2>
+          <h2 className="text-base font-bold text-slate-800">Select Excel Spreadsheet</h2>
           <p className="text-xs text-slate-500 mt-1 mb-4">
-            .xlsx, .xls एवं .csv फाइलें समर्थित हैं (अधिकतम 20MB)
+            Supports .xlsx, .xls, and .csv formats (Max 20MB)
           </p>
 
           <input
@@ -134,7 +134,7 @@ export default function ExcelImportPage() {
             className="inline-flex items-center space-x-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4 text-slate-500" />
-            <span>{file ? file.name : 'फाइल ब्राउज़ करें (Browse File)'}</span>
+            <span>{file ? file.name : 'Choose File / Browse'}</span>
           </label>
 
           {file && (
@@ -144,7 +144,7 @@ export default function ExcelImportPage() {
                 disabled={previewing}
                 className="px-6 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs transition-all disabled:opacity-50"
               >
-                {previewing ? 'डेटा जांच रहे हैं...' : 'फाइल जांचें एवं पूर्वावलोकन देखें'}
+                {previewing ? 'Parsing & Validating...' : 'Validate & Preview Data'}
               </button>
             </div>
           )}
@@ -157,14 +157,14 @@ export default function ExcelImportPage() {
           {/* Summary stats - UP Scholarship Theme */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
-              <div className="text-[11px] text-slate-600 font-bold uppercase">कुल पंक्तियां (Total Rows)</div>
+              <div className="text-[11px] text-slate-600 font-bold uppercase">Total Rows</div>
               <div className="text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">{previewData.totalRows}</div>
             </div>
 
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
               <div className="text-[11px] text-emerald-700 font-bold uppercase flex items-center space-x-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>मान्य रिकॉर्ड (Valid Rows)</span>
+                <span>Valid Rows</span>
               </div>
               <div className="text-2xl font-extrabold text-emerald-700 mt-1 tabular-nums">{previewData.validRows}</div>
             </div>
@@ -172,25 +172,25 @@ export default function ExcelImportPage() {
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
               <div className="text-[11px] text-amber-700 font-bold uppercase flex items-center space-x-1">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>चेतावनी (Warnings)</span>
+                <span>Warnings</span>
               </div>
               <div className="text-2xl font-extrabold text-amber-700 mt-1 tabular-nums">{previewData.warningRows}</div>
-              <div className="text-[10px] text-amber-600 mt-0.5">संभावित डुप्लिकेट छात्र रिकॉर्ड</div>
+              <div className="text-[10px] text-amber-600 mt-0.5">Potential duplicate student records</div>
             </div>
 
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-red-600">
               <div className="text-[11px] text-red-700 font-bold uppercase flex items-center space-x-1">
                 <XCircle className="w-3.5 h-3.5 text-red-600" />
-                <span>अस्वीकृत (Rejected)</span>
+                <span>Rejected Rows</span>
               </div>
               <div className="text-2xl font-extrabold text-red-700 mt-1 tabular-nums">{previewData.rejectedRows}</div>
-              <div className="text-[10px] text-red-600 mt-0.5">अनिवार्य फील्ड अनुपलब्ध</div>
+              <div className="text-[10px] text-red-600 mt-0.5">Missing mandatory fields</div>
             </div>
           </div>
 
           {/* Column mappings pill tags */}
           <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs text-xs">
-            <div className="font-bold text-slate-800 mb-2">पहचाने गए कॉलम हेडर (Column Mappings):</div>
+            <div className="font-bold text-slate-800 mb-2">Detected Column Mappings:</div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(previewData.detectedMappings).map(([canon, orig]) => (
                 <span
@@ -207,7 +207,7 @@ export default function ExcelImportPage() {
           <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="font-bold text-sm text-slate-900">
-                डेटा पूर्वावलोकन एवं सत्यापन ({previewData.evaluatedRows.length} पंक्तियां)
+                Data Staging & Preview ({previewData.evaluatedRows.length} rows)
               </h3>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -218,7 +218,7 @@ export default function ExcelImportPage() {
                     onChange={(e) => setIncludeWarnings(e.target.checked)}
                     className="rounded text-[#7a0c16] focus:ring-[#7a0c16]"
                   />
-                  <span>चेतावनी वाले रिकॉर्ड्स भी शामिल करें</span>
+                  <span>Include rows with warnings</span>
                 </label>
 
                 <button
@@ -226,7 +226,7 @@ export default function ExcelImportPage() {
                   disabled={committing || !previewData.canCommit}
                   className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs transition-all disabled:opacity-50"
                 >
-                  {committing ? 'डेटा सहेजा जा रहा है...' : 'सत्यापित रिकॉर्ड्स सुरक्षित करें (Commit)'}
+                  {committing ? 'Committing Data...' : 'Commit Verified Records'}
                 </button>
               </div>
             </div>
@@ -235,15 +235,15 @@ export default function ExcelImportPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-800 font-bold sticky top-0 z-10 border-b border-slate-300">
                   <tr>
-                    <th className="py-2.5 px-3">पंक्ति (Row)</th>
-                    <th className="py-2.5 px-3">स्थिति (Status)</th>
-                    <th className="py-2.5 px-3">पंजीकरण सं. (Reg No)</th>
-                    <th className="py-2.5 px-3">छात्र का नाम (Name)</th>
-                    <th className="py-2.5 px-3">पिता का नाम (Father)</th>
-                    <th className="py-2.5 px-3">जन्म तिथि (DOB)</th>
-                    <th className="py-2.5 px-3">मोबाइल (Phone)</th>
-                    <th className="py-2.5 px-3">विद्यालय (Institute)</th>
-                    <th className="py-2.5 px-3">विवरण (Remarks)</th>
+                    <th className="py-2.5 px-3">Row</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Reg No</th>
+                    <th className="py-2.5 px-3">Candidate Name</th>
+                    <th className="py-2.5 px-3">Father's Name</th>
+                    <th className="py-2.5 px-3">Date of Birth</th>
+                    <th className="py-2.5 px-3">Phone</th>
+                    <th className="py-2.5 px-3">Institution</th>
+                    <th className="py-2.5 px-3">Remarks / Errors</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -277,7 +277,7 @@ export default function ExcelImportPage() {
                         )}
                       </td>
                       <td className="py-2 px-3 font-mono font-bold text-[#7a0c16]">
-                        {r.canonicalData.registrationNumber || '(स्वचालित आबंटन)'}
+                        {r.canonicalData.registrationNumber || '(Auto Allocated)'}
                       </td>
                       <td className="py-2 px-3 font-semibold text-slate-900">{r.canonicalData.name}</td>
                       <td className="py-2 px-3 text-slate-700">{r.canonicalData.fatherName}</td>
@@ -292,7 +292,7 @@ export default function ExcelImportPage() {
                             {r.reasons.join(', ')}
                           </span>
                         ) : (
-                          <span className="text-emerald-700 font-medium">मान्य (Ready)</span>
+                          <span className="text-emerald-700 font-medium">Ready</span>
                         )}
                       </td>
                     </tr>
@@ -310,9 +310,9 @@ export default function ExcelImportPage() {
           <div className="mx-auto w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">डेटा सफलतापूर्वक सुरक्षित हो गया!</h2>
+          <h2 className="text-xl font-bold text-slate-900">Data Successfully Committed!</h2>
           <p className="text-xs text-slate-600">
-            <strong>{commitResult.committedCount}</strong> छात्र रिकॉर्ड्स नए पंजीकरण संख्या के साथ सफलता से जोड़ दिए गए हैं।
+            <strong>{commitResult.committedCount}</strong> student records have been successfully imported and assigned unique registration numbers.
           </p>
 
           <div className="pt-2 flex justify-center space-x-3">
@@ -320,13 +320,13 @@ export default function ExcelImportPage() {
               href="/students"
               className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
             >
-              छात्र सूची देखें (View Directory)
+              View Student Directory
             </Link>
             <Link
               href="/admit-cards"
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-colors"
             >
-              प्रवेश पत्र जनरेट करें &rarr;
+              Generate Admit Cards &rarr;
             </Link>
           </div>
         </div>

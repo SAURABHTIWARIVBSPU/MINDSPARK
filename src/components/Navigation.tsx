@@ -131,7 +131,7 @@ export default function Navigation() {
                   MIND<span className="text-amber-400 font-bold">SPARK</span>
                 </span>
                 <span className="text-[10px] text-amber-200/90 font-medium tracking-wide hidden sm:block">
-                  परीक्षा एवं छात्रवृत्ति पोर्टल
+                  Examination & Operations Portal
                 </span>
               </div>
             </Link>

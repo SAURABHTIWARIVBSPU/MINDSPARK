@@ -135,9 +135,9 @@ function LoginFormContent() {
           className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-600 hover:text-[#7a0c16] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>छात्र पोर्टल पर वापस जाएं (Return to Student Portal)</span>
+          <span>Return to Student Portal</span>
         </Link>
-        <span className="text-[11px] text-slate-500 font-medium">सुरक्षित विभागीय लॉगिन</span>
+        <span className="text-[11px] text-slate-500 font-medium">Authorized Staff Console</span>
       </div>
 
       {/* Existing Active Session Notice */}
@@ -145,10 +145,10 @@ function LoginFormContent() {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2.5">
           <div className="flex items-center space-x-2 text-amber-900 text-xs font-bold">
             <UserCheck className="w-4 h-4 text-amber-700" />
-            <span>सक्रिय सत्र उपलब्ध है (Active Session Found)</span>
+            <span>Active Session Found</span>
           </div>
           <p className="text-xs text-slate-700">
-            आप वर्तमान में <strong>{existingUser.displayName}</strong> ({existingUser.email}) के रूप में लॉगिन हैं। रोल:{' '}
+            You are currently signed in as <strong>{existingUser.displayName}</strong> ({existingUser.email}). Role:{' '}
             <span className="font-mono uppercase font-semibold text-[#7a0c16]">{existingUser.role}</span>
           </p>
           <div className="flex items-center space-x-2 pt-1">
@@ -156,7 +156,7 @@ function LoginFormContent() {
               href="/dashboard"
               className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-md transition-colors shadow-xs"
             >
-              <span>डैशबोर्ड खोलें (Open Dashboard)</span>
+              <span>Open Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <button
@@ -164,7 +164,7 @@ function LoginFormContent() {
               onClick={handleLogout}
               className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-md transition-colors"
             >
-              लॉग आउट (Sign Out)
+              Sign Out
             </button>
           </div>
         </div>
@@ -178,10 +178,10 @@ function LoginFormContent() {
             <GraduationCap className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">
-            विभागीय लॉगिन (Staff & Admin Login)
+            Staff & Administration Login
           </h1>
           <p className="text-xs text-amber-100 mt-0.5">
-            माइंड-स्पार्क परीक्षा प्रबंधन एवं संचालन पोर्टल
+            Mind-Spark Examination & Operations Portal
           </p>
         </div>
 
@@ -191,7 +191,7 @@ function LoginFormContent() {
             <div className="flex items-start space-x-2.5 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
               <div className="flex-1 font-medium">
-                <span>लॉगिन त्रुटि: </span>
+                <span>Authentication Error: </span>
                 {error}
               </div>
             </div>
@@ -208,7 +208,7 @@ function LoginFormContent() {
           >
             <div>
               <label htmlFor="staffEmailInput" className="block text-xs font-semibold text-slate-700 mb-1">
-                विभागीय ईमेल (Staff Email) <span className="text-red-500">*</span>
+                Staff Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -227,7 +227,7 @@ function LoginFormContent() {
 
             <div>
               <label htmlFor="staffPasswordInput" className="block text-xs font-semibold text-slate-700 mb-1">
-                पासवर्ड (Password) <span className="text-red-500">*</span>
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -260,12 +260,12 @@ function LoginFormContent() {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>प्रमाणीकरण हो रहा है...</span>
+                  <span>Signing In...</span>
                 </>
               ) : (
                 <>
                   <Lock className="w-3.5 h-3.5" />
-                  <span>लॉगिन करें (Sign In)</span>
+                  <span>Sign In</span>
                 </>
               )}
             </button>
@@ -276,7 +276,7 @@ function LoginFormContent() {
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
               <div className="flex items-center space-x-1.5">
                 <ShieldCheck className="w-4 h-4 text-[#7a0c16]" />
-                <span>त्वरित परीक्षण लॉगिन (Quick Test Accounts):</span>
+                <span>Authorized Test Accounts:</span>
               </div>
               <span className="text-[10px] text-amber-700 font-bold uppercase font-mono">1-Click</span>
             </div>
@@ -316,7 +316,7 @@ function LoginFormContent() {
                       </div>
                     </div>
                     <span className="text-[#7a0c16] font-bold text-xs flex items-center space-x-1 flex-shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      <span>लॉगिन</span>
+                      <span>Login</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </button>
@@ -333,7 +333,7 @@ function LoginFormContent() {
 export default function LoginPage() {
   return (
     <div className="min-h-[85vh] flex flex-col justify-center items-center py-8 px-4 sm:px-6">
-      <Suspense fallback={<div className="text-xs text-slate-500 font-medium">लॉगिन पोर्टल लोड हो रहा है...</div>}>
+      <Suspense fallback={<div className="text-xs text-slate-500 font-medium">Loading Login Console...</div>}>
         <LoginFormContent />
       </Suspense>
     </div>
