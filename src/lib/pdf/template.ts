@@ -342,7 +342,10 @@ export async function generateAdmitCardPdf(
     });
   }
 
-  curY = photoY - 18;
+  // True bounding bottom of section 4 (whichever extends lower: table or photo box)
+  const tableBottomY = curY - fields.length * rowHeight;
+  const particularsSectionBottom = Math.min(tableBottomY, photoY);
+  curY = particularsSectionBottom - 22;
 
   // 5. Examination Schedule & Venue (Highlighted Card)
   page.drawText('EXAMINATION SCHEDULE & VENUE DETAILS', {
@@ -353,7 +356,7 @@ export async function generateAdmitCardPdf(
     color: maroon,
   });
 
-  curY -= 10;
+  curY -= 12;
   const schedHeight = 72;
   page.drawRectangle({
     x: 30,

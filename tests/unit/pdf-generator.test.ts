@@ -70,4 +70,22 @@ describe('Admit Card PDF Generator', () => {
     expect(pdfBytes).toBeInstanceOf(Uint8Array);
     expect(pdfBytes.length).toBeGreaterThan(1000);
   });
+
+  it('guarantees single-page A4 document without vertical overflow', async () => {
+    const { PDFDocument } = await import('pdf-lib');
+    const pdfBytes = await generateAdmitCardPdf(mockStudent, mockSettings);
+    const doc = await PDFDocument.load(pdfBytes);
+    
+    // Must be strictly 1 page
+    expect(doc.getPageCount()).toBe(1);
+    
+    // Page dimensions must match A4 (595.28 x 841.89 pt)
+    const page = doc.getPage(0);
+    expect(page.getWidth()).toBeCloseTo(595.28, 1);
+    expect(page.getHeight()).toBeCloseTo(841.89, 1);
+
+    // Save sample to public folder for direct inspection
+    const fs = await import('fs');
+    fs.writeFileSync('public/verified_sample_admit_card.pdf', pdfBytes);
+  });
 });
