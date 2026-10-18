@@ -1,10 +1,12 @@
 # Supabase Cloud Architecture & Setup Guide — Mind-Spark Portal
 
-**Organization ID:** `zowlkpnnahmaoqlozgzf`  
-**Target Project Name:** `mind-spark`  
-**Recommended Region:** `ap-south-1` (South Asia — Mumbai)  
+**Organization:** `SAURABHTIWARIVBSPU's Org` (Free Tier)  
+**Project Name:** `mind-spark`  
+**Verified Project Reference:** `lrqqhgzhvdqlaackjprc`  
+**Project URL:** `https://lrqqhgzhvdqlaackjprc.supabase.co`  
 **Database Engine:** PostgreSQL 15+  
 **Adapter Implementation:** [`src/lib/db/supabase.adapter.ts`](file:///c:/Users/SAURABH%20TIWARI/Desktop/Mind-Spark/src/lib/db/supabase.adapter.ts)  
+**Schema Status:** Successfully Deployed (`Success. No rows returned`)  
 
 ---
 
