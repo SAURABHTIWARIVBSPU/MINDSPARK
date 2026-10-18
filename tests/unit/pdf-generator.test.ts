@@ -54,4 +54,20 @@ describe('Admit Card PDF Generator', () => {
     const hash3 = computeStudentDataHash(modifiedStudent);
     expect(hash1).not.toBe(hash3);
   });
+
+  it('generates admit card with long competition and institution names without error', async () => {
+    const playgroupStudent: Student = {
+      ...mockStudent,
+      studentId: 'std_playgroup_1',
+      registrationNumber: 'MS261100037',
+      name: 'SYED MUHAMMAD HASHIR HUSAIN',
+      className: 'PLAY GROUP',
+      competitionName: 'UNIQUE AND CREATIVE HANDMADE FANCY DRESS',
+      schoolOrCollege: 'BACHPAN PLAY SCHOOL AND MONTESSORI INTERNATIONAL',
+    };
+
+    const pdfBytes = await generateAdmitCardPdf(playgroupStudent, mockSettings);
+    expect(pdfBytes).toBeInstanceOf(Uint8Array);
+    expect(pdfBytes.length).toBeGreaterThan(1000);
+  });
 });

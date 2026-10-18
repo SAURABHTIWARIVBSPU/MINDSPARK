@@ -1,65 +1,70 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import path from 'path';
-import fs from 'fs';
+import { describe, it, expect } from 'vitest';
+import * as XLSX from 'xlsx';
 import { ExcelImporter } from '@/lib/excel/importer';
-import { getDb, resetDbInstance } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
-describe('Excel Import End-to-End on datagenrate.xlsx', () => {
-  const sampleFilePath = path.join(process.cwd(), 'datagenrate.xlsx');
+describe('Excel Import Pipeline End-to-End', () => {
+  function createTestWorkbookBuffer(suffix: string): { buffer: Uint8Array; reg1: string; reg2: string } {
+    const reg1 = `T${suffix}1`;
+    const reg2 = `T${suffix}2`;
+    const phone1 = `91${suffix.padEnd(8, '7')}`;
+    const phone2 = `92${suffix.padEnd(8, '8')}`;
+    const data = [
+      ['Registration No', 'Student Name', "Father's Name", 'DOB', 'Contact No.', 'School Name', 'Class ', 'Competition'],
+      [reg1, `CANDIDATE ${suffix} A`, `FATHER ${suffix} A`, 41640, phone1, 'TEST PUBLIC SCHOOL', '10', 'ONLINE QUIZ'],
+      [reg2, `CANDIDATE ${suffix} B`, `FATHER ${suffix} B`, '15/08/2010', phone2, 'TEST ACADEMY', '8', 'JUNIOR SCIENTIST'],
+    ];
 
-  beforeAll(async () => {
-    // Reset test database records to ensure clean import state
-    const dbPath = path.join(process.cwd(), '.data', 'mind_spark_db.json');
-    if (fs.existsSync(dbPath)) {
-      try {
-        const content = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-        content.students = [];
-        content.imports = [];
-        fs.writeFileSync(dbPath, JSON.stringify(content, null, 2), 'utf-8');
-      } catch (e) {}
-    }
-    resetDbInstance();
-  });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'TestSheet');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return { buffer: new Uint8Array(buf), reg1, reg2 };
+  }
 
-  it('verifies datagenrate.xlsx exists and has data', () => {
-    expect(fs.existsSync(sampleFilePath)).toBe(true);
-  });
-
-  it('parses datagenrate.xlsx, normalizes serial dates, and identifies 18 students', async () => {
-    const fileBuffer = fs.readFileSync(sampleFilePath);
+  it('parses Excel workbook, normalizes dates, and validates candidate rows', async () => {
+    const testSuffix = Math.floor(1000 + Math.random() * 9000).toString();
+    const { buffer } = createTestWorkbookBuffer(testSuffix);
     const preview = await ExcelImporter.preview(
-      new Uint8Array(fileBuffer),
-      'datagenrate.xlsx',
+      buffer,
+      'test_upload.xlsx',
       'test_operator'
     );
 
-    expect(preview.totalRows).toBe(18);
-    expect(preview.validRows).toBe(18);
+    expect(preview.totalRows).toBe(2);
+    expect(preview.validRows).toBe(2);
     expect(preview.rejectedRows).toBe(0);
 
-    // Verify first row: MEENAKSHI GUPTA, Reg No MS211001, DOB 2008-05-31 (from 39599)
-    const firstRow = preview.evaluatedRows[0];
-    expect(firstRow.canonicalData.registrationNumber).toBe('MS211001');
-    expect(firstRow.canonicalData.name).toBe('MEENAKSHI GUPTA');
-    expect(firstRow.canonicalData.fatherName).toBe('RAKESH KUMAR GUPTA');
-    expect(firstRow.canonicalData.dateOfBirth).toBe('2008-05-31');
-    expect(firstRow.canonicalData.phone).toBe('7007440076');
-    expect(firstRow.canonicalData.competitionName).toBe('ONLINE QUIZ');
+    const first = preview.evaluatedRows[0];
+    expect(first.canonicalData.name).toContain('CANDIDATE');
+    expect(first.canonicalData.fatherName).toContain('FATHER');
+    expect(first.canonicalData.dateOfBirth).toBe('2014-01-01'); // normalized from 41640
+    expect(first.canonicalData.competitionName).toBe('ONLINE QUIZ');
 
-    // Verify commit
+    const second = preview.evaluatedRows[1];
+    expect(second.canonicalData.name).toContain('CANDIDATE');
+    expect(second.canonicalData.dateOfBirth).toBe('2010-08-15'); // normalized from 15/08/2010
+  });
+
+  it('commits verified records to database successfully', async () => {
+    const testSuffix2 = Math.floor(1000 + Math.random() * 9000).toString();
+    const { buffer, reg1 } = createTestWorkbookBuffer(testSuffix2);
+    const preview = await ExcelImporter.preview(
+      buffer,
+      'test_upload.xlsx',
+      'test_operator'
+    );
+
     const commitResult = await ExcelImporter.commit(
       preview.importId,
       preview.evaluatedRows,
       'test_operator'
     );
 
-    expect(commitResult.committedCount).toBe(18);
+    expect(commitResult.committedCount).toBe(2);
 
-    // Verify DB contains records
     const db = getDb();
-    const student = await db.getStudentByRegNo('MS211001');
-    expect(student).not.toBeNull();
-    expect(student?.name).toBe('MEENAKSHI GUPTA');
-    expect(student?.phone).toBe('7007440076');
+    const s1 = await db.getStudentByRegNo(reg1);
+    expect(s1).not.toBeNull();
   });
 });

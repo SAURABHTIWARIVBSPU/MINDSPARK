@@ -306,7 +306,8 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     const nextSeq = (settings.regNoSeqCurrent || 1000) + 1;
 
     await this.updateSettings({ regNoSeqCurrent: nextSeq });
-    return `${p}${y}${nextSeq}`;
+    const formattedSeq = y.length > 2 ? String(nextSeq).padStart(5, '0') : String(nextSeq);
+    return `${p}${y}${formattedSeq}`;
   }
 
   // --- Imports ---

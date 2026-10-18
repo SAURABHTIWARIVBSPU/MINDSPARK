@@ -398,8 +398,6 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     return { createdCount: createdIds.length, studentIds: createdIds };
   }
 
-  // --- Registration Number Allocation (Atomic) ---
-
   async allocateNextRegistrationNumber(prefix?: string, year?: string): Promise<string> {
     const currentSettings = this.data.settings;
     const pfx = prefix || currentSettings.regNoPrefix || 'MS';
@@ -409,7 +407,8 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     const seq = currentSettings.regNoSeqCurrent;
     this.persist();
 
-    return `${pfx}${yr}${seq}`;
+    const formattedSeq = yr.length > 2 ? String(seq).padStart(5, '0') : String(seq);
+    return `${pfx}${yr}${formattedSeq}`;
   }
 
   // --- Imports ---

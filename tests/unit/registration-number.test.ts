@@ -8,11 +8,12 @@ const testDbPath = path.join(process.cwd(), '.data', 'test_reg_db.json');
 describe('Registration Number Engine', () => {
   let db: LocalJsonDbAdapter;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (fs.existsSync(testDbPath)) {
       fs.unlinkSync(testDbPath);
     }
     db = new LocalJsonDbAdapter(testDbPath);
+    await db.updateSettings({ regNoSeqCurrent: 1000 });
   });
 
   it('allocates sequential collision-safe registration numbers', async () => {

@@ -213,11 +213,19 @@ export async function generateAdmitCardPdf(
       color: darkGray,
     });
 
-    // Value
-    page.drawText(String(item.val).toUpperCase(), {
+    // Value with auto-scaled font if long
+    const rawVal = String(item.val).toUpperCase();
+    const maxValW = gridW - 200; // available width from x:230 to right border
+    let fontSize = 9.5;
+    const textW = fontHelvetica.widthOfTextAtSize(rawVal, fontSize);
+    if (textW > maxValW) {
+      fontSize = Math.max(7.2, (maxValW / textW) * fontSize);
+    }
+
+    page.drawText(rawVal, {
       x: 230,
-      y: rowY + 6,
-      size: 9.5,
+      y: rowY + (fontSize < 9 ? 6.8 : 6),
+      size: fontSize,
       font: fontHelvetica,
       color: rgb(0.05, 0.05, 0.05),
     });
@@ -284,10 +292,19 @@ export async function generateAdmitCardPdf(
     font: fontHelveticaBold,
     color: darkGray,
   });
-  page.drawText(settings.venue, {
+
+  const venueText = settings.venue.toUpperCase();
+  const maxVenueW = gridW - 150;
+  let venueFontSize = 9;
+  const venueW = fontHelvetica.widthOfTextAtSize(venueText, venueFontSize);
+  if (venueW > maxVenueW) {
+    venueFontSize = Math.max(7.2, (maxVenueW / venueW) * venueFontSize);
+  }
+
+  page.drawText(venueText, {
     x: 180,
     y: curY - 42,
-    size: 9,
+    size: venueFontSize,
     font: fontHelvetica,
     color: rgb(0.1, 0.1, 0.1),
   });
