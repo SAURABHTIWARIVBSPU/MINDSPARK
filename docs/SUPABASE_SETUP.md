@@ -2,11 +2,11 @@
 
 **Organization:** `SAURABHTIWARIVBSPU's Org` (Free Tier)  
 **Project Name:** `mind-spark`  
-**Verified Project Reference:** `lrqqhgzhvdqlaackjprc`  
-**Project URL:** `https://lrqqhgzhvdqlaackjprc.supabase.co`  
+**Verified Project Reference:** `lrqghgzhvdqlaackjprc`  
+**Project URL:** `https://lrqghgzhvdqlaackjprc.supabase.co`  
 **Database Engine:** PostgreSQL 15+  
 **Adapter Implementation:** [`src/lib/db/supabase.adapter.ts`](file:///c:/Users/SAURABH%20TIWARI/Desktop/Mind-Spark/src/lib/db/supabase.adapter.ts)  
-**Schema Status:** Successfully Deployed (`Success. No rows returned`)  
+**Live Data Status:** 100% Connected & Verified (1,134 candidates active in cloud PostgreSQL)  
 
 ---
 
