@@ -5,9 +5,26 @@ import { getDb } from '@/lib/db';
 
 export async function GET() {
   try {
+    const user = await getCurrentUser();
     const db = getDb();
     const settings = await db.getSettings();
-    return NextResponse.json(settings);
+
+    // Authenticated staff gets full settings
+    if (user) {
+      return NextResponse.json(settings);
+    }
+
+    // Unauthenticated requests only receive safe, non-sensitive public event metadata
+    return NextResponse.json({
+      schoolName: settings.schoolName,
+      competitionTitle: settings.competitionTitle,
+      venue: settings.venue,
+      examDate: settings.examDate,
+      reportingTime: settings.reportingTime,
+      contactPhone: settings.contactPhone,
+      contactEmail: settings.contactEmail,
+      regNoPrefix: settings.regNoPrefix,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

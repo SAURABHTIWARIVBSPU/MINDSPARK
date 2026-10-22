@@ -90,6 +90,13 @@ export default function StudentPortalHomePage() {
 
   const handlePrintSlip = async () => {
     if (!searchResult?.student?.registrationNumber) return;
+
+    // Before 25 October, print the on-screen verified provisional slip directly
+    if (searchResult.canDownload === false) {
+      window.print();
+      return;
+    }
+
     setPrinting(true);
 
     const pdfUrl = `/api/public/admit-card/download?regNo=${encodeURIComponent(
@@ -354,6 +361,37 @@ export default function StudentPortalHomePage() {
 
               {/* Slip Body: Candidate Dossier */}
               <div className="p-4 sm:p-6 space-y-5">
+                {/* 25 Oct Notice Banner when canDownload is false */}
+                {!searchResult.canDownload && (
+                  <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg shadow-sm space-y-2.5 animate-in fade-in">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-900 border border-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Lock className="w-5 h-5 text-amber-800" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-0.5 bg-amber-200 text-amber-900 font-bold rounded text-[11px] uppercase tracking-wider">
+                            Admit Card Release Notice
+                          </span>
+                          <span className="text-xs text-amber-800 font-bold">
+                            Download Window: 25 October 2026 se uplabdh
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 leading-snug">
+                          {searchResult.releaseStatus?.fullNoticeHindi || 'आपका रजिस्ट्रेशन सफलतापूर्वक मिल गया है और सत्यापित हो चुका है। एग्जामिनेशन एडमिट कार्ड 25 अक्टूबर 2026 से डाउनलोड करने के लिए उपलब्ध होगा।'}
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                          {searchResult.releaseStatus?.fullNoticeEnglish || 'Your registration has been verified successfully. Official Examination Admit Card download will begin on 25th October 2026.'}
+                        </p>
+                        <div className="pt-1 text-[11px] text-amber-900 font-semibold flex items-center space-x-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
+                          <span>नोट: आप नीचे &quot;Print Verified Slip&quot; बटन से अपनी पुष्टि पर्ची प्रिंट या सुरक्षित कर सकते हैं।</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Candidate Highlight Banner */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-amber-50/60 rounded-md border border-amber-200 gap-3">
                   <div className="space-y-0.5">
@@ -463,16 +501,31 @@ export default function StudentPortalHomePage() {
 
                 {/* Candidate Action Buttons */}
                 <div className="no-print flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-                  <a
-                    href={`/api/public/admit-card/download?regNo=${encodeURIComponent(
-                      searchResult.student.registrationNumber
-                    )}&dob=${encodeURIComponent(searchResult.student.dateOfBirth)}`}
-                    download
-                    className="flex-1 py-2.5 px-5 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#450007] text-white rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2 shadow-xs transition-colors text-center"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Official Admit Card (PDF)</span>
-                  </a>
+                  {searchResult.canDownload ? (
+                    <a
+                      href={`/api/public/admit-card/download?regNo=${encodeURIComponent(
+                        searchResult.student.registrationNumber
+                      )}&dob=${encodeURIComponent(searchResult.student.dateOfBirth)}`}
+                      download
+                      className="flex-1 py-2.5 px-5 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#450007] text-white rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2 shadow-xs transition-colors text-center"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download Official Admit Card (PDF)</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert(
+                          'सूचना: आपका एडमिट कार्ड 25 अक्टूबर 2026 के बाद डाउनलोड के लिए उपलब्ध होगा। (Notice: Official Examination Admit Card download will be active starting 25th October 2026).'
+                        )
+                      }
+                      className="flex-1 py-2.5 px-5 bg-amber-100 hover:bg-amber-200 border-2 border-amber-300 text-amber-900 rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center space-x-2 transition-colors text-center cursor-pointer shadow-xs"
+                    >
+                      <Lock className="w-4 h-4 text-amber-700" />
+                      <span>Available on 25 Oct 2026 (25 October se download karein)</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -488,7 +541,7 @@ export default function StudentPortalHomePage() {
                     ) : (
                       <>
                         <Printer className="w-4 h-4 text-amber-400" />
-                        <span>Print Admit Slip</span>
+                        <span>{searchResult.canDownload ? 'Print Admit Slip' : 'Print Verified Slip'}</span>
                       </>
                     )}
                   </button>

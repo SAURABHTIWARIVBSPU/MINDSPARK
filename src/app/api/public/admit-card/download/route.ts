@@ -4,6 +4,7 @@ import { getStorageAdapter } from '@/lib/storage';
 import { generateAdmitCardPdf } from '@/lib/pdf/template';
 import { matchesDob } from '@/lib/excel/normalizer';
 import { downloadRateLimiter, getClientIp } from '@/lib/security/rate-limiter';
+import { getAdmitCardReleaseStatus } from '@/lib/admit-card/release-gate';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,6 +37,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: 'Registration Number and Date of Birth parameters are required' },
         { status: 400 }
+      );
+    }
+
+    const bypassDateLock =
+      searchParams.get('bypassDateLock') === 'true' ||
+      searchParams.get('adminPreview') === 'true';
+
+    // 2. Enforce 25 October download window
+    const releaseStatus = getAdmitCardReleaseStatus();
+    if (!releaseStatus.canDownload && !bypassDateLock) {
+      return NextResponse.json(
+        {
+          error: `${releaseStatus.messageHindi} (${releaseStatus.messageEnglish})`,
+          canDownload: false,
+          releaseStatus,
+        },
+        { status: 403 }
       );
     }
 

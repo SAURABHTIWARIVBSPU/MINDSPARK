@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { WhatsAppCloudApiAdapter } from '@/lib/whatsapp/cloud-api';
+import { ICPaaSAdapter } from '@/lib/whatsapp/icpaas.adapter';
 import { renderMessageTemplate, WHATSAPP_TEMPLATES, WhatsAppTemplateId } from '@/lib/whatsapp/message-builder';
 import { WhatsAppStatus } from '@/types';
 
@@ -143,6 +144,76 @@ export async function POST(req: NextRequest) {
           total: batchResult.total,
           succeeded: batchResult.succeeded.length,
           failed: batchResult.failed.length,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        total: batchResult.total,
+        succeededCount: batchResult.succeeded.length,
+        failedCount: batchResult.failed.length,
+        failedDetails: batchResult.failed,
+      });
+    }
+
+    // Action 4: ICPaaS (icpaas.in) Official Gateway Bulk Send
+    if (provider === 'icpaas') {
+      assertPermission(user, 'messages.send');
+
+      const adapter = new ICPaaSAdapter();
+      if (!adapter.isConfigured()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'ICPaaS Gateway is not configured. Please set ICPAAS_API_KEY in .env.local or Vercel Environment Variables.',
+          },
+          { status: 400 }
+        );
+      }
+
+      const settings = await db.getSettings();
+      const allActive = await db.getAllActiveStudents();
+      const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
+
+      const templateDef = WHATSAPP_TEMPLATES[templateType as WhatsAppTemplateId] || WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
+      const rawTemplate = (customMessage && customMessage.trim()) ? customMessage : templateDef.defaultText;
+
+      const batchItems = [];
+      for (const id of studentIds) {
+        const student = studentMap.get(id);
+        if (student) {
+          const messageText = renderMessageTemplate(rawTemplate, student, settings, origin);
+          batchItems.push({
+            studentId: student.studentId,
+            phone: student.phone,
+            message: messageText,
+          });
+        }
+      }
+
+      const batchResult = await adapter.sendBatch(batchItems, Math.max(50, Number(delayMs) || 100));
+
+      if (batchResult.succeeded.length > 0) {
+        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT');
+      }
+
+      if (batchResult.failed.length > 0) {
+        const failedIds = batchResult.failed.map((f) => f.studentId);
+        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED');
+      }
+
+      await db.addAuditLog({
+        actorUid: user.uid,
+        actorEmail: user.email,
+        action: 'WHATSAPP_ICPAAS_BULK_SEND',
+        targetType: 'WHATSAPP',
+        targetId: `icpaas_job_${Date.now()}`,
+        details: {
+          total: batchResult.total,
+          succeeded: batchResult.succeeded.length,
+          failed: batchResult.failed.length,
+          provider: 'icpaas.in',
         },
       });
 

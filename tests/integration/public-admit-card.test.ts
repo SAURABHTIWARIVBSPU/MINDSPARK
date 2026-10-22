@@ -44,6 +44,8 @@ describe('Public Student Admit Card Verification & Download', () => {
     expect(data.student.name).toBe('MEENAKSHI GUPTA');
     expect(data.student.registrationNumber).toBe('MS211001');
     expect(data.schedule.examDate).toBeDefined();
+    expect(data.canDownload).toBe(false);
+    expect(data.releaseStatus.messageHindi).toContain('25 अक्टूबर');
   });
 
   it('rejects verification if Date of Birth does not match', async () => {
@@ -77,8 +79,18 @@ describe('Public Student Admit Card Verification & Download', () => {
     expect(res.status).toBe(404);
   });
 
-  it('successfully serves PDF binary for download when verified', async () => {
+  it('blocks download before 25 October with HTTP 403 and informs candidate', async () => {
     const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=2008-05-31');
+    const res = await downloadAdmitCard(req);
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.canDownload).toBe(false);
+    expect(data.error).toContain('25 अक्टूबर');
+  });
+
+  it('successfully serves PDF binary for download when bypassDateLock is used', async () => {
+    const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=2008-05-31&bypassDateLock=true');
     const res = await downloadAdmitCard(req);
 
     expect(res.status).toBe(200);
@@ -123,7 +135,7 @@ describe('Public Student Admit Card Verification & Download', () => {
   });
 
   it('successfully serves PDF download when DOB is provided as YYYY birth year', async () => {
-    const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=2008');
+    const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=2008&bypassDateLock=true');
     const res = await downloadAdmitCard(req);
 
     expect(res.status).toBe(200);
@@ -131,7 +143,7 @@ describe('Public Student Admit Card Verification & Download', () => {
   });
 
   it('successfully serves PDF download when DOB is provided as DD-MM-YYYY', async () => {
-    const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=31-05-2008');
+    const req = new NextRequest('http://localhost:3000/api/public/admit-card/download?regNo=MS211001&dob=31-05-2008&bypassDateLock=true');
     const res = await downloadAdmitCard(req);
 
     expect(res.status).toBe(200);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchesDob } from '@/lib/excel/normalizer';
 import { searchRateLimiter, getClientIp } from '@/lib/security/rate-limiter';
+import { getAdmitCardReleaseStatus } from '@/lib/admit-card/release-gate';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,11 +59,14 @@ export async function POST(req: NextRequest) {
     }
 
     const settings = await db.getSettings();
+    const releaseStatus = getAdmitCardReleaseStatus();
 
-    // Return student details for display
+    // Return student details and download gating status for display
     return NextResponse.json(
       {
         success: true,
+        canDownload: releaseStatus.canDownload,
+        releaseStatus,
         student: {
           studentId: student.studentId,
           registrationNumber: student.registrationNumber,

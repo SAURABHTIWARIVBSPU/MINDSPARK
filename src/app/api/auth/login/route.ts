@@ -2,12 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { createSession } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
+import { loginRateLimiter, getClientIp } from '@/lib/security/rate-limiter';
 
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || '';
   const isFormPost =
     contentType.includes('application/x-www-form-urlencoded') ||
     contentType.includes('multipart/form-data');
+
+  // Enforce brute-force login protection: 5 attempts per minute per IP
+  const clientIp = getClientIp(req);
+  const rateCheck = loginRateLimiter.check(clientIp, 5, 60);
+  if (!rateCheck.allowed) {
+    const errorMsg = `Too many failed login attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`;
+    if (isFormPost) {
+      return NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent(errorMsg)}`, req.url),
+        { status: 302 }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMsg },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateCheck.retryAfterSeconds),
+          'X-RateLimit-Limit': String(rateCheck.limit),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
 
   let email = '';
   let password = '';

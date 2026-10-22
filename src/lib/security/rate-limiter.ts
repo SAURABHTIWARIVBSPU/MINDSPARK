@@ -92,6 +92,7 @@ export class InMemoryRateLimiter {
 // Global singletons for public endpoints
 export const searchRateLimiter = new InMemoryRateLimiter();
 export const downloadRateLimiter = new InMemoryRateLimiter();
+export const loginRateLimiter = new InMemoryRateLimiter();
 
 /**
  * Extracts client IP from Next.js request headers
