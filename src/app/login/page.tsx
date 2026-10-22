@@ -28,8 +28,8 @@ function LoginFormContent() {
   const searchParams = useSearchParams();
   const urlError = searchParams?.get('error');
 
-  const [email, setEmail] = useState('superadmin@mindspark.edu.in');
-  const [password, setPassword] = useState('Admin@MindSpark2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(urlError || null);
@@ -48,44 +48,6 @@ function LoginFormContent() {
       .catch(() => {})
       .finally(() => setCheckingAuth(false));
   }, []);
-
-  const demoAccounts = [
-    {
-      label: 'Super Admin',
-      email: 'superadmin@mindspark.edu.in',
-      pass: 'Admin@MindSpark2026!',
-      role: 'Full Console & Configuration Access',
-      tag: 'SUPER_ADMIN',
-    },
-    {
-      label: 'Exam Admin',
-      email: 'admin@mindspark.edu.in',
-      pass: 'Admin@MindSpark2026!',
-      role: 'Students, Excel Imports, Cards & Audit',
-      tag: 'ADMIN',
-    },
-    {
-      label: 'Registration Operator',
-      email: 'operator@mindspark.edu.in',
-      pass: 'Operator@2026!',
-      role: 'Create & Edit Candidate Records',
-      tag: 'REG_OPERATOR',
-    },
-    {
-      label: 'Excel Operator',
-      email: 'excel@mindspark.edu.in',
-      pass: 'Operator@2026!',
-      role: 'Excel Ingestion, Staging & Commit',
-      tag: 'EXCEL_OPERATOR',
-    },
-    {
-      label: 'Read Only Viewer',
-      email: 'viewer@mindspark.edu.in',
-      pass: 'Viewer@2026!',
-      role: 'Search & View Records Only',
-      tag: 'READ_ONLY',
-    },
-  ];
 
   const handleLogin = async (targetEmail?: string, targetPass?: string) => {
     const finalEmail = (targetEmail || email).trim();
@@ -200,6 +162,7 @@ function LoginFormContent() {
           <form
             action="/api/auth/login"
             method="POST"
+            autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
               handleLogin();
@@ -216,10 +179,11 @@ function LoginFormContent() {
                   id="staffEmailInput"
                   name="email"
                   type="email"
+                  autoComplete="off"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="staff@mindspark.edu.in"
+                  placeholder="Enter authorized staff email"
                   className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
                 />
               </div>
@@ -235,17 +199,18 @@ function LoginFormContent() {
                   id="staffPasswordInput"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••••••"
+                  placeholder="Enter staff security password"
                   className="w-full pl-9 pr-10 py-2 text-xs font-mono border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -255,7 +220,7 @@ function LoginFormContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#450007] text-white font-bold text-xs uppercase tracking-wider rounded-md transition-all shadow-xs disabled:opacity-50 flex items-center justify-center space-x-2"
+              className="w-full py-2.5 px-4 bg-[#7a0c16] hover:bg-[#5c000b] active:bg-[#450007] text-white font-bold text-xs uppercase tracking-wider rounded-md transition-all shadow-xs disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -271,57 +236,11 @@ function LoginFormContent() {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Selection */}
-          <div className="border-t border-slate-200 pt-4 space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-              <div className="flex items-center space-x-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#7a0c16]" />
-                <span>Authorized Test Accounts:</span>
-              </div>
-              <span className="text-[10px] text-amber-700 font-bold uppercase font-mono">1-Click</span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              {demoAccounts.map((acc) => (
-                <form
-                  key={acc.email}
-                  action="/api/auth/login"
-                  method="POST"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setEmail(acc.email);
-                    setPassword(acc.pass);
-                    handleLogin(acc.email, acc.pass);
-                  }}
-                >
-                  <input type="hidden" name="email" value={acc.email} />
-                  <input type="hidden" name="password" value={acc.pass} />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full flex items-center justify-between p-2.5 rounded-md border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 text-left transition-all text-xs group"
-                  >
-                    <div className="space-y-0.5 min-w-0 pr-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-800 group-hover:text-[#7a0c16]">
-                          {acc.label}
-                        </span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded border border-slate-200">
-                          {acc.tag}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">{acc.role}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {acc.email}
-                      </div>
-                    </div>
-                    <span className="text-[#7a0c16] font-bold text-xs flex items-center space-x-1 flex-shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      <span>Login</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </button>
-                </form>
-              ))}
+          {/* Institutional Security Notice */}
+          <div className="border-t border-slate-200 pt-4 text-center">
+            <div className="inline-flex items-center space-x-1.5 text-[11px] text-slate-500 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7a0c16]" />
+              <span>Restricted Access: Authorized Examination Officials Only</span>
             </div>
           </div>
         </div>

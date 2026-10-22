@@ -118,3 +118,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Export generation failed' }, { status });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    assertPermission(user, 'messages.prepare');
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const auditPath = path.join(process.cwd(), 'storage', 'whatsapp_logs', 'whatsapp_dispatch_audit_log.xlsx');
+
+    if (fs.existsSync(auditPath)) {
+      const buffer = fs.readFileSync(auditPath);
+      return new NextResponse(buffer, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': 'attachment; filename="whatsapp_realtime_audit_log.xlsx"',
+        },
+      });
+    }
+
+    // Fallback: Generate real-time log of all students from DB
+    const db = getDb();
+    const students = await db.getAllActiveStudents();
+    const logRows = students.map((s) => ({
+      'Registration Number': s.registrationNumber,
+      'Student Name': s.name,
+      'Mobile Phone': s.phone,
+      'Class': s.className,
+      'Competition / Event': s.competitionName,
+      'School': s.schoolOrCollege,
+      'WhatsApp Status': s.whatsappStatus || 'NOT_SENT',
+      'Sent At': s.whatsappSentAt || 'N/A',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(logRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'RealTime_WhatsApp_Log');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    return new NextResponse(buffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="whatsapp_students_audit_log.xlsx"',
+      },
+    });
+  } catch (err: any) {
+    const status = err.message?.includes('Unauthorized') ? 403 : 500;
+    return NextResponse.json({ error: err.message || 'Audit log retrieval failed' }, { status });
+  }
+}

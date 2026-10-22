@@ -6,6 +6,7 @@ import { WhatsAppCloudApiAdapter } from '@/lib/whatsapp/cloud-api';
 import { ICPaaSAdapter } from '@/lib/whatsapp/icpaas.adapter';
 import { renderMessageTemplate, WHATSAPP_TEMPLATES, WhatsAppTemplateId } from '@/lib/whatsapp/message-builder';
 import { WhatsAppStatus } from '@/types';
+import { logWhatsAppDispatchRealTime, DispatchLogEntry } from '@/lib/whatsapp/excel-logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +37,32 @@ export async function POST(req: NextRequest) {
       assertPermission(user, 'messages.prepare');
       const targetStatus: WhatsAppStatus = status === 'OPENED' ? 'OPENED' : 'SENT';
       const updatedCount = await db.batchUpdateStudentWhatsAppStatus(studentIds, targetStatus);
+
+      // Real-time synchronization to local Excel log & Master Spreadsheet
+      try {
+        const allActive = await db.getAllActiveStudents();
+        const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
+        const nowIso = new Date().toISOString();
+        const logEntries: DispatchLogEntry[] = studentIds
+          .map((id) => studentMap.get(id))
+          .filter((s): s is NonNullable<typeof s> => Boolean(s))
+          .map((student) => ({
+            timestamp: nowIso,
+            studentId: student.studentId,
+            registrationNumber: student.registrationNumber,
+            studentName: student.name,
+            phone: student.phone,
+            className: student.className,
+            competitionName: student.competitionName,
+            schoolOrCollege: student.schoolOrCollege,
+            status: targetStatus,
+            provider: 'Browser Queue / wa.me',
+            details: `Candidate marked as ${targetStatus}`,
+          }));
+        await logWhatsAppDispatchRealTime(logEntries);
+      } catch (logErr) {
+        console.error('Failed to write real-time dispatch log to Excel:', logErr);
+      }
 
       await db.addAuditLog({
         actorUid: user.uid,
@@ -134,6 +161,37 @@ export async function POST(req: NextRequest) {
         await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED');
       }
 
+      // Real-time synchronization to local Excel log & Master Spreadsheet
+      try {
+        const nowIso = new Date().toISOString();
+        const succeededSet = new Set(batchResult.succeeded);
+        const failedMap = new Map(batchResult.failed.map((f) => [f.studentId, f.error]));
+
+        const logEntries: DispatchLogEntry[] = batchItems.map((item) => {
+          const student = studentMap.get(item.studentId)!;
+          const isSucceeded = succeededSet.has(item.studentId);
+          return {
+            timestamp: nowIso,
+            studentId: student.studentId,
+            registrationNumber: student.registrationNumber,
+            studentName: student.name,
+            phone: student.phone,
+            className: student.className,
+            competitionName: student.competitionName,
+            schoolOrCollege: student.schoolOrCollege,
+            status: isSucceeded ? 'SENT' : 'FAILED',
+            provider: 'WhatsApp Cloud API',
+            details: isSucceeded
+              ? 'Delivered via official Meta Cloud API'
+              : (failedMap.get(item.studentId) || 'Cloud API send error'),
+          };
+        });
+
+        await logWhatsAppDispatchRealTime(logEntries);
+      } catch (logErr) {
+        console.error('Failed to write real-time Cloud API dispatch log to Excel:', logErr);
+      }
+
       await db.addAuditLog({
         actorUid: user.uid,
         actorEmail: user.email,
@@ -201,6 +259,37 @@ export async function POST(req: NextRequest) {
       if (batchResult.failed.length > 0) {
         const failedIds = batchResult.failed.map((f) => f.studentId);
         await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED');
+      }
+
+      // Real-time synchronization to local Excel log & Master Spreadsheet
+      try {
+        const nowIso = new Date().toISOString();
+        const succeededSet = new Set(batchResult.succeeded);
+        const failedMap = new Map(batchResult.failed.map((f) => [f.studentId, f.error]));
+
+        const logEntries: DispatchLogEntry[] = batchItems.map((item) => {
+          const student = studentMap.get(item.studentId)!;
+          const isSucceeded = succeededSet.has(item.studentId);
+          return {
+            timestamp: nowIso,
+            studentId: student.studentId,
+            registrationNumber: student.registrationNumber,
+            studentName: student.name,
+            phone: student.phone,
+            className: student.className,
+            competitionName: student.competitionName,
+            schoolOrCollege: student.schoolOrCollege,
+            status: isSucceeded ? 'SENT' : 'FAILED',
+            provider: 'ICPaaS Gateway (100 Bulk)',
+            details: isSucceeded
+              ? 'Admit card notification dispatched via ICPaaS gateway'
+              : (failedMap.get(item.studentId) || 'ICPaaS gateway error'),
+          };
+        });
+
+        await logWhatsAppDispatchRealTime(logEntries);
+      } catch (logErr) {
+        console.error('Failed to write real-time ICPaaS dispatch log to Excel:', logErr);
       }
 
       await db.addAuditLog({

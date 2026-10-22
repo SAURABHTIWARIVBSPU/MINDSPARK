@@ -40,9 +40,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const sessionCookie = req.cookies.get('ms_auth_session')?.value;
     const bypassDateLock =
       searchParams.get('bypassDateLock') === 'true' ||
-      searchParams.get('adminPreview') === 'true';
+      searchParams.get('adminPreview') === 'true' ||
+      Boolean(sessionCookie);
 
     // 2. Enforce 25 October download window
     const releaseStatus = getAdmitCardReleaseStatus();

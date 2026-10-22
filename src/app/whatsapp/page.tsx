@@ -425,6 +425,98 @@ export default function WhatsAppPage() {
     }
   };
 
+  // 9b. ICPaaS Official Gateway Bulk Dispatch in Chunks of 100
+  const [isIcpaasSending, setIsIcpaasSending] = useState(false);
+  const [icpaasProgress, setIcpaasProgress] = useState<{
+    currentBatch: number;
+    totalBatches: number;
+    totalCandidates: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+  } | null>(null);
+
+  const handleIcpaasBulkSend = async () => {
+    const list = getSelectedStudentsList();
+    const target = list.length > 0 ? list : students;
+    if (target.length === 0) {
+      alert('Please select at least one candidate for bulk send.');
+      return;
+    }
+
+    const BATCH_SIZE = 100;
+    const totalBatches = Math.ceil(target.length / BATCH_SIZE);
+
+    if (
+      !confirm(
+        `Kya aap ${target.length} candidates ko ${totalBatches} batches (har batch me 100) me ICPaaS Gateway se WhatsApp bhejna chahte hain?\n(Results real-time me database aur local Excel sheet me log honge).`
+      )
+    ) {
+      return;
+    }
+
+    setIsIcpaasSending(true);
+    setCloudSendSummary(null);
+
+    let totalSucceeded = 0;
+    let totalFailed = 0;
+    let processedSoFar = 0;
+
+    try {
+      for (let b = 0; b < totalBatches; b++) {
+        const batchSlice = target.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+        setIcpaasProgress({
+          currentBatch: b + 1,
+          totalBatches,
+          totalCandidates: target.length,
+          processed: processedSoFar,
+          succeeded: totalSucceeded,
+          failed: totalFailed,
+        });
+
+        const res = await fetch('/api/whatsapp/send-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentIds: batchSlice.map((s) => s.studentId),
+            provider: 'icpaas',
+            templateType: activeTemplate,
+            customMessage: customText,
+            delayMs: 100,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `Batch ${b + 1} execution failed`);
+        }
+
+        totalSucceeded += data.succeededCount || 0;
+        totalFailed += data.failedCount || 0;
+        processedSoFar += batchSlice.length;
+
+        setIcpaasProgress({
+          currentBatch: b + 1,
+          totalBatches,
+          totalCandidates: target.length,
+          processed: processedSoFar,
+          succeeded: totalSucceeded,
+          failed: totalFailed,
+        });
+      }
+
+      setCloudSendSummary(
+        `✅ ICPaaS Bulk Send Complete: ${target.length} candidates processed across ${totalBatches} batches of 100! (${totalSucceeded} Succeeded, ${totalFailed} Failed). Data real-time me Database aur Excel log me update ho chuka hai.`
+      );
+      fetchStudents();
+    } catch (err: any) {
+      alert(`ICPaaS Dispatch Error: ${err.message}`);
+    } finally {
+      setIsIcpaasSending(false);
+      setIcpaasProgress(null);
+    }
+  };
+
   // 10. Copy utilities
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -774,9 +866,23 @@ export default function WhatsAppPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
+                    onClick={handleIcpaasBulkSend}
+                    disabled={isIcpaasSending || isCloudSending || total === 0}
+                    className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>
+                      {isIcpaasSending
+                        ? `Sending Batch ${icpaasProgress?.currentBatch || 1}/${icpaasProgress?.totalBatches || 1}...`
+                        : `Send ICPaaS (100 Bulk)`}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={startBulkQueue}
                     disabled={total === 0}
-                    className="px-3.5 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                   >
                     <Play className="w-3.5 h-3.5 text-amber-300" />
                     <span>Start Queue ({selectedCount > 0 ? selectedCount : total})</span>
@@ -785,12 +891,21 @@ export default function WhatsAppPage() {
                   <button
                     type="button"
                     onClick={handleCloudApiBulkSend}
-                    disabled={isCloudSending || total === 0}
+                    disabled={isCloudSending || isIcpaasSending || total === 0}
                     className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                   >
                     <Send className="w-3 h-3" />
                     <span>{isCloudSending ? 'Sending Cloud...' : 'Send via Cloud API'}</span>
                   </button>
+
+                  <a
+                    href="/api/whatsapp/export"
+                    title="Download Real-Time Excel Dispatch Log"
+                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Download Excel Log</span>
+                  </a>
 
                   <button
                     type="button"
@@ -812,10 +927,51 @@ export default function WhatsAppPage() {
                 </div>
               </div>
 
+              {/* Real-time ICPaaS 100 Bulk Dispatch Progress Card */}
+              {icpaasProgress && (
+                <div className="p-4 bg-emerald-50/90 border-2 border-emerald-300 rounded-xl space-y-2 text-xs animate-in fade-in">
+                  <div className="flex items-center justify-between font-bold text-emerald-950">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3.5 h-3.5 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
+                      <span>
+                        Processing Batch {icpaasProgress.currentBatch} of {icpaasProgress.totalBatches} (100 Bulk Mode)
+                      </span>
+                    </div>
+                    <span className="font-mono">
+                      {Math.round((icpaasProgress.processed / icpaasProgress.totalCandidates) * 100)}%
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-emerald-200 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-2.5 transition-all duration-300"
+                      style={{
+                        width: `${Math.round(
+                          (icpaasProgress.processed / icpaasProgress.totalCandidates) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between text-[11px] text-emerald-800 font-medium pt-0.5 gap-2">
+                    <span>
+                      Progress: <strong>{icpaasProgress.processed}</strong> / {icpaasProgress.totalCandidates} candidates
+                    </span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-emerald-700 font-bold">✓ Succeeded: {icpaasProgress.succeeded}</span>
+                      <span className="text-red-700 font-bold">✗ Failed: {icpaasProgress.failed}</span>
+                      <span className="text-slate-600 font-mono bg-white px-2 py-0.5 rounded border border-emerald-200">
+                        Real-time Sync: DB + Excel Log
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {cloudSendSummary && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-[#7a0c16] rounded-xl text-xs flex items-center justify-between">
-                  <span>{cloudSendSummary}</span>
-                  <button onClick={() => setCloudSendSummary(null)} className="text-[#7a0c16] font-bold ml-2">Dismiss</button>
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs flex items-center justify-between">
+                  <span className="font-medium">{cloudSendSummary}</span>
+                  <button onClick={() => setCloudSendSummary(null)} className="text-emerald-800 font-bold ml-2 hover:underline">Dismiss</button>
                 </div>
               )}
 

@@ -63,40 +63,6 @@ export default function Navigation() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const TEST_PASSWORDS: Record<string, string> = {
-    'superadmin@mindspark.edu.in': 'Admin@MindSpark2026!',
-    'admin@mindspark.edu.in': 'Admin@MindSpark2026!',
-    'operator@mindspark.edu.in': 'Operator@2026!',
-    'excel@mindspark.edu.in': 'Operator@2026!',
-    'viewer@mindspark.edu.in': 'Viewer@2026!',
-  };
-
-  const ROLES = [
-    { label: 'Super Admin', email: 'superadmin@mindspark.edu.in', tag: 'SUPER_ADMIN' },
-    { label: 'Exam Admin', email: 'admin@mindspark.edu.in', tag: 'ADMIN' },
-    { label: 'Reg Operator', email: 'operator@mindspark.edu.in', tag: 'REG_OPERATOR' },
-    { label: 'Excel Operator', email: 'excel@mindspark.edu.in', tag: 'EXCEL_OPERATOR' },
-    { label: 'Read Only', email: 'viewer@mindspark.edu.in', tag: 'READ_ONLY' },
-  ];
-
-  const loginAs = async (email: string) => {
-    try {
-      const password = TEST_PASSWORDS[email] || 'Admin@MindSpark2026!';
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (data.user) {
-        setUser(data.user);
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
@@ -226,35 +192,7 @@ export default function Navigation() {
                       </div>
                     </div>
 
-                    {/* Quick Role Switcher */}
-                    <div className="px-2 py-2 border-b border-amber-500/20">
-                      <div className="text-[10px] uppercase font-bold tracking-wider text-amber-300/70 px-2 pb-1.5">
-                        Switch Active Role
-                      </div>
-                      <div className="space-y-0.5">
-                        {ROLES.map((r) => {
-                          const isCurrent = user.email === r.email;
-                          return (
-                            <button
-                              key={r.email}
-                              type="button"
-                              onClick={() => {
-                                setProfileDropdownOpen(false);
-                                loginAs(r.email);
-                              }}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                                isCurrent
-                                  ? 'bg-[#7a0c16] text-amber-300 font-semibold border border-amber-500/40'
-                                  : 'text-rose-100 hover:bg-[#7a0c16]/70 hover:text-white'
-                              }`}
-                            >
-                              <span>{r.label}</span>
-                              {isCurrent && <Check className="w-3.5 h-3.5 text-amber-400" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+
 
                     {/* Additional Options */}
                     <div className="px-2 pt-1.5 space-y-0.5 text-xs">
