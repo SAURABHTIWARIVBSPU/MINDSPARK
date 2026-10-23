@@ -147,7 +147,7 @@ describe('WhatsApp Message Builder & Template Engine', () => {
     expect(msg).toContain('Mind Spark Competition- 2026');
     expect(msg).toContain('Dear Participant (PRIYA SINGH),');
     expect(msg).toContain('This is your Registration Number: MS261044');
-    expect(msg).toContain('After 26th October, we will provide a link on your WhatsApp to download your admit card');
+    expect(msg).toContain('After 26th October, we will provide a link on your WhatsApp Group to download your admit card');
     expect(msg).toContain('Link: https://chat.whatsapp.com/OnlineQuiz2026');
     expect(msg).toContain('Team Meena Shah Public School, Gonda');
   });
@@ -220,8 +220,36 @@ describe('WhatsApp Message Builder & Template Engine', () => {
     const rendered = renderMessageTemplate(quizGradTpl!.defaultText, student, mockSettings);
     expect(rendered).toContain('VIVEK VERMA');
     expect(rendered).toContain('MS269999');
-    expect(rendered).toContain('Graduation');
-    expect(rendered).toContain('Online Quiz (Graduation & College Level)');
+    expect(rendered).toContain('Your form has been successfully Registered for Mind Spark Competition 2026.');
+    expect(rendered).toContain('After 26th October, we will provide a link on your WhatsApp Group to download your admit card.');
     expect(rendered).toContain('https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4');
   });
+
+  it('automatically auto-fills registration number and group link even if template is pasted without merge tags', () => {
+    const rawPastedTemplate =
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n\n` +
+      `Dear Participant,\n\n` +
+      `Your form has been successfully Registered for Mind Spark Competition 2026.\n` +
+      `This is your Registration Number:\n\n` +
+      ` After 26th October, we will provide a link on your WhatsApp Group to download your admit card. \n\n` +
+      `*नोट: आप सभी प्रतिभागियों के लिए नीचे दिए गए अपने Competition से संबंधित व्हाट्सएप ग्रुप लिंक पर क्लिक करके जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link:\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`;
+
+    const student: Student = {
+      ...mockStudent,
+      name: 'SUNIL YADAV',
+      registrationNumber: 'MS265500',
+      competitionName: 'ESSAY WRITING',
+    };
+
+    const rendered = renderMessageTemplate(rawPastedTemplate, student, mockSettings);
+    expect(rendered).toContain('Dear Participant (SUNIL YADAV),');
+    expect(rendered).toContain('This is your Registration Number: MS265500');
+    expect(rendered).toContain('Link: https://chat.whatsapp.com/KoiQ7KE6j11HlstZw68WJ3?s=cl&p=a&mlu=4&ilr=4');
+  });
 });
+

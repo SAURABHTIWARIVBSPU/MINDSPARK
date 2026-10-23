@@ -760,12 +760,19 @@ export default function WhatsAppPage() {
     const all = getAllAvailableTemplates(settings);
     const found = all.find((t) => t.id === tplId);
     if (found) {
-      setCustomText(found.defaultText);
+      const textToUse = found.groupUrl
+        ? found.defaultText.replace('{whatsapp_group_link}', found.groupUrl)
+        : found.defaultText;
+      setCustomText(textToUse);
       if (found.metaTemplateName) {
         setMetaTemplateName(found.metaTemplateName);
       }
     } else if (WHATSAPP_TEMPLATES[tplId]) {
-      setCustomText(WHATSAPP_TEMPLATES[tplId].defaultText);
+      const fallbackTpl = WHATSAPP_TEMPLATES[tplId];
+      const textToUse = fallbackTpl.groupUrl
+        ? fallbackTpl.defaultText.replace('{whatsapp_group_link}', fallbackTpl.groupUrl)
+        : fallbackTpl.defaultText;
+      setCustomText(textToUse);
     }
   };
 
