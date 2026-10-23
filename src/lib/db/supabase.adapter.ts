@@ -181,14 +181,26 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   }
 
   async getAllActiveStudents(): Promise<Student[]> {
-    const { data, error } = await this.client
-      .from('students')
-      .select('*')
-      .eq('status', 'ACTIVE')
-      .order('registration_number', { ascending: true });
+    let allData: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
 
-    if (error) throw new Error(`Supabase error: ${error.message}`);
-    return (data || []).map(this.mapRowToStudent);
+    while (true) {
+      const { data, error } = await this.client
+        .from('students')
+        .select('*')
+        .eq('status', 'ACTIVE')
+        .order('registration_number', { ascending: true })
+        .range(from, from + batchSize - 1);
+
+      if (error) throw new Error(`Supabase error: ${error.message}`);
+      if (!data || data.length === 0) break;
+      allData.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    }
+
+    return allData.map(this.mapRowToStudent);
   }
 
   async getStudentById(studentId: string): Promise<Student | null> {
@@ -517,9 +529,24 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   // --- Admit Cards ---
 
   async getAdmitCards(): Promise<AdmitCard[]> {
-    const { data, error } = await this.client.from('admit_cards').select('*');
-    if (error) return [];
-    return (data || []).map(this.mapRowToAdmitCard);
+    let allData: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
+
+    while (true) {
+      const { data, error } = await this.client
+        .from('admit_cards')
+        .select('*')
+        .range(from, from + batchSize - 1);
+
+      if (error) return [];
+      if (!data || data.length === 0) break;
+      allData.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    }
+
+    return allData.map(this.mapRowToAdmitCard);
   }
 
   async getAdmitCardByStudentId(studentId: string): Promise<AdmitCard | null> {

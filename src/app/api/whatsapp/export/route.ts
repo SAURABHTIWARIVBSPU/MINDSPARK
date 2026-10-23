@@ -17,12 +17,23 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     assertPermission(user, 'messages.prepare');
 
-    const body = await req.json().catch(() => ({}));
+    let body: any = {};
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      body = await req.json().catch(() => ({}));
+    } else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+      const formData = await req.formData().catch(() => null);
+      if (formData) {
+        body = Object.fromEntries(formData.entries());
+      }
+    }
+
     const {
       studentIds = [],
       templateType = 'REGISTRATION_CONFIRMATION',
       customMessage = '',
       format = 'xlsx',
+      statusFilter = '',
     } = body;
 
     const db = getDb();
@@ -33,6 +44,14 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(studentIds) && studentIds.length > 0) {
       const idSet = new Set(studentIds);
       targetStudents = allActive.filter((s) => idSet.has(s.studentId));
+    } else if (statusFilter && statusFilter !== 'ALL') {
+      if (statusFilter === 'SENT') {
+        targetStudents = allActive.filter((s) => ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(s.whatsappStatus || ''));
+      } else if (statusFilter === 'NOT_SENT') {
+        targetStudents = allActive.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+      } else if (statusFilter === 'FAILED') {
+        targetStudents = allActive.filter((s) => s.whatsappStatus === 'FAILED');
+      }
     }
 
     const templateDef =
@@ -58,7 +77,7 @@ export async function POST(req: NextRequest) {
       'Last Sent At',
     ];
 
-    const rows = targetStudents.map((s) => {
+    const mapStudentToRow = (s: typeof allActive[0]) => {
       const cleanPhone = normalizePhone(s.phone);
       const renderedMsg = renderMessageTemplate(rawTemplate, s, settings, origin);
       const waLink = generateWhatsAppLink(s, settings, renderedMsg);
@@ -79,10 +98,9 @@ export async function POST(req: NextRequest) {
         s.whatsappStatus || 'NOT_SENT',
         s.whatsappSentAt || '',
       ];
-    });
+    };
 
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    worksheet['!cols'] = [
+    const colWidths = [
       { wch: 16 },
       { wch: 22 },
       { wch: 15 },
@@ -98,8 +116,55 @@ export async function POST(req: NextRequest) {
       { wch: 20 },
     ];
 
+    const allRows = targetStudents.map(mapStudentToRow);
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...allRows]);
+    worksheet['!cols'] = colWidths;
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'WhatsApp_Dispatch');
+
+    // Sheet 2: Dispatched / Sent Students
+    const sentStudents = targetStudents.filter((s) => ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(s.whatsappStatus || ''));
+    const sentRows = sentStudents.map(mapStudentToRow);
+    const sentWorksheet = XLSX.utils.aoa_to_sheet([headers, ...sentRows]);
+    sentWorksheet['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(workbook, sentWorksheet, 'Dispatched_Sent');
+
+    // Sheet 3: Pending Queue Students (Unsent)
+    const pendingStudents = targetStudents.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+    const pendingRows = pendingStudents.map(mapStudentToRow);
+    const pendingWorksheet = XLSX.utils.aoa_to_sheet([headers, ...pendingRows]);
+    pendingWorksheet['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(workbook, pendingWorksheet, 'Pending_Queue');
+
+    // Sheet 4: Summary Metrics
+    const failedStudents = targetStudents.filter((s) => s.whatsappStatus === 'FAILED');
+    const compCounts: Record<string, { total: number; sent: number; pending: number; failed: number }> = {};
+    for (const s of targetStudents) {
+      const c = s.competitionName || 'OTHER';
+      if (!compCounts[c]) compCounts[c] = { total: 0, sent: 0, pending: 0, failed: 0 };
+      compCounts[c].total++;
+      if (['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(s.whatsappStatus || '')) compCounts[c].sent++;
+      else if (s.whatsappStatus === 'FAILED') compCounts[c].failed++;
+      else compCounts[c].pending++;
+    }
+
+    const summaryHeaders = ['Metric / Category', 'Count / Details'];
+    const summaryRows: any[][] = [
+      ['Total Target Candidates', targetStudents.length],
+      ['Total Active Database Registry', allActive.length],
+      ['Dispatched (Sent / Delivered)', sentStudents.length],
+      ['Pending Queue (Awaiting Send)', pendingStudents.length],
+      ['Delivery Failed', failedStudents.length],
+      ['Report Generated At', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })],
+      [],
+      ['Competition Breakdown:', ''],
+      ['Competition Name', 'Total', 'Sent', 'Pending', 'Failed'],
+      ...Object.entries(compCounts).map(([name, counts]) => [name, counts.total, counts.sent, counts.pending, counts.failed]),
+    ];
+    const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryRows]);
+    summaryWorksheet['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Summary_Report');
 
     const dateStr = new Date().toISOString().split('T')[0];
     const isCsv = format.toLowerCase() === 'csv';

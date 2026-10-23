@@ -184,6 +184,7 @@ export default function WhatsAppPage() {
     totalActive: 0,
     sentCount: 0,
     pendingCount: 0,
+    failedCount: 0,
     invalidPhoneCount: 0,
   });
 
@@ -194,7 +195,7 @@ export default function WhatsAppPage() {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [groupStats, setGroupStats] = useState<Record<string, { total: number; sent: number; pending: number; failed: number; groupName: string; url: string }>>({});
   const [selectedSchool, setSelectedSchool] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'NOT_SENT' | 'SENT' | 'OPENED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'NOT_SENT' | 'SENT' | 'FAILED' | 'OPENED'>('NOT_SENT');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -947,9 +948,20 @@ export default function WhatsAppPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId, status }),
       });
-      setStudents((prev) =>
-        prev.map((s) => (s.studentId === studentId ? { ...s, whatsappStatus: status, whatsappSentAt: new Date().toISOString() } : s))
-      );
+      // If user is currently in NOT_SENT (Pending Queue) view, immediately remove the dispatched student from this list
+      if (statusFilter === 'NOT_SENT' && (status === 'SENT' || status === 'OPENED')) {
+        setStudents((prev) => prev.filter((s) => s.studentId !== studentId));
+        setTotal((prev) => Math.max(0, prev - 1));
+      } else {
+        setStudents((prev) =>
+          prev.map((s) => (s.studentId === studentId ? { ...s, whatsappStatus: status, whatsappSentAt: new Date().toISOString() } : s))
+        );
+      }
+      setStats((prev) => ({
+        ...prev,
+        sentCount: (prev.sentCount || 0) + 1,
+        pendingCount: Math.max(0, (prev.pendingCount || 0) - 1),
+      }));
     } catch (err) {
       console.error(err);
     }
@@ -1024,9 +1036,14 @@ export default function WhatsAppPage() {
   // 8. Queue Runner Engine
   const startBulkQueue = () => {
     const selected = getSelectedStudentsList();
-    const targetList = selected.length > 0 ? selected : students;
+    let targetList = selected.length > 0 ? selected : students;
+    if (!usePreviousTemplateForResend) {
+      targetList = targetList.filter(
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+      );
+    }
     if (targetList.length === 0) {
-      alert('No candidates available to dispatch.');
+      alert('All selected / displayed candidates have already received messages. No duplicate messages will be sent.');
       return;
     }
 
@@ -1044,6 +1061,7 @@ export default function WhatsAppPage() {
   const handleQueueSendAndNext = () => {
     if (queueIndex >= queueCandidates.length) {
       setQueueFinished(true);
+      fetchStudents();
       return;
     }
 
@@ -1059,6 +1077,7 @@ export default function WhatsAppPage() {
     const nextIdx = queueIndex + 1;
     if (nextIdx >= queueCandidates.length) {
       setQueueFinished(true);
+      fetchStudents();
     } else {
       setQueueIndex(nextIdx);
       setQueueCountdown(queueIntervalSec);
@@ -1071,6 +1090,7 @@ export default function WhatsAppPage() {
     const nextIdx = queueIndex + 1;
     if (nextIdx >= queueCandidates.length) {
       setQueueFinished(true);
+      fetchStudents();
     } else {
       setQueueIndex(nextIdx);
       setQueueCountdown(queueIntervalSec);
@@ -1083,6 +1103,7 @@ export default function WhatsAppPage() {
 
     if (queueIndex >= queueCandidates.length) {
       setQueueFinished(true);
+      fetchStudents();
       return;
     }
 
@@ -1099,9 +1120,14 @@ export default function WhatsAppPage() {
   // 9. Meta Cloud API Bulk Dispatch
   const handleCloudApiBulkSend = async () => {
     const list = getSelectedStudentsList();
-    const target = list.length > 0 ? list : students;
+    let target = list.length > 0 ? list : students;
+    if (!usePreviousTemplateForResend) {
+      target = target.filter(
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+      );
+    }
     if (target.length === 0) {
-      alert('Please select at least one candidate for bulk send.');
+      alert('All selected / displayed candidates have already received messages. No duplicate messages will be sent.');
       return;
     }
 
@@ -1155,9 +1181,14 @@ export default function WhatsAppPage() {
 
   const handleIcpaasBulkSend = async () => {
     const list = getSelectedStudentsList();
-    const target = list.length > 0 ? list : students;
+    let target = list.length > 0 ? list : students;
+    if (!usePreviousTemplateForResend) {
+      target = target.filter(
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+      );
+    }
     if (target.length === 0) {
-      alert('Please select at least one candidate for bulk send.');
+      alert('All selected / displayed candidates have already received messages. No duplicate messages will be sent.');
       return;
     }
 
@@ -1308,6 +1339,7 @@ export default function WhatsAppPage() {
 
           <form action="/api/whatsapp/export" method="POST" target="_blank" className="inline">
             <input type="hidden" name="format" value="xlsx" />
+            <input type="hidden" name="statusFilter" value={statusFilter} />
             <button
               type="submit"
               className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-xs transition-colors"
@@ -1321,9 +1353,19 @@ export default function WhatsAppPage() {
 
       {/* Metrics Row - UP Scholarship Style */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Total Students
+        <div
+          onClick={() => {
+            setStatusFilter('ALL');
+            setPage(1);
+          }}
+          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-[#7a0c16] cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'ALL' ? 'bg-rose-50/60 ring-2 ring-[#7a0c16]' : 'bg-white border-slate-200'
+          }`}
+          title="Click to view all registered candidate records"
+        >
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <span>Total Students</span>
+            <span className="text-[10px] text-[#7a0c16] font-bold">Registry</span>
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">
             {stats.totalActive}
@@ -1333,9 +1375,19 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Dispatched (Sent)
+        <div
+          onClick={() => {
+            setStatusFilter('SENT');
+            setPage(1);
+          }}
+          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-emerald-700 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'SENT' ? 'bg-emerald-50/60 ring-2 ring-emerald-600' : 'bg-white border-slate-200'
+          }`}
+          title="Click to view dispatched / sent candidates"
+        >
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <span>Dispatched (Sent)</span>
+            <span className="text-[10px] text-emerald-700 font-bold">✓ Delivered</span>
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 tabular-nums">
             {stats.sentCount}
@@ -1345,9 +1397,19 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Pending Queue
+        <div
+          onClick={() => {
+            setStatusFilter('NOT_SENT');
+            setPage(1);
+          }}
+          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-amber-600 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'NOT_SENT' ? 'bg-amber-50/60 ring-2 ring-amber-600' : 'bg-white border-slate-200'
+          }`}
+          title="Click to view pending queue awaiting dispatch"
+        >
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <span>Pending Queue</span>
+            <span className="text-[10px] text-amber-700 font-bold">⏳ Awaiting</span>
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1 tabular-nums">
             {stats.pendingCount}
@@ -1357,15 +1419,25 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-slate-700">
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Dispatch Mode
+        <div
+          onClick={() => {
+            setStatusFilter('FAILED');
+            setPage(1);
+          }}
+          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-rose-600 cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === 'FAILED' ? 'bg-rose-50/60 ring-2 ring-rose-600' : 'bg-white border-slate-200'
+          }`}
+          title="Click to view failed delivery attempts"
+        >
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <span>Delivery Failed</span>
+            <span className="text-[10px] text-rose-700 font-bold">❌ Error</span>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            Browser Queue
+          <div className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 tabular-nums">
+            {stats.failedCount || 0}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
-            Direct & Cloud API
+            Failed / Undelivered
           </div>
         </div>
       </div>
@@ -1911,6 +1983,130 @@ export default function WhatsAppPage() {
                 </div>
               )}
 
+              {/* Segmented Queue / Directory Switcher */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border border-slate-200 rounded-xl shadow-xs">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter('NOT_SENT');
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                      statusFilter === 'NOT_SENT'
+                        ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-400'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>⏳ Pending Queue</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        statusFilter === 'NOT_SENT'
+                          ? 'bg-amber-700 text-white'
+                          : 'bg-amber-100 text-amber-900'
+                      }`}
+                    >
+                      {stats.pendingCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter('SENT');
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                      statusFilter === 'SENT'
+                        ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-400'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>✓ Dispatched (Sent)</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        statusFilter === 'SENT'
+                          ? 'bg-emerald-800 text-white'
+                          : 'bg-emerald-100 text-emerald-900'
+                      }`}
+                    >
+                      {stats.sentCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter('FAILED');
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                      statusFilter === 'FAILED'
+                        ? 'bg-rose-700 text-white shadow-sm ring-2 ring-rose-400'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>❌ Delivery Failed</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        statusFilter === 'FAILED'
+                          ? 'bg-rose-800 text-white'
+                          : 'bg-rose-100 text-rose-900'
+                      }`}
+                    >
+                      {stats.failedCount || 0}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter('ALL');
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                      statusFilter === 'ALL'
+                        ? 'bg-[#7a0c16] text-white shadow-sm ring-2 ring-rose-400'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>📋 All Records</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        statusFilter === 'ALL'
+                          ? 'bg-[#5c000b] text-white'
+                          : 'bg-slate-200 text-slate-800'
+                      }`}
+                    >
+                      {stats.totalActive}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-slate-500 font-medium">
+                  {statusFilter === 'NOT_SENT' && (
+                    <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                      ⚡ Showing Pending Queue: Sent candidates automatically exit this view upon delivery
+                    </span>
+                  )}
+                  {statusFilter === 'SENT' && (
+                    <span className="text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+                      ✓ Showing Dispatched List: Messages already delivered/sent
+                    </span>
+                  )}
+                  {statusFilter === 'FAILED' && (
+                    <span className="text-rose-800 font-semibold bg-rose-50 px-2 py-1 rounded border border-rose-200">
+                      ⚠️ Showing Failed Deliveries: Require telephone verification or number fix
+                    </span>
+                  )}
+                  {statusFilter === 'ALL' && (
+                    <span className="text-slate-700 font-semibold bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                      Showing complete candidate registry ({stats.totalActive} candidates)
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Filters & Resend Option row */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
                 <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
@@ -2059,10 +2255,10 @@ export default function WhatsAppPage() {
                     }}
                     className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold"
                   >
-                    <option value="ALL">All Statuses</option>
-                    <option value="NOT_SENT">Unsent / Not Sent</option>
-                    <option value="SENT">Sent</option>
-                    <option value="OPENED">Opened in wa.me</option>
+                    <option value="NOT_SENT">⏳ Pending Queue ({stats.pendingCount})</option>
+                    <option value="SENT">✓ Dispatched / Sent ({stats.sentCount})</option>
+                    <option value="FAILED">❌ Delivery Failed ({stats.failedCount || 0})</option>
+                    <option value="ALL">📋 All Registry Records ({stats.totalActive})</option>
                   </select>
                 </div>
 
