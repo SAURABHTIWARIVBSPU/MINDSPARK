@@ -99,7 +99,11 @@ export async function GET(req: NextRequest) {
       }
       classCategoryStats[cNorm].total++;
 
-      const matchedGroup = configuredGroups.find((g) => g.url.trim() === resGroup.groupLink.trim());
+      const cleanResLink = resGroup.groupLink.split('?')[0].trim().toLowerCase();
+      const matchedGroup = configuredGroups.find((g) => {
+        if (g.url.trim() === resGroup.groupLink.trim()) return true;
+        return g.url.split('?')[0].trim().toLowerCase() === cleanResLink;
+      });
       if (matchedGroup && groupStats[matchedGroup.id]) {
         groupStats[matchedGroup.id].total++;
       }

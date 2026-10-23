@@ -96,6 +96,11 @@ export default function WhatsAppPage() {
   const [savingGroup, setSavingGroup] = useState(false);
   const [resettingGroups, setResettingGroups] = useState(false);
 
+  // Competition Groups Desk View & Filter Controls
+  const [groupsDeskMode, setGroupsDeskMode] = useState<'communities18' | 'categories16'>('communities18');
+  const [groupsTierFilter, setGroupsTierFilter] = useState<'ALL' | 'QUIZ' | 'SENIOR' | 'PRIMARY' | 'PREPRIMARY'>('ALL');
+  const [groupsSearchQuery, setGroupsSearchQuery] = useState('');
+
   // Bulk Desk: Class Category Filtering & Stats
   const [selectedClassCategory, setSelectedClassCategory] = useState('');
   const [availableClassCategories, setAvailableClassCategories] = useState<string[]>([
@@ -1318,8 +1323,8 @@ export default function WhatsAppPage() {
         >
           <Trophy className="w-4 h-4 text-amber-600" />
           <span>🏆 Competition Groups</span>
-          <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px]">
-            {competitions.length || 16}
+          <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold font-mono">
+            {groups.length || 18}
           </span>
         </button>
 
@@ -2341,27 +2346,27 @@ export default function WhatsAppPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB: COMPETITION-WISE STUDENT GROUPING DESK */}
+      {/* TAB: 18 OFFICIAL COMPETITION WHATSAPP COMMUNITIES DESK */}
       {/* ========================================================================= */}
       {activeTab === 'groups' && (
         <div className="space-y-6">
           {/* Top Banner */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 shadow-xs">
+          <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
                 <div className="flex items-center space-x-2">
-                  <span className="px-2.5 py-0.5 bg-amber-600 text-white rounded-md text-[10px] font-extrabold uppercase tracking-wider">
-                    Dynamic Grouping
+                  <span className="px-2.5 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                    Official WhatsApp Communities
                   </span>
                   <span className="text-xs font-mono font-bold text-amber-900">
-                    {competitions.length} Competition Categories
+                    {groups.length || 18} Official Competition Groups
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  🏆 Competition-Wise Student Grouping Desk
+                  🏆 Competition-Wise WhatsApp Community Groups Desk
                 </h2>
                 <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
-                  Students are organized by their registered competition or activity. Launch targeted WhatsApp messages to a specific group, manage their WhatsApp community link, or filter candidates in the bulk desk without affecting other categories.
+                  Students are organized by their 18 verified WhatsApp competition communities. Online Quiz is completely separated into its 3 distinct tiers (Graduation, Classes 9–10, and Classes 11–12) with dedicated invite links. Launch targeted messages or filter candidates in the bulk desk without affecting other categories.
                 </p>
               </div>
 
@@ -2370,6 +2375,8 @@ export default function WhatsAppPage() {
                   type="button"
                   onClick={() => {
                     setCampaignTargetGroup('ALL');
+                    setCampaignTargetClass('ALL');
+                    setCampaignTargetOfficialGroup('');
                     setCampaignModalOpen(true);
                   }}
                   className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-all cursor-pointer"
@@ -2383,8 +2390,8 @@ export default function WhatsAppPage() {
             {/* Quick Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-amber-200/70">
               <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
-                <div className="text-[10px] font-bold text-slate-600 uppercase">Total Competitions</div>
-                <div className="text-xl font-extrabold text-slate-900 mt-0.5">{competitions.length}</div>
+                <div className="text-[10px] font-bold text-slate-600 uppercase">Total Official Groups</div>
+                <div className="text-xl font-extrabold text-slate-900 mt-0.5">{groups.length || 18}</div>
               </div>
               <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
                 <div className="text-[10px] font-bold text-slate-600 uppercase">Total Students</div>
@@ -2401,198 +2408,478 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          {/* Grid of Competition Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {competitions.map((comp) => {
-              const grp = competitionStats[comp] || { total: 0, sent: 0, pending: 0, failed: 0 };
-              const percent = grp.total > 0 ? Math.round((grp.sent / grp.total) * 100) : 0;
-              const link = categoryLinks[comp] || '';
+          {/* View Mode & Filter Controls */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-xs">
+            {/* View Mode Switcher */}
+            <div className="flex items-center space-x-1 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setGroupsDeskMode('communities18')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  groupsDeskMode === 'communities18'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📱 18 Official WhatsApp Groups
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupsDeskMode('categories16')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  groupsDeskMode === 'categories16'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                🏆 16 Raw Competitions
+              </button>
+            </div>
 
-              return (
-                <div
-                  key={comp}
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-amber-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                          <Trophy className="w-4 h-4 text-amber-700" />
+            {/* Tier Filters & Search */}
+            <div className="flex flex-wrap items-center gap-2 flex-1 sm:justify-end">
+              {groupsDeskMode === 'communities18' && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setGroupsTierFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-lg border transition-colors ${
+                      groupsTierFilter === 'ALL'
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    All (18)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupsTierFilter('QUIZ')}
+                    className={`px-2.5 py-1 rounded-lg border transition-colors ${
+                      groupsTierFilter === 'QUIZ'
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
+                    }`}
+                  >
+                    🎓 Online Quiz (3 Tiers)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupsTierFilter('SENIOR')}
+                    className={`px-2.5 py-1 rounded-lg border transition-colors ${
+                      groupsTierFilter === 'SENIOR'
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-indigo-50 text-indigo-900 border-indigo-200 hover:bg-indigo-100'
+                    }`}
+                  >
+                    Senior (9–12)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupsTierFilter('PRIMARY')}
+                    className={`px-2.5 py-1 rounded-lg border transition-colors ${
+                      groupsTierFilter === 'PRIMARY'
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                  >
+                    Classes 1–8
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupsTierFilter('PREPRIMARY')}
+                    className={`px-2.5 py-1 rounded-lg border transition-colors ${
+                      groupsTierFilter === 'PREPRIMARY'
+                        ? 'bg-pink-600 text-white border-pink-600'
+                        : 'bg-pink-50 text-pink-900 border-pink-200 hover:bg-pink-100'
+                    }`}
+                  >
+                    Pre-Primary & KG
+                  </button>
+                </div>
+              )}
+
+              {/* Search box */}
+              <div className="relative min-w-[160px] max-w-[220px]">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  value={groupsSearchQuery}
+                  onChange={(e) => setGroupsSearchQuery(e.target.value)}
+                  placeholder="Search groups..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards Grid: Mode 1 - 18 Official WhatsApp Communities (Default) */}
+          {groupsDeskMode === 'communities18' && (() => {
+            const configuredList = groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS;
+            const filteredCommunities = configuredList.filter((g) => {
+              if (groupsSearchQuery.trim()) {
+                const q = groupsSearchQuery.toLowerCase().trim();
+                const matchName = g.groupName.toLowerCase().includes(q);
+                const matchComp = g.competition.toLowerCase().includes(q);
+                const matchClass = (g.classRange || '').toLowerCase().includes(q);
+                if (!matchName && !matchComp && !matchClass) return false;
+              }
+              if (groupsTierFilter === 'QUIZ') {
+                return normalizeCompetitionCategory(g.competition) === 'ONLINE QUIZ';
+              }
+              if (groupsTierFilter === 'SENIOR') {
+                return ['11-12', '9-10', 'Graduation'].includes(g.classRange || '') || normalizeCompetitionCategory(g.competition) === 'ESSAY WRITING';
+              }
+              if (groupsTierFilter === 'PRIMARY') {
+                return ['6-8', '4-5', '2-3', '1'].includes(g.classRange || '');
+              }
+              if (groupsTierFilter === 'PREPRIMARY') {
+                return ['UKG', 'LKG', 'Nursery', 'Play Group'].includes(g.classRange || '');
+              }
+              return true;
+            });
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredCommunities.map((grp) => {
+                  const gStat = groupStats[grp.id] || { total: 0, sent: 0, pending: 0, failed: 0 };
+                  const percent = gStat.total > 0 ? Math.round((gStat.sent / gStat.total) * 100) : 0;
+                  const isOnlineQuiz = normalizeCompetitionCategory(grp.competition) === 'ONLINE QUIZ';
+
+                  return (
+                    <div
+                      key={grp.id}
+                      className={`bg-white rounded-2xl border ${
+                        isOnlineQuiz ? 'border-amber-400 ring-1 ring-amber-300/60 shadow-sm' : 'border-slate-200'
+                      } hover:border-amber-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4`}
+                    >
+                      <div className="space-y-3">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-9 h-9 rounded-xl ${isOnlineQuiz ? 'bg-amber-500 text-white shadow-xs' : 'bg-emerald-100 text-emerald-800'} flex items-center justify-center font-bold`}>
+                              <Trophy className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-sm text-slate-900 leading-snug line-clamp-1" title={grp.groupName}>
+                                {grp.groupName}
+                              </h3>
+                              <div className="flex items-center space-x-1.5 mt-0.5">
+                                <span className="text-[10px] text-amber-900 font-bold uppercase tracking-wider">
+                                  {grp.competition}
+                                </span>
+                                <span className="text-slate-300">&bull;</span>
+                                <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
+                                  {grp.classRange === 'All' ? 'All Classes' : `Class ${grp.classRange}`}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-1 bg-amber-50 text-amber-950 border border-amber-200 rounded-lg text-xs font-bold font-mono">
+                            {gStat.total} Students
+                          </span>
+                        </div>
+
+                        {/* Counts Row */}
+                        <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center">
+                          <div>
+                            <div className="text-[9px] font-bold text-emerald-700 uppercase">Sent</div>
+                            <div className="text-sm font-extrabold text-emerald-700">{gStat.sent}</div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold text-amber-700 uppercase">Pending</div>
+                            <div className="text-sm font-extrabold text-amber-800">{gStat.pending}</div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold text-rose-700 uppercase">Failed</div>
+                            <div className="text-sm font-extrabold text-rose-700">{gStat.failed}</div>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] text-slate-500 font-medium">
+                            <span>Group Dispatch Progress</span>
+                            <span>{percent}% Delivered</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Verified WhatsApp Group URL Box */}
+                        <div className="p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1 text-xs">
+                          <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+                            <span className="flex items-center space-x-1">
+                              <CheckCircle className="w-3 h-3 text-emerald-600" />
+                              <span>Official Community Link</span>
+                            </span>
+                            <span className="font-mono text-emerald-700 text-[10px]">chat.whatsapp.com</span>
+                          </div>
+                          <div className="flex items-center justify-between font-mono text-[11px] text-slate-800 break-all bg-white p-1.5 rounded border border-emerald-200">
+                            <span className="truncate mr-2 text-emerald-950 font-medium">{grp.url}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                copyToClipboard(grp.url);
+                                setActionSuccessMsg(`Copied: ${grp.groupName}`);
+                                setTimeout(() => setActionSuccessMsg(null), 2500);
+                              }}
+                              className="text-slate-400 hover:text-emerald-700 p-1 shrink-0"
+                              title="Copy WhatsApp Group Link"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions Bar */}
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleSelectOfficialGroup(grp.id);
+                            setActiveTab('bulk');
+                          }}
+                          className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer"
+                          title={`Filter and view all candidates in ${grp.groupName}`}
+                        >
+                          <Users className="w-3.5 h-3.5 text-slate-600" />
+                          <span>View ({gStat.total})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCampaignTargetGroup(grp.competition);
+                            setCampaignTargetClass(grp.classRange || 'ALL');
+                            setCampaignTargetOfficialGroup(grp.id);
+                            const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === grp.id);
+                            if (matchingTpl) setCampaignTargetTemplate(matchingTpl.id);
+                            setCampaignNameInput(`${grp.groupName} Blast`);
+                            setCampaignModalOpen(true);
+                          }}
+                          className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
+                          title={`Blast targeted message to ${grp.groupName}`}
+                        >
+                          <Send className="w-3.5 h-3.5 text-amber-200" />
+                          <span>Blast Group</span>
+                        </button>
+
+                        <a
+                          href={grp.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs transition-colors shrink-0"
+                          title="Open WhatsApp Group in browser"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Cards Grid: Mode 2 - 16 Raw Competition Categories */}
+          {groupsDeskMode === 'categories16' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {competitions.map((comp) => {
+                const grp = competitionStats[comp] || { total: 0, sent: 0, pending: 0, failed: 0 };
+                const percent = grp.total > 0 ? Math.round((grp.sent / grp.total) * 100) : 0;
+                const link = categoryLinks[comp] || '';
+
+                return (
+                  <div
+                    key={comp}
+                    className="bg-white rounded-2xl border border-slate-200 hover:border-amber-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                            <Trophy className="w-4 h-4 text-amber-700" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm text-slate-900 leading-snug line-clamp-1" title={comp}>
+                              {comp}
+                            </h3>
+                            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                              Competition Group
+                            </span>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg text-xs font-bold font-mono">
+                          {grp.total} Students
+                        </span>
+                      </div>
+
+                      {/* Counts Row */}
+                      <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center">
+                        <div>
+                          <div className="text-[9px] font-bold text-emerald-700 uppercase">Sent</div>
+                          <div className="text-sm font-extrabold text-emerald-700">{grp.sent}</div>
                         </div>
                         <div>
-                          <h3 className="font-bold text-sm text-slate-900 leading-snug line-clamp-1" title={comp}>
-                            {comp}
-                          </h3>
-                          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                            Competition Group
-                          </span>
+                          <div className="text-[9px] font-bold text-amber-700 uppercase">Pending</div>
+                          <div className="text-sm font-extrabold text-amber-800">{grp.pending}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-bold text-rose-700 uppercase">Failed</div>
+                          <div className="text-sm font-extrabold text-rose-700">{grp.failed}</div>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg text-xs font-bold font-mono">
-                        {grp.total} Students
-                      </span>
-                    </div>
 
-                    {/* Counts Row */}
-                    <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center">
-                      <div>
-                        <div className="text-[9px] font-bold text-emerald-700 uppercase">Sent</div>
-                        <div className="text-sm font-extrabold text-emerald-700">{grp.sent}</div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-bold text-amber-700 uppercase">Pending</div>
-                        <div className="text-sm font-extrabold text-amber-800">{grp.pending}</div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-bold text-rose-700 uppercase">Failed</div>
-                        <div className="text-sm font-extrabold text-rose-700">{grp.failed}</div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-                        <span>Dispatch Progress</span>
-                        <span>{percent}% Delivered</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* WhatsApp Group Link Status */}
-                    <div className="pt-1 text-[11px] flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">WhatsApp Link:</span>
-                      {link ? (
-                        <div className="flex items-center space-x-1.5">
-                          <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            ✓ Configured
-                          </span>
-                          <a
-                            href={link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-emerald-700 hover:text-emerald-900"
-                            title="Open WhatsApp Group"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
+                      {/* Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-500 font-medium">
+                          <span>Dispatch Progress</span>
+                          <span>{percent}% Delivered</span>
                         </div>
-                      ) : (
-                        <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          Fallback Default
-                        </span>
-                      )}
-                    </div>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
 
-                    {(() => {
-                      const compSubGroups = (groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS).filter(
-                        (g) => normalizeCompetitionCategory(g.competition) === normalizeCompetitionCategory(comp)
-                      );
-                      if (compSubGroups.length <= 1) return null;
-                      return (
-                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                            <span>Separate Class Communities ({compSubGroups.length}):</span>
-                            <span className="text-emerald-700 font-mono font-bold">Official Groups</span>
+                      {/* WhatsApp Group Link Status */}
+                      <div className="pt-1 text-[11px] flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">WhatsApp Link:</span>
+                        {link ? (
+                          <div className="flex items-center space-x-1.5">
+                            <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              ✓ Configured
+                            </span>
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-700 hover:text-emerald-900"
+                              title="Open WhatsApp Group"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
                           </div>
-                          <div className="space-y-1">
-                            {compSubGroups.map((sg) => {
-                              const sgStat = groupStats[sg.id];
-                              return (
-                                <div key={sg.id} className="flex items-center justify-between p-1.5 bg-amber-50/70 border border-amber-200/70 rounded-lg text-xs">
-                                  <div className="truncate mr-1.5">
-                                    <span className="font-bold text-amber-950">{sg.classRange === 'All' ? 'All Classes' : sg.classRange}: </span>
-                                    <span className="text-[10px] text-slate-600 truncate">{sg.groupName.replace('Mind Spark ', '')}</span>
-                                    {sgStat && <span className="ml-1 text-[10px] font-mono font-bold text-emerald-800">({sgStat.total})</span>}
+                        ) : (
+                          <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Fallback Default
+                          </span>
+                        )}
+                      </div>
+
+                      {(() => {
+                        const compSubGroups = (groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS).filter(
+                          (g) => normalizeCompetitionCategory(g.competition) === normalizeCompetitionCategory(comp)
+                        );
+                        if (compSubGroups.length <= 1) return null;
+                        return (
+                          <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                              <span>Separate Class Communities ({compSubGroups.length}):</span>
+                              <span className="text-emerald-700 font-mono font-bold">Official Groups</span>
+                            </div>
+                            <div className="space-y-1">
+                              {compSubGroups.map((sg) => {
+                                const sgStat = groupStats[sg.id];
+                                return (
+                                  <div key={sg.id} className="flex items-center justify-between p-1.5 bg-amber-50/70 border border-amber-200/70 rounded-lg text-xs">
+                                    <div className="truncate mr-1.5">
+                                      <span className="font-bold text-amber-950">{sg.classRange === 'All' ? 'All Classes' : sg.classRange}: </span>
+                                      <span className="text-[10px] text-slate-600 truncate">{sg.groupName.replace('Mind Spark ', '')}</span>
+                                      {sgStat && <span className="ml-1 text-[10px] font-mono font-bold text-emerald-800">({sgStat.total})</span>}
+                                    </div>
+                                    <div className="flex items-center space-x-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleSelectOfficialGroup(sg.id);
+                                          setActiveTab('bulk');
+                                        }}
+                                        className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-[10px] font-bold cursor-pointer"
+                                        title={`View & filter students in ${sg.groupName}`}
+                                      >
+                                        View
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setCampaignTargetGroup(sg.competition);
+                                          setCampaignTargetClass(sg.classRange || 'ALL');
+                                          setCampaignTargetOfficialGroup(sg.id);
+                                          const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === sg.id);
+                                          if (matchingTpl) setCampaignTargetTemplate(matchingTpl.id);
+                                          setCampaignNameInput(`${sg.groupName} Blast`);
+                                          setCampaignModalOpen(true);
+                                        }}
+                                        className="px-2 py-0.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded text-[10px] font-bold cursor-pointer"
+                                        title={`Blast messages directly to ${sg.groupName}`}
+                                      >
+                                        Blast
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center space-x-1 shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleSelectOfficialGroup(sg.id);
-                                        setActiveTab('bulk');
-                                      }}
-                                      className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-[10px] font-bold cursor-pointer"
-                                      title={`View & filter students in ${sg.groupName}`}
-                                    >
-                                      View
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setCampaignTargetGroup(sg.competition);
-                                        setCampaignTargetClass(sg.classRange || 'ALL');
-                                        setCampaignTargetOfficialGroup(sg.id);
-                                        const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === sg.id);
-                                        if (matchingTpl) setCampaignTargetTemplate(matchingTpl.id);
-                                        setCampaignNameInput(`${sg.groupName} Blast`);
-                                        setCampaignModalOpen(true);
-                                      }}
-                                      className="px-2 py-0.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded text-[10px] font-bold cursor-pointer"
-                                      title={`Blast messages directly to ${sg.groupName}`}
-                                    >
-                                      Blast
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+                        );
+                      })()}
+                    </div>
 
-                  {/* Actions Bar */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCompetition(comp);
-                        setActiveTab('bulk');
-                      }}
-                      className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors"
-                      title="Filter and view all students in this group"
-                    >
-                      <Users className="w-3.5 h-3.5 text-slate-600" />
-                      <span>View ({grp.total})</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCampaignTargetGroup(comp);
-                        setCampaignTargetTemplate(activeTemplate);
-                        setCampaignNameInput(`${comp} Blast`);
-                        setCampaignModalOpen(true);
-                      }}
-                      className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
-                      title="Launch a targeted message campaign to this competition group"
-                    >
-                      <Send className="w-3.5 h-3.5 text-amber-200" />
-                      <span>Blast Group</span>
-                    </button>
-
-                    {link && (
+                    {/* Actions Bar */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(link)}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs transition-colors shrink-0"
-                        title="Copy group invite link"
+                        onClick={() => {
+                          setSelectedCompetition(comp);
+                          setActiveTab('bulk');
+                        }}
+                        className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors"
+                        title="Filter and view all students in this group"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Users className="w-3.5 h-3.5 text-slate-600" />
+                        <span>View ({grp.total})</span>
                       </button>
-                    )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCampaignTargetGroup(comp);
+                          setCampaignTargetTemplate(activeTemplate);
+                          setCampaignNameInput(`${comp} Blast`);
+                          setCampaignModalOpen(true);
+                        }}
+                        className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
+                        title="Launch a targeted message campaign to this competition group"
+                      >
+                        <Send className="w-3.5 h-3.5 text-amber-200" />
+                        <span>Blast Group</span>
+                      </button>
+
+                      {link && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(link)}
+                          className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs transition-colors shrink-0"
+                          title="Copy group invite link"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
