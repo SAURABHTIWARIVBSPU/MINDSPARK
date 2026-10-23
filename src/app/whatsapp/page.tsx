@@ -31,8 +31,30 @@ import {
   RefreshCw,
   Smartphone,
   Layers,
+  Trophy,
+  FileText,
+  History,
+  Plus,
+  Edit,
+  Trash2,
+  CheckSquare,
+  MessageCircle,
+  Share2,
+  Eye,
+  ShieldCheck,
+  Flame,
+  BarChart3,
+  Link as LinkIcon,
 } from 'lucide-react';
-import { Student, SystemSettings, WhatsAppStatus } from '@/types';
+import {
+  Student,
+  SystemSettings,
+  WhatsAppStatus,
+  CustomWhatsAppTemplate,
+  WhatsAppCampaign,
+  StudentMessageRecord,
+  WhatsAppGroupLinkItem,
+} from '@/types';
 import {
   WHATSAPP_TEMPLATES,
   WHATSAPP_MERGE_TAGS,
@@ -41,12 +63,100 @@ import {
   generateWhatsAppLink,
   isValidIndianMobile,
   buildStudentWhatsAppMessage,
+  getCategoryGroupLink,
+  OFFICIAL_COMPETITION_CATEGORIES,
+  getAllAvailableTemplates,
+  OFFICIAL_WHATSAPP_GROUPS,
+  normalizeClassCategory,
+  resolveStudentWhatsAppGroup,
 } from '@/lib/whatsapp/message-builder';
 import { normalizePhone } from '@/lib/excel/normalizer';
 
 export default function WhatsAppPage() {
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'bulk' | 'single' | 'broadcast' | 'config'>('bulk');
+  const [activeTab, setActiveTab] = useState<'bulk' | 'groups' | 'templates' | 'history' | 'single' | 'broadcast' | 'categoryGroups' | 'testStaff' | 'config'>('bulk');
+
+  // Dynamic WhatsApp Groups State (18 Official Communities)
+  const [groups, setGroups] = useState<WhatsAppGroupLinkItem[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [groupFilterComp, setGroupFilterComp] = useState('ALL');
+  const [groupFilterClass, setGroupFilterClass] = useState('ALL');
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<WhatsAppGroupLinkItem | null>(null);
+  const [groupFormName, setGroupFormName] = useState('');
+  const [groupFormComp, setGroupFormComp] = useState('');
+  const [groupFormClass, setGroupFormClass] = useState('All');
+  const [groupFormUrl, setGroupFormUrl] = useState('');
+  const [groupFormDesc, setGroupFormDesc] = useState('');
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [resettingGroups, setResettingGroups] = useState(false);
+
+  // Bulk Desk: Class Category Filtering & Stats
+  const [selectedClassCategory, setSelectedClassCategory] = useState('');
+  const [availableClassCategories, setAvailableClassCategories] = useState<string[]>([
+    'Play Group',
+    'Nursery',
+    'LKG',
+    'UKG',
+    '1',
+    '2-3',
+    '4-5',
+    '6-8',
+    '9-10',
+    '11-12',
+    'Graduation',
+  ]);
+  const [classCategoryStats, setClassCategoryStats] = useState<Record<string, { total: number; sent: number; pending: number; failed: number }>>({});
+
+  // Competition Grouping Stats State
+  const [competitionStats, setCompetitionStats] = useState<Record<string, { total: number; sent: number; pending: number; failed: number }>>({});
+
+  // Dynamic Custom Templates State
+  const [customTemplates, setCustomTemplates] = useState<CustomWhatsAppTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [tplTitle, setTplTitle] = useState('');
+  const [tplDesc, setTplDesc] = useState('');
+  const [tplCategory, setTplCategory] = useState('ALL');
+  const [tplContent, setTplContent] = useState('');
+  const [tplMetaName, setTplMetaName] = useState('admit_card_new');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Controlled Message Repetition (Resend Mode)
+  const [usePreviousTemplateForResend, setUsePreviousTemplateForResend] = useState(true);
+
+  // Student Message History Modal State
+  const [historyModalStudent, setHistoryModalStudent] = useState<Student | null>(null);
+  const [resendingStudentId, setResendingStudentId] = useState<string | null>(null);
+
+  // Campaign Launcher Modal State
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+  const [campaignNameInput, setCampaignNameInput] = useState('');
+  const [campaignTargetGroup, setCampaignTargetGroup] = useState('ALL');
+  const [campaignTargetClass, setCampaignTargetClass] = useState('ALL');
+  const [campaignTargetTemplate, setCampaignTargetTemplate] = useState('REGISTRATION_CONFIRMATION');
+  const [campaignProvider, setCampaignProvider] = useState<'icpaas' | 'cloud_api' | 'browser_queue_sync'>('icpaas');
+  const [campaignOnlyUnsent, setCampaignOnlyUnsent] = useState(true);
+  const [campaignConfirmed, setCampaignConfirmed] = useState(false);
+  const [launchingCampaign, setLaunchingCampaign] = useState(false);
+  const [campaignResult, setCampaignResult] = useState<{ total: number; succeeded: number; failed: number; message?: string } | null>(null);
+
+  // Category-wise WhatsApp Group Links State
+  const [categoryLinks, setCategoryLinks] = useState<Record<string, string>>({});
+  const [defaultGroupLink, setDefaultGroupLink] = useState<string>('https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L');
+  const [savingCategoryLinks, setSavingCategoryLinks] = useState(false);
+
+  // Test Staff & Teachers Registry State (Separate Excel)
+  const [testStaffList, setTestStaffList] = useState<any[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffPhone, setNewStaffPhone] = useState('');
+  const [newStaffDesignation, setNewStaffDesignation] = useState('');
+  const [newStaffSchool, setNewStaffSchool] = useState('');
+  const [staffDispatching, setStaffDispatching] = useState(false);
+  const [staffError, setStaffError] = useState<string | null>(null);
 
   // Core Data
   const [students, setStudents] = useState<Student[]>([]);
@@ -108,13 +218,346 @@ export default function WhatsAppPage() {
   const [copied, setCopied] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
-  // 1. Load System Settings
+  // Meta WhatsApp Template & Variable Connector State (admit_card_new)
+  const [metaTemplateName, setMetaTemplateName] = useState<string>('admit_card_new');
+  const [metaTemplateLang, setMetaTemplateLang] = useState<string>('en');
+  const [metaVariables, setMetaVariables] = useState<string[]>([
+    'competitionTitle',
+    'participantName',
+    'enrollmentNotice',
+    'admitCardInstructions',
+    'groupLinkNotice',
+  ]);
+
+  // Load saved Meta template config from localStorage
+  useEffect(() => {
+    try {
+      const savedName = localStorage.getItem('mindspark_meta_template_name');
+      if (savedName) setMetaTemplateName(savedName);
+      const savedLang = localStorage.getItem('mindspark_meta_template_lang');
+      if (savedLang) setMetaTemplateLang(savedLang);
+      const savedVars = localStorage.getItem('mindspark_meta_template_vars');
+      if (savedVars) setMetaVariables(JSON.parse(savedVars));
+    } catch {}
+  }, []);
+
+  const saveMetaTemplateConfig = () => {
+    try {
+      localStorage.setItem('mindspark_meta_template_name', metaTemplateName);
+      localStorage.setItem('mindspark_meta_template_lang', metaTemplateLang);
+      localStorage.setItem('mindspark_meta_template_vars', JSON.stringify(metaVariables));
+      setActionSuccessMsg('Meta WhatsApp Template & Variable mapping successfully saved!');
+      setTimeout(() => setActionSuccessMsg(null), 3000);
+    } catch (e: any) {
+      alert(`Save error: ${e.message}`);
+    }
+  };
+
+  // Fetch Test Teachers and Staff from separate Excel registry
+  const fetchTestStaff = useCallback(async () => {
+    setLoadingStaff(true);
+    setStaffError(null);
+    try {
+      const res = await fetch('/api/whatsapp/test-staff');
+      if (res.ok) {
+        const data = await res.json();
+        setTestStaffList(data.staff || []);
+      }
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setLoadingStaff(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'testStaff') {
+      fetchTestStaff();
+    }
+  }, [activeTab, fetchTestStaff]);
+
+  const handleAddTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffError(null);
+    try {
+      const res = await fetch('/api/whatsapp/test-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add',
+          name: newStaffName,
+          phone: newStaffPhone,
+          designation: newStaffDesignation,
+          school: newStaffSchool,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStaffError(data.error || 'Failed to add teacher');
+        return;
+      }
+      setTestStaffList(data.staff || []);
+      setNewStaffName('');
+      setNewStaffPhone('');
+      setNewStaffDesignation('');
+      setNewStaffSchool('');
+      setActionSuccessMsg('Teacher added successfully to Test Registry without duplicate!');
+      setTimeout(() => setActionSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setStaffError(err.message);
+    }
+  };
+
+  const handleDispatchTestStaff = async () => {
+    if (testStaffList.length === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to dispatch test messages to ${testStaffList.length} test teachers/staff in the registry?\n(Results will log real-time to Test_Teachers_And_Staff_Registry.xlsx).`
+      )
+    ) {
+      return;
+    }
+
+    setStaffDispatching(true);
+    setStaffError(null);
+    try {
+      const res = await fetch('/api/whatsapp/test-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'dispatch',
+          templateName: metaTemplateName,
+          templateLanguage: metaTemplateLang,
+          customText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStaffError(data.error || 'Test dispatch failed');
+        return;
+      }
+      setTestStaffList(data.staff || []);
+      setActionSuccessMsg(`Test Dispatch Complete: ${data.successCount} sent, ${data.failCount} failed.`);
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setStaffError(err.message);
+    } finally {
+      setStaffDispatching(false);
+    }
+  };
+
+  // 1. Load System Settings & Category Links
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then(setSettings)
+      .then((data) => {
+        setSettings(data);
+        if (data && data.categoryWhatsAppLinks) {
+          setCategoryLinks(data.categoryWhatsAppLinks);
+        }
+        if (data && data.defaultWhatsAppGroupLink) {
+          setDefaultGroupLink(data.defaultWhatsAppGroupLink);
+        }
+      })
       .catch((e) => console.error(e));
   }, []);
+
+  // Fetch official WhatsApp community groups (18 Official Groups)
+  const fetchGroups = useCallback(async () => {
+    setLoadingGroups(true);
+    try {
+      const res = await fetch('/api/whatsapp/groups');
+      if (res.ok) {
+        const data = await res.json();
+        setGroups(data.groups || []);
+        if (data.defaultGroupLink) {
+          setDefaultGroupLink(data.defaultGroupLink);
+        }
+        if (data.classCategories && data.classCategories.length > 0) {
+          setAvailableClassCategories(data.classCategories);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load WhatsApp groups:', e);
+    } finally {
+      setLoadingGroups(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  const handleOpenAddGroupModal = () => {
+    setEditingGroup(null);
+    setGroupFormName('');
+    setGroupFormComp(competitions[0] || 'Online Quiz');
+    setGroupFormClass('All');
+    setGroupFormUrl('');
+    setGroupFormDesc('');
+    setGroupModalOpen(true);
+  };
+
+  const handleOpenEditGroupModal = (grp: WhatsAppGroupLinkItem) => {
+    setEditingGroup(grp);
+    setGroupFormName(grp.groupName);
+    setGroupFormComp(grp.competition);
+    setGroupFormClass(grp.classRange || 'All');
+    setGroupFormUrl(grp.url);
+    setGroupFormDesc(grp.description || '');
+    setGroupModalOpen(true);
+  };
+
+  const handleSaveGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupFormUrl.trim().startsWith('https://chat.whatsapp.com/')) {
+      alert('Please enter a valid WhatsApp invite link starting with https://chat.whatsapp.com/');
+      return;
+    }
+    setSavingGroup(true);
+    try {
+      const res = await fetch('/api/whatsapp/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingGroup?.id,
+          groupName: groupFormName.trim() || `Mind Spark 2026 - ${groupFormComp}`,
+          competition: groupFormComp,
+          classRange: groupFormClass,
+          url: groupFormUrl.trim(),
+          description: groupFormDesc.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save group link');
+      setGroups(data.groups || []);
+      setGroupModalOpen(false);
+      setActionSuccessMsg(`WhatsApp Community Link for "${groupFormComp}" saved successfully!`);
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+      fetchStudents();
+    } catch (err: any) {
+      alert(`Save error: ${err.message}`);
+    } finally {
+      setSavingGroup(false);
+    }
+  };
+
+  const handleResetToOfficialGroups = async () => {
+    if (
+      !confirm(
+        'Are you sure you want to restore all 18 official WhatsApp community links provided for Mind Spark 2026?\nThis will reset custom URLs back to the school-verified defaults.'
+      )
+    ) {
+      return;
+    }
+    setResettingGroups(true);
+    try {
+      const res = await fetch('/api/whatsapp/groups?reset=true', {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset groups');
+      setGroups(data.groups || []);
+      setActionSuccessMsg('Successfully restored all 18 official WhatsApp community links!');
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+      fetchStudents();
+    } catch (err: any) {
+      alert(`Reset error: ${err.message}`);
+    } finally {
+      setResettingGroups(false);
+    }
+  };
+
+  const handleDeleteGroup = async (id: string, groupName: string) => {
+    if (!confirm(`Delete WhatsApp group link for "${groupName}"?`)) return;
+    try {
+      const res = await fetch(`/api/whatsapp/groups?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete group');
+      setGroups(data.groups || []);
+      setActionSuccessMsg('Group removed.');
+      setTimeout(() => setActionSuccessMsg(null), 2500);
+    } catch (err: any) {
+      alert(`Delete error: ${err.message}`);
+    }
+  };
+
+  const handleSafeResend = async (student: Student) => {
+    setResendingStudentId(student.studentId);
+    try {
+      const res = await fetch('/api/whatsapp/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: [student.studentId],
+          provider: 'icpaas',
+          templateType: (student.lastTemplateName as any) || activeTemplate,
+          customMessage: student.lastMessageContent || customText,
+          usePreviousTemplateForResend: true,
+          campaignName: `Safe Resend: ${student.name}`,
+          delayMs: 50,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Resend failed');
+      setActionSuccessMsg(`Safe Resend Dispatched to ${student.name}! (Previous template & group preserved)`);
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+      fetchStudents();
+      setHistoryModalStudent((prev) =>
+        prev && prev.studentId === student.studentId
+          ? {
+              ...prev,
+              whatsappStatus: 'SENT',
+              whatsappSentAt: new Date().toISOString(),
+              messageHistory: [
+                ...(prev.messageHistory || []),
+                {
+                  templateId: prev.lastTemplateName || activeTemplate,
+                  templateName: prev.lastTemplateName || 'Mind Spark Approved Template',
+                  templateVersion: prev.lastTemplateVersion || 'v1',
+                  messageContent: prev.lastMessageContent,
+                  groupLink: prev.lastGroupLink,
+                  sentAt: new Date().toISOString(),
+                  status: 'SENT',
+                  provider: 'icpaas',
+                },
+              ],
+            }
+          : prev
+      );
+    } catch (err: any) {
+      alert(`Resend error: ${err.message}`);
+    } finally {
+      setResendingStudentId(null);
+    }
+  };
+
+  const handleSaveCategoryLinks = async () => {
+    setSavingCategoryLinks(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryWhatsAppLinks: categoryLinks,
+          defaultWhatsAppGroupLink: defaultGroupLink,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save Category WhatsApp Group links');
+      }
+      setSettings(data.settings);
+      setActionSuccessMsg('Category WhatsApp Group links successfully saved in database!');
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+    } catch (err: any) {
+      alert(`Save error: ${err.message}`);
+    } finally {
+      setSavingCategoryLinks(false);
+    }
+  };
 
   // 2. Debounce search input
   useEffect(() => {
@@ -134,6 +577,7 @@ export default function WhatsAppPage() {
         pageSize: String(pageSize),
         search: debouncedSearch,
         competition: selectedCompetition,
+        classCategory: selectedClassCategory,
         schoolOrCollege: selectedSchool,
         whatsappStatus: statusFilter === 'ALL' ? '' : statusFilter,
       });
@@ -146,6 +590,8 @@ export default function WhatsAppPage() {
         setTotal(data.total || 0);
         setTotalPages(data.totalPages || 1);
         if (data.competitions) setCompetitions(data.competitions);
+        if (data.competitionStats) setCompetitionStats(data.competitionStats);
+        if (data.classCategoryStats) setClassCategoryStats(data.classCategoryStats);
         if (data.schools) setSchools(data.schools);
         if (data.stats) setStats(data.stats);
 
@@ -158,11 +604,145 @@ export default function WhatsAppPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debouncedSearch, selectedCompetition, selectedSchool, statusFilter, singleStudent]);
+  }, [page, pageSize, debouncedSearch, selectedCompetition, selectedClassCategory, selectedSchool, statusFilter, singleStudent]);
 
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
+
+  // Load Dynamic Templates
+  const fetchTemplates = useCallback(async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch('/api/whatsapp/templates');
+      if (res.ok) {
+        const data = await res.json();
+        setCustomTemplates(data.customTemplates || []);
+      }
+    } catch (e) {
+      console.error('Failed to load templates:', e);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handleSaveTemplate = async () => {
+    if (!tplTitle.trim() || !tplContent.trim()) {
+      alert('Please enter template title and message content.');
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      const res = await fetch('/api/whatsapp/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingTemplateId,
+          title: tplTitle,
+          description: tplDesc,
+          content: tplContent,
+          categoryFilter: tplCategory,
+          metaTemplateName: tplMetaName || 'admit_card_new',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save template');
+      setCustomTemplates(data.customTemplates || []);
+      setTemplateModalOpen(false);
+      setEditingTemplateId(null);
+      setTplTitle('');
+      setTplDesc('');
+      setTplContent('');
+      setActionSuccessMsg('Template saved successfully!');
+      setTimeout(() => setActionSuccessMsg(null), 3000);
+    } catch (err: any) {
+      alert(`Save error: ${err.message}`);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this custom template?')) return;
+    try {
+      const res = await fetch(`/api/whatsapp/templates?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete template');
+      setCustomTemplates(data.customTemplates || []);
+      setActionSuccessMsg('Template deleted successfully.');
+      setTimeout(() => setActionSuccessMsg(null), 3000);
+    } catch (err: any) {
+      alert(`Delete error: ${err.message}`);
+    }
+  };
+
+  // Launch Competition & Class-Targeted Campaign
+  const handleLaunchCampaign = async () => {
+    setLaunchingCampaign(true);
+    setCampaignResult(null);
+    try {
+      const params = new URLSearchParams({
+        all: 'true',
+        competition: campaignTargetGroup === 'ALL' ? '' : campaignTargetGroup,
+        classCategory: campaignTargetClass === 'ALL' ? '' : campaignTargetClass,
+        whatsappStatus: campaignOnlyUnsent ? 'NOT_SENT' : '',
+      });
+      const studentRes = await fetch(`/api/whatsapp/students?${params.toString()}`);
+      const studentData = await studentRes.json();
+      const targetCandidates: Student[] = studentData.students || [];
+
+      if (targetCandidates.length === 0) {
+        alert(`No candidates found matching Competition "${campaignTargetGroup}" and Class "${campaignTargetClass}" with selected filter.`);
+        setLaunchingCampaign(false);
+        return;
+      }
+
+      const res = await fetch('/api/whatsapp/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: targetCandidates.map((s) => s.studentId),
+          provider: campaignProvider,
+          templateType: campaignTargetTemplate,
+          campaignName: campaignNameInput.trim() || `${campaignTargetGroup} ${campaignTargetClass !== 'ALL' ? `(${campaignTargetClass})` : ''} Blast (${new Date().toLocaleDateString('en-IN')})`,
+          competitionGroup: campaignTargetGroup,
+          classGroup: campaignTargetClass,
+          usePreviousTemplateForResend,
+          templateName: metaTemplateName,
+          templateLanguage: metaTemplateLang,
+          variableMapping: metaVariables,
+          delayMs: 80,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || 'Campaign dispatch failed');
+      }
+
+      setCampaignResult({
+        total: targetCandidates.length,
+        succeeded: resData.succeededCount || 0,
+        failed: resData.failedCount || 0,
+        message: resData.message || 'Campaign finished successfully.',
+      });
+
+      fetchStudents();
+      fetch('/api/settings').then((r) => r.json()).then(setSettings);
+      setActionSuccessMsg(`Campaign "${campaignNameInput || campaignTargetGroup}" Dispatched: ${resData.succeededCount || 0} succeeded, ${resData.failedCount || 0} failed.`);
+      setTimeout(() => setActionSuccessMsg(null), 5000);
+    } catch (err: any) {
+      alert(`Campaign error: ${err.message}`);
+    } finally {
+      setLaunchingCampaign(false);
+    }
+  };
 
   // 4. Update template text when active template changes
   const handleTemplateChange = (tplId: WhatsAppTemplateId) => {
@@ -233,6 +813,7 @@ export default function WhatsAppPage() {
         all: 'true',
         search: debouncedSearch,
         competition: selectedCompetition,
+        classCategory: selectedClassCategory,
         schoolOrCollege: selectedSchool,
         whatsappStatus: statusFilter === 'ALL' ? '' : statusFilter,
       });
@@ -406,6 +987,9 @@ export default function WhatsAppPage() {
           provider: 'cloud_api',
           templateType: activeTemplate,
           customMessage: customText,
+          usePreviousTemplateForResend,
+          competitionGroup: selectedCompetition || 'ALL',
+          campaignName: `Cloud API Dispatch (${selectedCompetition || 'All'} - ${new Date().toLocaleDateString('en-IN')})`,
         }),
       });
 
@@ -482,6 +1066,12 @@ export default function WhatsAppPage() {
             provider: 'icpaas',
             templateType: activeTemplate,
             customMessage: customText,
+            templateName: metaTemplateName,
+            templateLanguage: metaTemplateLang,
+            variableMapping: metaVariables,
+            usePreviousTemplateForResend,
+            competitionGroup: selectedCompetition || 'ALL',
+            campaignName: `ICPaaS Bulk Blast (${selectedCompetition || 'All'} - ${new Date().toLocaleDateString('en-IN')})`,
             delayMs: 100,
           }),
         });
@@ -641,10 +1231,10 @@ export default function WhatsAppPage() {
       </div>
 
       {/* Tabs Navigation Header */}
-      <div className="flex border-b border-slate-200 space-x-1 sm:space-x-4 text-xs font-bold">
+      <div className="flex border-b border-slate-200 space-x-1 sm:space-x-3 text-xs font-bold overflow-x-auto">
         <button
           onClick={() => setActiveTab('bulk')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors ${
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
             activeTab === 'bulk'
               ? 'border-[#7a0c16] text-[#7a0c16]'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -660,8 +1250,89 @@ export default function WhatsAppPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('groups')}
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'groups'
+              ? 'border-[#7a0c16] text-[#7a0c16]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Trophy className="w-4 h-4 text-amber-600" />
+          <span>🏆 Competition Groups</span>
+          <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px]">
+            {competitions.length || 16}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('templates')}
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'templates'
+              ? 'border-[#7a0c16] text-[#7a0c16]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-indigo-600" />
+          <span>📝 Dynamic Templates</span>
+          {customTemplates.length > 0 && (
+            <span className="ml-1.5 px-2 py-0.2 bg-indigo-100 text-indigo-800 rounded-full text-[10px]">
+              {customTemplates.length} Custom
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'history'
+              ? 'border-[#7a0c16] text-[#7a0c16]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <History className="w-4 h-4 text-purple-600" />
+          <span>📊 Campaign History</span>
+          {settings?.whatsappCampaigns && settings.whatsappCampaigns.length > 0 && (
+            <span className="ml-1.5 px-2 py-0.2 bg-purple-100 text-purple-800 rounded-full text-[10px]">
+              {settings.whatsappCampaigns.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('categoryGroups')}
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'categoryGroups'
+              ? 'border-[#7a0c16] text-[#7a0c16]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4 text-emerald-600" />
+          <span>📱 Official Communities</span>
+          <span className="ml-1.5 px-2 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold font-mono">
+            {groups.length || 18}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('testStaff')}
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'testStaff'
+              ? 'border-[#7a0c16] text-[#7a0c16]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Smartphone className="w-4 h-4 text-amber-600" />
+          <span>🧪 Test Staff Registry</span>
+          {testStaffList.length > 0 && (
+            <span className="ml-1.5 px-2 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px]">
+              {testStaffList.length}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('single')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors ${
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
             activeTab === 'single'
               ? 'border-[#7a0c16] text-[#7a0c16]'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -673,7 +1344,7 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('broadcast')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors ${
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
             activeTab === 'broadcast'
               ? 'border-[#7a0c16] text-[#7a0c16]'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -685,7 +1356,7 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('config')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors ${
+          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
             activeTab === 'config'
               ? 'border-[#7a0c16] text-[#7a0c16]'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -721,7 +1392,7 @@ export default function WhatsAppPage() {
               </div>
 
               {/* Template Type Selector Pills */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 items-center">
                 {(Object.keys(WHATSAPP_TEMPLATES) as WhatsAppTemplateId[]).map((tplKey) => {
                   const tpl = WHATSAPP_TEMPLATES[tplKey];
                   const isCurrent = activeTemplate === tplKey;
@@ -740,6 +1411,44 @@ export default function WhatsAppPage() {
                     </button>
                   );
                 })}
+                {customTemplates.map((cTpl) => {
+                  const isCurrent = activeTemplate === cTpl.id;
+                  return (
+                    <button
+                      key={cTpl.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTemplate(cTpl.id as any);
+                        setCustomText(cTpl.content);
+                        if (cTpl.metaTemplateName) setMetaTemplateName(cTpl.metaTemplateName);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1 ${
+                        isCurrent
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>{cTpl.title}</span>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTemplateId(null);
+                    setTplTitle('');
+                    setTplDesc('');
+                    setTplCategory('ALL');
+                    setTplContent('');
+                    setTplMetaName('admit_card_new');
+                    setTemplateModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold text-[#7a0c16] hover:bg-rose-50 rounded-lg border border-dashed border-[#7a0c16] flex items-center space-x-1 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ New Template</span>
+                </button>
               </div>
 
               {/* Merge Tag Chips */}
@@ -860,10 +1569,22 @@ export default function WhatsAppPage() {
                   <p className="text-[11px] text-slate-500">
                     Select candidate recipients for dispatch
                   </p>
-                </div>
-
-                {/* Bulk Actions Cluster */}
+                         {/* Bulk Actions Cluster */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCampaignTargetGroup(selectedCompetition || 'ALL');
+                      setCampaignTargetTemplate(activeTemplate);
+                      setCampaignNameInput(`${selectedCompetition || 'General'} Blast`);
+                      setCampaignModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>🚀 Launch Campaign</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleIcpaasBulkSend}
@@ -894,7 +1615,7 @@ export default function WhatsAppPage() {
                     disabled={isCloudSending || isIcpaasSending || total === 0}
                     className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                   >
-                    <Send className="w-3 h-3" />
+                    <Send className="w-3.5 h-3.5" />
                     <span>{isCloudSending ? 'Sending Cloud...' : 'Send via Cloud API'}</span>
                   </button>
 
@@ -904,14 +1625,14 @@ export default function WhatsAppPage() {
                     className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Download Excel Log</span>
+                    <span>Excel Log</span>
                   </a>
 
                   <button
                     type="button"
                     onClick={() => handleBulkMarkStatus('SENT')}
                     disabled={selectedCount === 0}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                   >
                     Mark Sent
                   </button>
@@ -920,7 +1641,7 @@ export default function WhatsAppPage() {
                     type="button"
                     onClick={() => handleBulkMarkStatus('NOT_SENT')}
                     disabled={selectedCount === 0}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                   >
                     Reset Unsent
                   </button>
@@ -975,64 +1696,98 @@ export default function WhatsAppPage() {
                 </div>
               )}
 
-              {/* Filters row */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                {/* Search input */}
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search name, reg no, phone..."
-                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
-                  />
+              {/* Filters & Resend Option row */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
+                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+                  {/* Search input */}
+                  <div className="relative flex-1 min-w-[180px]">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search name, reg no, phone..."
+                      className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                    />
+                  </div>
+
+                  {/* Competition Filter */}
+                  <select
+                    value={selectedCompetition}
+                    onChange={(e) => {
+                      setSelectedCompetition(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  >
+                    <option value="">All Competitions</option>
+                    {competitions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+
+                  {/* Class Category Filter */}
+                  <select
+                    value={selectedClassCategory}
+                    onChange={(e) => {
+                      setSelectedClassCategory(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16] font-medium"
+                  >
+                    <option value="">All Class Categories</option>
+                    {availableClassCategories.map((cls) => {
+                      const cStat = classCategoryStats[cls];
+                      return (
+                        <option key={cls} value={cls}>
+                          {cls} {cStat ? `(${cStat.total})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {/* School Filter */}
+                  <select
+                    value={selectedSchool}
+                    onChange={(e) => {
+                      setSelectedSchool(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[180px] truncate"
+                  >
+                    <option value="">All Schools / Colleges</option>
+                    {schools.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+
+                  {/* Dispatch Status Filter */}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value as any);
+                      setPage(1);
+                    }}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="NOT_SENT">Unsent / Not Sent</option>
+                    <option value="SENT">Sent</option>
+                    <option value="OPENED">Opened in wa.me</option>
+                  </select>
                 </div>
 
-                {/* Competition Filter */}
-                <select
-                  value={selectedCompetition}
-                  onChange={(e) => {
-                    setSelectedCompetition(e.target.value);
-                    setPage(1);
-                  }}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
-                >
-                  <option value="">All Competitions</option>
-                  {competitions.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-
-                {/* School Filter */}
-                <select
-                  value={selectedSchool}
-                  onChange={(e) => {
-                    setSelectedSchool(e.target.value);
-                    setPage(1);
-                  }}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[200px] truncate"
-                >
-                  <option value="">All Schools / Colleges</option>
-                  {schools.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-
-                {/* Dispatch Status Filter */}
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value as any);
-                    setPage(1);
-                  }}
-                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="NOT_SENT">Unsent / Not Sent</option>
-                  <option value="SENT">Sent</option>
-                  <option value="OPENED">Opened in wa.me</option>
-                </select>
+                {/* Controlled Resend Mode Option */}
+                <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg select-none shrink-0" title="When checked, students who already received a template will be resent their previous template and original group link">
+                  <input
+                    type="checkbox"
+                    checked={usePreviousTemplateForResend}
+                    onChange={(e) => setUsePreviousTemplateForResend(e.target.checked)}
+                    className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16]"
+                  />
+                  <span>🔁 Controlled Resend Mode</span>
+                </label>
+              </div>
               </div>
 
               {/* Selection banner */}
@@ -1090,7 +1845,7 @@ export default function WhatsAppPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-4 w-10">
+                    <th className="py-2.5 px-3 w-10">
                       <input
                         type="checkbox"
                         checked={students.length > 0 && students.every((s) => selectedIds.has(s.studentId))}
@@ -1098,19 +1853,20 @@ export default function WhatsAppPage() {
                         className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                       />
                     </th>
-                    <th className="py-2.5 px-4">Reg No</th>
-                    <th className="py-2.5 px-4">Candidate Name</th>
-                    <th className="py-2.5 px-4">Phone</th>
-                    <th className="py-2.5 px-4">School / College</th>
-                    <th className="py-2.5 px-4">Competition</th>
-                    <th className="py-2.5 px-4">WhatsApp Status</th>
-                    <th className="py-2.5 px-4 text-right">Instant Chat</th>
+                    <th className="py-2.5 px-3">Reg No</th>
+                    <th className="py-2.5 px-3">Candidate Name</th>
+                    <th className="py-2.5 px-3">Phone</th>
+                    <th className="py-2.5 px-3">School / College</th>
+                    <th className="py-2.5 px-3">Event & Class</th>
+                    <th className="py-2.5 px-3">Assigned Community Link</th>
+                    <th className="py-2.5 px-3">WhatsApp Status</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
                         <div className="flex items-center justify-center space-x-2">
                           <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
                           <span>Loading candidate directory...</span>
@@ -1119,7 +1875,7 @@ export default function WhatsAppPage() {
                     </tr>
                   ) : students.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
                         No candidates match the specified criteria.
                       </td>
                     </tr>
@@ -1129,6 +1885,8 @@ export default function WhatsAppPage() {
                       const isSingleActive = singleStudent?.studentId === s.studentId;
                       const hasValidPhone = isValidIndianMobile(s.phone);
                       const st = s.whatsappStatus || 'NOT_SENT';
+                      const resolvedGroup = resolveStudentWhatsAppGroup(s, settings);
+                      const normClass = normalizeClassCategory(s.className);
 
                       return (
                         <tr
@@ -1138,7 +1896,7 @@ export default function WhatsAppPage() {
                             isSelected ? 'bg-amber-50/60' : isSingleActive ? 'bg-rose-50/60 font-medium' : 'hover:bg-slate-50'
                           }`}
                         >
-                          <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
+                          <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -1146,11 +1904,11 @@ export default function WhatsAppPage() {
                               className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16]"
                             />
                           </td>
-                          <td className="py-2.5 px-4 font-mono font-bold text-[#7a0c16]">
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#7a0c16]">
                             {s.registrationNumber}
                           </td>
-                          <td className="py-2.5 px-4 font-medium text-slate-900">{s.name}</td>
-                          <td className="py-2.5 px-4">
+                          <td className="py-2.5 px-3 font-medium text-slate-900">{s.name}</td>
+                          <td className="py-2.5 px-3">
                             <span className={`font-mono ${hasValidPhone ? 'text-slate-700' : 'text-red-500 font-bold'}`}>
                               {s.phone}
                             </span>
@@ -1160,53 +1918,118 @@ export default function WhatsAppPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-4 text-slate-500 max-w-[200px] truncate" title={s.schoolOrCollege}>
+                          <td className="py-2.5 px-3 text-slate-500 max-w-[180px] truncate" title={s.schoolOrCollege}>
                             {s.schoolOrCollege}
                           </td>
-                          <td className="py-2.5 px-4 text-slate-600">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium">
+                          <td className="py-2.5 px-3 text-slate-700">
+                            <div className="font-semibold text-slate-900 text-xs">
                               {s.competitionName}
-                            </span>
+                            </div>
+                            <div className="flex items-center space-x-1.5 mt-0.5">
+                              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[10px] font-bold font-mono">
+                                {normClass}
+                              </span>
+                              {s.className && (
+                                <span className="text-[10px] text-slate-500 truncate max-w-[90px]" title={s.className}>
+                                  Cl: {s.className}
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="py-2.5 px-4">
-                            {st === 'SENT' ? (
-                              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                <Check className="w-3 h-3 text-emerald-600" />
-                                <span>SENT</span>
+                          <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="text-[11px] font-semibold text-slate-800 truncate max-w-[140px]" title={resolvedGroup.groupName}>
+                                {resolvedGroup.groupName.replace('Mind Spark 2026 - ', '')}
                               </span>
-                            ) : st === 'OPENED' ? (
-                              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                                <ExternalLink className="w-3 h-3 text-blue-600" />
-                                <span>OPENED</span>
-                              </span>
-                            ) : st === 'FAILED' ? (
-                              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-700 border border-red-100">
-                                <AlertCircle className="w-3 h-3 text-red-600" />
-                                <span>FAILED</span>
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
-                                NOT_SENT
-                              </span>
+                              {resolvedGroup.groupLink && (
+                                <>
+                                  <a
+                                    href={resolvedGroup.groupLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded"
+                                    title="Open Official WhatsApp Community Link"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      copyToClipboard(resolvedGroup.groupLink);
+                                      setActionSuccessMsg(`Group link copied for ${s.name}`);
+                                      setTimeout(() => setActionSuccessMsg(null), 2500);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
+                                    title="Copy WhatsApp Group Link"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                            {s.lastGroupLink && (
+                              <div className="text-[9px] text-slate-500 font-mono mt-0.5" title={`Previously sent group: ${s.lastGroupLink}`}>
+                                Sent: {s.lastGroupLink.replace('https://chat.whatsapp.com/', '')}
+                              </div>
                             )}
                           </td>
-                          <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            {settings && (
-                              <a
-                                href={generateWhatsAppLink(
-                                  s,
-                                  settings,
-                                  renderMessageTemplate(customText, s, settings)
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={() => updateStudentStatusInDb(s.studentId, 'OPENED')}
-                                className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-medium transition-colors"
+                          <td className="py-2.5 px-3">
+                            <div>
+                              {st === 'SENT' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span>SENT</span>
+                                </span>
+                              ) : st === 'OPENED' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                  <ExternalLink className="w-3 h-3 text-blue-600" />
+                                  <span>OPENED</span>
+                                </span>
+                              ) : st === 'FAILED' ? (
+                                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-700 border border-red-100">
+                                  <AlertCircle className="w-3 h-3 text-red-600" />
+                                  <span>FAILED</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                  NOT_SENT
+                                </span>
+                              )}
+                            </div>
+                            {(s.lastTemplateName || s.whatsappSentAt) && (
+                              <div className="text-[10px] text-slate-500 mt-1 max-w-[130px] truncate" title={`${s.lastTemplateName || 'Template'} • ${s.whatsappSentAt ? new Date(s.whatsappSentAt).toLocaleString('en-IN') : ''}`}>
+                                {s.lastTemplateName || 'Template'} {s.lastTemplateVersion ? `(${s.lastTemplateVersion})` : ''} {s.whatsappSentAt ? `• ${new Date(s.whatsappSentAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="inline-flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setHistoryModalStudent(s)}
+                                className="inline-flex items-center space-x-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition-colors"
+                                title="View student WhatsApp history & delivery ID"
                               >
-                                <Send className="w-3 h-3" />
-                                <span>Chat</span>
-                              </a>
-                            )}
+                                <History className="w-3 h-3 text-slate-500" />
+                                <span>History ({s.messageHistory?.length || (st === 'SENT' ? 1 : 0)})</span>
+                              </button>
+                              {settings && (
+                                <a
+                                  href={generateWhatsAppLink(
+                                    s,
+                                    settings,
+                                    renderMessageTemplate(customText, s, settings)
+                                  )}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={() => updateStudentStatusInDb(s.studentId, 'OPENED')}
+                                  className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-medium transition-colors"
+                                >
+                                  <Send className="w-3 h-3" />
+                                  <span>Chat</span>
+                                </a>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1256,6 +2079,576 @@ export default function WhatsAppPage() {
                   <ChevronsRight className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: COMPETITION-WISE STUDENT GROUPING DESK */}
+      {/* ========================================================================= */}
+      {activeTab === 'groups' && (
+        <div className="space-y-6">
+          {/* Top Banner */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-6 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 bg-amber-600 text-white rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                    Dynamic Grouping
+                  </span>
+                  <span className="text-xs font-mono font-bold text-amber-900">
+                    {competitions.length} Competition Categories
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  🏆 Competition-Wise Student Grouping Desk
+                </h2>
+                <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                  Students are organized by their registered competition or activity. Launch targeted WhatsApp messages to a specific group, manage their WhatsApp community link, or filter candidates in the bulk desk without affecting other categories.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCampaignTargetGroup('ALL');
+                    setCampaignModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Launch New Campaign</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-amber-200/70">
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                <div className="text-[10px] font-bold text-slate-600 uppercase">Total Competitions</div>
+                <div className="text-xl font-extrabold text-slate-900 mt-0.5">{competitions.length}</div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                <div className="text-[10px] font-bold text-slate-600 uppercase">Total Students</div>
+                <div className="text-xl font-extrabold text-[#7a0c16] mt-0.5">{stats.totalActive}</div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                <div className="text-[10px] font-bold text-emerald-700 uppercase">Delivered (Sent)</div>
+                <div className="text-xl font-extrabold text-emerald-700 mt-0.5">{stats.sentCount}</div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                <div className="text-[10px] font-bold text-amber-700 uppercase">Pending Messages</div>
+                <div className="text-xl font-extrabold text-amber-800 mt-0.5">{stats.pendingCount}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid of Competition Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {competitions.map((comp) => {
+              const grp = competitionStats[comp] || { total: 0, sent: 0, pending: 0, failed: 0 };
+              const percent = grp.total > 0 ? Math.round((grp.sent / grp.total) * 100) : 0;
+              const link = categoryLinks[comp] || '';
+
+              return (
+                <div
+                  key={comp}
+                  className="bg-white rounded-2xl border border-slate-200 hover:border-amber-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                          <Trophy className="w-4 h-4 text-amber-700" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-sm text-slate-900 leading-snug line-clamp-1" title={comp}>
+                            {comp}
+                          </h3>
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                            Competition Group
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg text-xs font-bold font-mono">
+                        {grp.total} Students
+                      </span>
+                    </div>
+
+                    {/* Counts Row */}
+                    <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center">
+                      <div>
+                        <div className="text-[9px] font-bold text-emerald-700 uppercase">Sent</div>
+                        <div className="text-sm font-extrabold text-emerald-700">{grp.sent}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-bold text-amber-700 uppercase">Pending</div>
+                        <div className="text-sm font-extrabold text-amber-800">{grp.pending}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-bold text-rose-700 uppercase">Failed</div>
+                        <div className="text-sm font-extrabold text-rose-700">{grp.failed}</div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] text-slate-500 font-medium">
+                        <span>Dispatch Progress</span>
+                        <span>{percent}% Delivered</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Group Link Status */}
+                    <div className="pt-1 text-[11px] flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">WhatsApp Link:</span>
+                      {link ? (
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            ✓ Configured
+                          </span>
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-700 hover:text-emerald-900"
+                            title="Open WhatsApp Group"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          Fallback Default
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCompetition(comp);
+                        setActiveTab('bulk');
+                      }}
+                      className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors"
+                      title="Filter and view all students in this group"
+                    >
+                      <Users className="w-3.5 h-3.5 text-slate-600" />
+                      <span>View ({grp.total})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCampaignTargetGroup(comp);
+                        setCampaignTargetTemplate(activeTemplate);
+                        setCampaignNameInput(`${comp} Blast`);
+                        setCampaignModalOpen(true);
+                      }}
+                      className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
+                      title="Launch a targeted message campaign to this competition group"
+                    >
+                      <Send className="w-3.5 h-3.5 text-amber-200" />
+                      <span>Blast Group</span>
+                    </button>
+
+                    {link && (
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(link)}
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs transition-colors shrink-0"
+                        title="Copy group invite link"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: DYNAMIC MESSAGE TEMPLATES MANAGER */}
+      {/* ========================================================================= */}
+      {activeTab === 'templates' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-200/80 rounded-2xl p-6 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 bg-indigo-600 text-white rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                    Full Customization
+                  </span>
+                  <span className="text-xs font-mono font-bold text-indigo-900">
+                    No Code Changes Needed
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  📝 Dynamic Message Templates Manager
+                </h2>
+                <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                  Create, edit, save, and launch custom WhatsApp message templates directly from the admin panel.
+                  Personalize with dynamic merge tags like <code>{'{name}'}</code>, <code>{'{reg_no}'}</code>, and <code>{'{whatsapp_group_link}'}</code>.
+                  Templates are instantly saved to the database and can be launched to any competition group.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTemplateId(null);
+                    setTplTitle('');
+                    setTplDesc('');
+                    setTplCategory('ALL');
+                    setTplContent(WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION.defaultText);
+                    setTplMetaName('admit_card_new');
+                    setTemplateModalOpen(true);
+                  }}
+                  className="px-5 py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Create New Template</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Templates Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <h3 className="font-bold text-sm text-slate-900">
+                Available Message Templates ({Object.keys(WHATSAPP_TEMPLATES).length + customTemplates.length} Total)
+              </h3>
+              <span className="text-xs text-slate-500">
+                {customTemplates.length} Custom Templates &bull; {Object.keys(WHATSAPP_TEMPLATES).length} Built-in Presets
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Built-in Presets */}
+              {(Object.keys(WHATSAPP_TEMPLATES) as WhatsAppTemplateId[]).map((tKey) => {
+                const tDef = WHATSAPP_TEMPLATES[tKey];
+                return (
+                  <div
+                    key={tKey}
+                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold uppercase">
+                              Preset
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold">
+                              All Categories
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-sm text-slate-900 mt-1">{tDef.title}</h4>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                          admit_card_new
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 line-clamp-2">{tDef.description}</p>
+
+                      {/* Message Preview in WhatsApp Bubble */}
+                      <div className="p-3 bg-[#e5ddd5]/50 rounded-xl border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-40 overflow-y-auto leading-relaxed">
+                        {previewCandidate && settings
+                          ? renderMessageTemplate(tDef.defaultText, previewCandidate, settings)
+                          : tDef.defaultText}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleTemplateChange(tKey);
+                          setActiveTab('bulk');
+                        }}
+                        className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Use in Composer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCampaignTargetTemplate(tKey);
+                          setCampaignNameInput(`${tDef.title} Campaign`);
+                          setCampaignModalOpen(true);
+                        }}
+                        className="py-2 px-3.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5 text-amber-200" />
+                        <span>🚀 Launch Campaign</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Dynamic Custom Templates */}
+              {customTemplates.map((cTpl) => (
+                <div
+                  key={cTpl.id}
+                  className="bg-white rounded-2xl border-2 border-indigo-200 p-5 shadow-xs flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-extrabold uppercase">
+                            Custom Template
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded bg-indigo-600 text-white font-mono text-[10px] font-bold">
+                            v{cTpl.version || 1}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
+                            {cTpl.categoryFilter || 'ALL'}
+                          </span>
+                          {cTpl.classFilter && cTpl.classFilter !== 'ALL' && (
+                            <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold font-mono">
+                              Class {cTpl.classFilter}
+                            </span>
+                          )}
+                          {cTpl.versionsHistory && cTpl.versionsHistory.length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono" title={`${cTpl.versionsHistory.length} archived previous versions saved`}>
+                              {cTpl.versionsHistory.length} archived
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 mt-1">{cTpl.title}</h4>
+                      </div>
+                      <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                        {cTpl.metaTemplateName || 'admit_card_new'}
+                      </span>
+                    </div>
+
+                    {cTpl.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2">{cTpl.description}</p>
+                    )}
+
+                    {/* Message Preview in WhatsApp Bubble */}
+                    <div className="p-3 bg-[#e5ddd5]/50 rounded-xl border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-40 overflow-y-auto leading-relaxed">
+                      {previewCandidate && settings
+                        ? renderMessageTemplate(cTpl.content, previewCandidate, settings)
+                        : cTpl.content}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTemplateId(cTpl.id);
+                          setTplTitle(cTpl.title);
+                          setTplDesc(cTpl.description || '');
+                          setTplCategory(cTpl.categoryFilter || 'ALL');
+                          setTplContent(cTpl.content);
+                          setTplMetaName(cTpl.metaTemplateName || 'admit_card_new');
+                          setTemplateModalOpen(true);
+                        }}
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition-colors cursor-pointer"
+                        title="Edit Template"
+                      >
+                        <Edit className="w-3.5 h-3.5 text-slate-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTemplate(cTpl.id)}
+                        className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs transition-colors cursor-pointer"
+                        title="Delete Template"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTemplate(cTpl.id as any);
+                          setCustomText(cTpl.content);
+                          if (cTpl.metaTemplateName) setMetaTemplateName(cTpl.metaTemplateName);
+                          setActiveTab('bulk');
+                        }}
+                        className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Use in Composer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCampaignTargetTemplate(cTpl.id);
+                          setCampaignNameInput(`${cTpl.title} Campaign`);
+                          setCampaignModalOpen(true);
+                        }}
+                        className="py-2 px-3.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5 text-amber-200" />
+                        <span>🚀 Launch Campaign</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: COMPLETE MESSAGING & CAMPAIGN HISTORY */}
+      {/* ========================================================================= */}
+      {activeTab === 'history' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/5 to-transparent border border-purple-200/80 rounded-2xl p-6 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 bg-purple-700 text-white rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                    Full Audit Trail
+                  </span>
+                  <span className="text-xs font-mono font-bold text-purple-900">
+                    Student-Wise & Campaign-Wise History
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  📊 WhatsApp Campaign & Dispatch History
+                </h2>
+                <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                  Real-time history of all message campaigns dispatched from this admin panel. Every campaign logs the exact competition group, message template, timestamp, operator, and actual API delivery reports (accepted Meta wamid vs exact error code).
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <a
+                  href="/api/whatsapp/export"
+                  download
+                  className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Download Full Excel Log</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Campaigns Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-900">
+                Logged WhatsApp Campaigns ({settings?.whatsappCampaigns?.length || 0})
+              </h3>
+              <span className="text-xs text-slate-500">Chronological history with actual API response status</span>
+            </div>
+
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Campaign Name</th>
+                    <th className="py-3 px-4">Competition Group</th>
+                    <th className="py-3 px-4">Template Used</th>
+                    <th className="py-3 px-4">Dispatched At</th>
+                    <th className="py-3 px-4">Operator</th>
+                    <th className="py-3 px-4">Gateway</th>
+                    <th className="py-3 px-4 text-center">Total</th>
+                    <th className="py-3 px-4 text-center">Delivered</th>
+                    <th className="py-3 px-4 text-center">Failed</th>
+                    <th className="py-3 px-4 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {!settings?.whatsappCampaigns || settings.whatsappCampaigns.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-12 text-center text-slate-400">
+                        <div className="max-w-sm mx-auto space-y-2">
+                          <History className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="font-semibold text-slate-600">No campaigns launched yet</p>
+                          <p className="text-[11px] text-slate-400">
+                            When you blast messages to a competition group or candidate list, the campaign report and Meta message IDs will be tracked here.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCampaignTargetGroup('ALL');
+                              setCampaignModalOpen(true);
+                            }}
+                            className="mt-2 px-4 py-2 bg-[#7a0c16] text-white rounded-lg text-xs font-bold shadow-xs hover:bg-[#5c000b] cursor-pointer"
+                          >
+                            Launch First Campaign
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    settings.whatsappCampaigns.map((camp) => (
+                      <tr key={camp.campaignId} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-900">{camp.name}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 font-bold border border-amber-200 text-[10px]">
+                            {camp.competitionGroup}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700 font-medium">{camp.templateName}</td>
+                        <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">
+                          {camp.dispatchedAt ? new Date(camp.dispatchedAt).toLocaleString('en-IN') : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{camp.dispatchedBy}</td>
+                        <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{camp.provider}</td>
+                        <td className="py-3 px-4 text-center font-bold font-mono">{camp.totalCandidates}</td>
+                        <td className="py-3 px-4 text-center font-bold font-mono text-emerald-700">
+                          {camp.succeededCount}
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold font-mono text-rose-700">
+                          {camp.failedCount}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {camp.status === 'COMPLETED' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              <Check className="w-3 h-3 mr-0.5" /> COMPLETED
+                            </span>
+                          ) : camp.status === 'PARTIAL' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                              PARTIAL
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                              <AlertCircle className="w-3 h-3 mr-0.5" /> FAILED
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1482,6 +2875,302 @@ export default function WhatsAppPage() {
       )}
 
       {/* ========================================================================= */}
+      {/* TAB 3B: OFFICIAL WHATSAPP COMMUNITIES (18 PRE-CONFIGURED OFFICIAL GROUPS) */}
+      {/* ========================================================================= */}
+      {activeTab === 'categoryGroups' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 border border-emerald-200 rounded-2xl p-6 shadow-xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 bg-emerald-700 text-white rounded-md text-[10px] font-extrabold tracking-wider uppercase">
+                    18 Official Communities
+                  </span>
+                  <span className="text-xs font-mono font-bold text-emerald-950">
+                    Meena Shah Public School &bull; Mind Spark 2026
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  📱 Official WhatsApp Group & Community Manager
+                </h2>
+                <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                  Manage WhatsApp invite links for all 18 official competition and class categories.
+                  When messages are dispatched (single, bulk, or campaign), each candidate&apos;s <code>{'{whatsapp_group_link}'}</code> or <code>[DYNAMIC_COMPETITION_GROUP_LINK]</code> automatically resolves to their exact category WhatsApp community link.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleOpenAddGroupModal}
+                  className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Add Group Link</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetToOfficialGroups}
+                  disabled={resettingGroups}
+                  className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Reset all groups to the 18 school-verified defaults"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${resettingGroups ? 'animate-spin' : ''}`} />
+                  <span>Restore 18 Defaults</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveCategoryLinks}
+                  disabled={savingCategoryLinks}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-2 transition-colors disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Save Fallback</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Default / Fallback Group Link Input */}
+            <div className="mt-4 pt-4 border-t border-emerald-200/80 space-y-1.5">
+              <label className="block text-xs font-bold text-slate-900">
+                General Fallback WhatsApp Group Link *
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="url"
+                  value={defaultGroupLink}
+                  onChange={(e) => setDefaultGroupLink(e.target.value.trim())}
+                  placeholder="https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L"
+                  className="flex-1 p-2.5 bg-white border border-emerald-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+                {defaultGroupLink && (
+                  <>
+                    <a
+                      href={defaultGroupLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-2.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center space-x-1 shrink-0"
+                    >
+                      <span>Test Link</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        copyToClipboard(defaultGroupLink);
+                        setActionSuccessMsg('Fallback WhatsApp Link copied!');
+                        setTimeout(() => setActionSuccessMsg(null), 2500);
+                      }}
+                      className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center space-x-1 shrink-0"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy</span>
+                    </button>
+                  </>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Used if a candidate has an uncategorized event or if no specific link matches their competition and class.
+              </p>
+            </div>
+          </div>
+
+          {/* Metrics & Filter Bar */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    placeholder="Search by group name or competition..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <select
+                  value={groupFilterComp}
+                  onChange={(e) => setGroupFilterComp(e.target.value)}
+                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                >
+                  <option value="ALL">All Competitions ({groups.length})</option>
+                  {Array.from(new Set(groups.map((g) => g.competition))).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={groupFilterClass}
+                  onChange={(e) => setGroupFilterClass(e.target.value)}
+                  className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                >
+                  <option value="ALL">All Class Tiers</option>
+                  {availableClassCategories.map((cls) => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-2 text-xs font-semibold">
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-200">
+                  {groups.filter((g) => {
+                    const matchSearch = !groupSearch || g.groupName.toLowerCase().includes(groupSearch.toLowerCase()) || g.competition.toLowerCase().includes(groupSearch.toLowerCase());
+                    const matchComp = groupFilterComp === 'ALL' || g.competition === groupFilterComp;
+                    const matchClass = groupFilterClass === 'ALL' || g.classRange === groupFilterClass;
+                    return matchSearch && matchComp && matchClass;
+                  }).length} Groups Displayed
+                </span>
+                <span className="px-2.5 py-1 bg-amber-50 text-amber-900 rounded-lg border border-amber-200 font-mono">
+                  {groups.reduce((acc, g) => acc + (g.studentCount || 0), 0)} Total Candidates
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Groups Grid */}
+          {loadingGroups ? (
+            <div className="py-16 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-semibold">Loading official WhatsApp communities...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups
+                .filter((g) => {
+                  const matchSearch = !groupSearch || g.groupName.toLowerCase().includes(groupSearch.toLowerCase()) || g.competition.toLowerCase().includes(groupSearch.toLowerCase());
+                  const matchComp = groupFilterComp === 'ALL' || g.competition === groupFilterComp;
+                  const matchClass = groupFilterClass === 'ALL' || g.classRange === groupFilterClass;
+                  return matchSearch && matchComp && matchClass;
+                })
+                .map((grp, idx) => {
+                  return (
+                    <div
+                      key={grp.id || idx}
+                      className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md p-5 flex flex-col justify-between space-y-3.5 transition-all"
+                    >
+                      <div className="space-y-2.5">
+                        {/* Badges */}
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold font-mono">
+                              {grp.classRange === 'All' ? 'All Classes' : `Class ${grp.classRange}`}
+                            </span>
+                            {grp.isOfficial !== false && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold flex items-center space-x-0.5">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                <span>Official</span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px] font-bold font-mono">
+                            👥 {grp.studentCount ?? 0} Students
+                          </span>
+                        </div>
+
+                        {/* Title & Competition */}
+                        <div>
+                          <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
+                            {grp.competition}
+                          </div>
+                          <h3 className="font-bold text-sm text-slate-900 mt-0.5 leading-snug line-clamp-2" title={grp.groupName}>
+                            {grp.groupName}
+                          </h3>
+                        </div>
+
+                        {grp.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{grp.description}</p>
+                        )}
+
+                        {/* WhatsApp URL Box */}
+                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                            <span>WhatsApp Invite Link</span>
+                            <span className="font-mono text-emerald-700">chat.whatsapp.com</span>
+                          </div>
+                          <div className="flex items-center justify-between font-mono text-xs text-slate-800 break-all bg-white p-1.5 rounded border border-slate-200">
+                            <span className="truncate mr-2">{grp.url}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                copyToClipboard(grp.url);
+                                setActionSuccessMsg(`Copied: ${grp.groupName}`);
+                                setTimeout(() => setActionSuccessMsg(null), 2500);
+                              }}
+                              className="text-slate-500 hover:text-emerald-700 p-1 shrink-0"
+                              title="Copy Invite Link"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Action Buttons */}
+                      <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1.5">
+                        <div className="flex items-center space-x-1.5">
+                          <a
+                            href={grp.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
+                            title="Open WhatsApp Group"
+                          >
+                            <span>Open</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCompetition(grp.competition === 'All' ? '' : grp.competition);
+                              setSelectedClassCategory(grp.classRange === 'All' ? '' : grp.classRange);
+                              setActiveTab('bulk');
+                            }}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
+                            title="Filter all candidates belonging to this group in the Bulk Desk"
+                          >
+                            <Users className="w-3 h-3 text-slate-600" />
+                            <span>Filter in Desk</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditGroupModal(grp)}
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs"
+                            title="Edit Link"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          {!grp.isOfficial && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGroup(grp.id, grp.groupName)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs"
+                              title="Delete Link"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB 4: SETTINGS & META CLOUD API CONFIGURATION */}
       {/* ========================================================================= */}
       {activeTab === 'config' && (
@@ -1587,6 +3276,491 @@ export default function WhatsAppPage() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Section C: Meta Approved WhatsApp Template & Dynamic Variable Connector */}
+          <div className="space-y-4 pt-5 border-t border-slate-200">
+            <div>
+              <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>3. Meta WhatsApp Template & Variable Connector (Official Gateway)</span>
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Meta WhatsApp Manager / ICPaaS portal par banaye gaye Template ka Name aur Variables (&#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;...) yahan connect karein. 100-batch bulk sending me har candidate ka exact data automatically fill hoga.
+              </p>
+            </div>
+
+            {/* Verified WABA Channel Info Card */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl text-xs">
+              <div>
+                <span className="text-emerald-700 font-medium text-[10px] block uppercase">WABA Number (Sender):</span>
+                <span className="font-mono font-bold text-slate-900 text-xs">+91 8429718299</span>
+              </div>
+              <div>
+                <span className="text-emerald-700 font-medium text-[10px] block uppercase">PhoneNumber ID:</span>
+                <span className="font-mono font-bold text-slate-900 text-xs">1346032508598977</span>
+              </div>
+              <div>
+                <span className="text-emerald-700 font-medium text-[10px] block uppercase">WABA Business ID:</span>
+                <span className="font-mono font-bold text-slate-900 text-xs">1119511721006574</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block text-slate-800 font-semibold mb-1">
+                  Meta Approved Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={metaTemplateName}
+                  onChange={(e) => setMetaTemplateName(e.target.value.trim())}
+                  placeholder="e.g. admit_card_notice, mindspark_2026_admit"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Jo exact Template Name Meta / ICPaaS portal me approved hua hai.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-slate-800 font-semibold mb-1">
+                  Template Language
+                </label>
+                <select
+                  value={metaTemplateLang}
+                  onChange={(e) => setMetaTemplateLang(e.target.value)}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                >
+                  <option value="en">English (en)</option>
+                  <option value="en_US">English US (en_US)</option>
+                  <option value="en_GB">English UK (en_GB)</option>
+                  <option value="hi">Hindi (hi)</option>
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Template approval ke samay jo language select ki gayi thi.
+                </p>
+              </div>
+            </div>
+
+            {/* Dynamic Variable Mapping List */}
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-800 font-semibold text-xs">
+                  Meta Template Variables Mapping (&#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;, &#123;&#123;3&#125;&#125;...)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setMetaVariables([...metaVariables, 'name'])}
+                  className="text-xs font-bold text-[#7a0c16] hover:underline"
+                >
+                  + Add Next Variable
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {metaVariables.map((vField, idx) => (
+                  <div key={idx} className="flex items-center space-x-2 text-xs">
+                    <span className="w-16 text-center py-2 px-2.5 bg-slate-100 border border-slate-300 rounded-lg font-mono font-bold text-slate-800">
+                      {`{{${idx + 1}}}`}
+                    </span>
+                    <span className="text-slate-400 font-bold text-sm">➔</span>
+                    <select
+                      value={vField}
+                      onChange={(e) => {
+                        const updated = [...metaVariables];
+                        updated[idx] = e.target.value;
+                        setMetaVariables(updated);
+                      }}
+                      className="flex-1 p-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                    >
+                      <option value="competitionTitle">1. Event Title (Mind Spark Competition- 2026)</option>
+                      <option value="participantName">2. Participant Line (Participant Rahul Sharma)</option>
+                      <option value="enrollmentNotice">3. Enrollment & Reg No Notice</option>
+                      <option value="admitCardInstructions">4. Admit Card Date Notice (After 26th Oct...)</option>
+                      <option value="groupLinkNotice">5. Category Group Link Note (Join whatspp group...)</option>
+                      <option value="name">Candidate Full Name</option>
+                      <option value="registrationNumber">Registration Number</option>
+                      <option value="className">Class Name</option>
+                      <option value="competitionName">Competition Title / Category</option>
+                      <option value="schoolOrCollege">School / College Name</option>
+                      <option value="fatherName">Father / Guardian Name</option>
+                      <option value="whatsappGroupLink">WhatsApp Group Link (Auto Category Match)</option>
+                      <option value="dateOfBirth">Date of Birth (DOB)</option>
+                      <option value="admitCardDate">Admit Card Release Date (25 October 2026)</option>
+                      <option value="admitCardUrl">Admit Card Direct Download URL</option>
+                      <option value="examDate">Examination Date (01 Nov 2026)</option>
+                      <option value="reportingTime">Reporting Time (09:00 AM)</option>
+                      <option value="venue">Exam Venue (College Campus)</option>
+                    </select>
+                    {metaVariables.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMetaVariables(metaVariables.filter((_, i) => i !== idx));
+                        }}
+                        className="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                        title="Remove Variable"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Live Preview of Variable Mapping for Real Candidate */}
+            {previewCandidate && (
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-950 uppercase tracking-wide">
+                    Live Variable Preview (Sample: {previewCandidate.name})
+                  </span>
+                  <span className="text-[10px] text-amber-800">Reg: {previewCandidate.registrationNumber}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-amber-900 font-mono pt-1">
+                  {metaVariables.map((vField, idx) => {
+                    let val = '';
+                    if (vField === 'competitionTitle') val = settings?.competitionTitle || 'Mind Spark Competition- 2026';
+                    else if (vField === 'participantName') val = `Participant ${previewCandidate.name}`;
+                    else if (vField === 'enrollmentNotice') val = `Your form has been successfully enrolled for Mind Spark Competition 2026 This is your Registration Number: ${previewCandidate.registrationNumber}`;
+                    else if (vField === 'admitCardInstructions') val = 'After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.';
+                    else if (vField === 'groupLinkNotice') val = `Join whatspp group for more update ${getCategoryGroupLink(previewCandidate.competitionName, settings)}`;
+                    else if (vField === 'name') val = previewCandidate.name;
+                    else if (vField === 'registrationNumber') val = previewCandidate.registrationNumber;
+                    else if (vField === 'className') val = previewCandidate.className;
+                    else if (vField === 'competitionName') val = previewCandidate.competitionName;
+                    else if (vField === 'schoolOrCollege') val = previewCandidate.schoolOrCollege;
+                    else if (vField === 'fatherName') val = previewCandidate.fatherName;
+                    else if (vField === 'whatsappGroupLink') val = getCategoryGroupLink(previewCandidate.competitionName, settings);
+                    else if (vField === 'dateOfBirth') val = previewCandidate.dateOfBirth || '15/08/2012';
+                    else if (vField === 'admitCardDate') val = '25 October 2026';
+                    else if (vField === 'admitCardUrl') val = `https://.../admit-cards?regNo=${previewCandidate.registrationNumber}`;
+                    else if (vField === 'examDate') val = settings?.examDate || '01 Nov 2026';
+                    else if (vField === 'reportingTime') val = settings?.reportingTime || '09:00 AM';
+                    else if (vField === 'venue') val = settings?.venue || 'MSITM DEGREE COLLEGE GONDA';
+                    return (
+                      <div key={idx} className="truncate bg-white/70 p-1.5 rounded border border-amber-200/60">
+                        <span className="text-amber-700 font-bold">{`{{${idx + 1}}}`}:</span> {val}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-3">
+              <button
+                type="button"
+                onClick={saveMetaTemplateConfig}
+                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center space-x-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save Template Connection</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: TEST TEACHERS & STAFF ISOLATED REGISTRY */}
+      {/* ========================================================================= */}
+      {activeTab === 'testStaff' && (
+        <div className="space-y-6">
+          {/* Security & Isolation Callout */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl p-5 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 bg-amber-600 text-white rounded-md text-[10px] font-extrabold tracking-wider uppercase">
+                    Zero-Duplicacy Guaranteed
+                  </span>
+                  <span className="text-xs font-mono font-bold text-amber-900">
+                    Test_Teachers_And_Staff_Registry.xlsx
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Isolated Teachers & Test Staff WhatsApp Registry
+                </h2>
+                <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                  Yeh alag Excel database hai jisme testing ke liye teachers aur staff ke mobile numbers ko rakha jata hai.
+                  Koi bhi test message ya dummy number 1,442 students ke mukhya database me nahi jayega,
+                  aur kisi bhi mobile number ki duplicacy ko system turant reject kar deta hai.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <a
+                  href="/api/whatsapp/test-staff/export"
+                  download
+                  className="px-4 py-2 bg-white hover:bg-slate-50 border border-amber-300 text-amber-900 rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Download Test Excel</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={fetchTestStaff}
+                  disabled={loadingStaff}
+                  className="p-2 bg-white hover:bg-slate-50 border border-amber-300 text-amber-900 rounded-lg text-xs font-bold shadow-xs transition-colors"
+                  title="Refresh Staff List"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingStaff ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-amber-200">
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/70">
+                <div className="text-[10px] font-bold text-slate-600 uppercase">Total Test Staff</div>
+                <div className="text-lg font-extrabold text-slate-900 mt-0.5">{testStaffList.length}</div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/70">
+                <div className="text-[10px] font-bold text-emerald-700 uppercase">Sent / Delivered</div>
+                <div className="text-lg font-extrabold text-emerald-700 mt-0.5">
+                  {testStaffList.filter((s) => s.status === 'SENT').length}
+                </div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/70">
+                <div className="text-[10px] font-bold text-amber-700 uppercase">Pending</div>
+                <div className="text-lg font-extrabold text-amber-800 mt-0.5">
+                  {testStaffList.filter((s) => s.status === 'PENDING').length}
+                </div>
+              </div>
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-200/70">
+                <div className="text-[10px] font-bold text-rose-700 uppercase">Failed</div>
+                <div className="text-lg font-extrabold text-rose-700 mt-0.5">
+                  {testStaffList.filter((s) => s.status === 'FAILED').length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Teacher Form */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <span>➕ Add Teacher / Staff Mobile for Testing</span>
+                <span className="text-[11px] font-normal text-slate-500">
+                  (Duplicacy Check Enabled)
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Teacher ka 10 digit mobile number aur unka naam enter karein. Agar number pehle se mojood hoga to system alert dega.
+              </p>
+            </div>
+
+            {staffError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs flex items-start space-x-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold block text-rose-900">Duplicate / Validation Alert:</strong>
+                  <span>{staffError}</span>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleAddTeacher} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
+              <div className="md:col-span-1">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Teacher / Staff Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  placeholder="e.g. Dr. Rajesh Kumar"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Mobile Number (10 Digits) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={13}
+                  value={newStaffPhone}
+                  onChange={(e) => setNewStaffPhone(e.target.value)}
+                  placeholder="e.g. 9795600217"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Designation / Role
+                </label>
+                <input
+                  type="text"
+                  value={newStaffDesignation}
+                  onChange={(e) => setNewStaffDesignation(e.target.value)}
+                  placeholder="e.g. Senior Teacher / HOD"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  School / Institution
+                </label>
+                <input
+                  type="text"
+                  value={newStaffSchool}
+                  onChange={(e) => setNewStaffSchool(e.target.value)}
+                  placeholder="e.g. Meena Shah Public School"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <button
+                  type="submit"
+                  className="w-full py-2 px-3 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                >
+                  Save to Test Excel
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Test Dispatch Action Bar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-xs font-bold text-slate-900">
+                Dispatch Test Message to Registered Staff
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Meta template '{metaTemplateName}' ke saath test WhatsApp bhejega aur real-time me Excel aur DB log karega.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDispatchTestStaff}
+              disabled={staffDispatching || testStaffList.length === 0}
+              className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs flex items-center space-x-2 transition-colors ${
+                staffDispatching || testStaffList.length === 0
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-emerald-700 hover:bg-emerald-800'
+              }`}
+            >
+              {staffDispatching ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Dispatching to Staff...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Dispatch Test WhatsApp ({testStaffList.length})</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Staff Registry Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+              <span className="text-xs font-bold text-slate-800">
+                Registered Teachers & Staff ({testStaffList.length})
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                Log: Test_Teachers_And_Staff_Registry.xlsx
+              </span>
+            </div>
+
+            {loadingStaff ? (
+              <div className="p-10 text-center text-xs text-slate-500 space-y-2">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#7a0c16]" />
+                <p>Loading Test Staff Registry from Excel...</p>
+              </div>
+            ) : testStaffList.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500">
+                Koi test staff add nahi hai. Upar diye gaye form se teacher ka naam aur mobile number add karein.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="py-2.5 px-4 w-12 text-center">#</th>
+                      <th className="py-2.5 px-4">Teacher / Staff Name</th>
+                      <th className="py-2.5 px-4">Mobile Number</th>
+                      <th className="py-2.5 px-4">Designation & School</th>
+                      <th className="py-2.5 px-4 text-center">Status</th>
+                      <th className="py-2.5 px-4">Dispatched At</th>
+                      <th className="py-2.5 px-4">Remarks</th>
+                      <th className="py-2.5 px-4 text-right">Quick Test</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {testStaffList.map((staff, idx) => {
+                      const directWaLink = `https://wa.me/91${staff.phone}?text=${encodeURIComponent(
+                        `[TEST DISPATCH]\nHello ${staff.name},\nThis is a sample test dispatch from the Examination Council.\nAdmit Card Date: 25 October 2026.`
+                      )}`;
+
+                      return (
+                        <tr key={staff.phone || idx} className="hover:bg-amber-50/30 transition-colors">
+                          <td className="py-3 px-4 text-center text-slate-400 font-mono text-[11px]">
+                            {idx + 1}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-900">
+                            {staff.name}
+                          </td>
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-700">
+                            +91 {staff.phone}
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">
+                            <div>{staff.designation || 'Staff'}</div>
+                            <div className="text-[10px] text-slate-400">{staff.school || 'Meena Shah Public School'}</div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {staff.status === 'SENT' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <Check className="w-3 h-3 mr-0.5" /> SENT
+                              </span>
+                            ) : staff.status === 'FAILED' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                <AlertCircle className="w-3 h-3 mr-0.5" /> FAILED
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                <Clock className="w-3 h-3 mr-0.5" /> PENDING
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500 text-[11px] font-mono">
+                            {staff.dispatchedAt ? new Date(staff.dispatchedAt).toLocaleString('en-IN') : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500 text-[11px] max-w-xs truncate">
+                            {staff.remarks || '-'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <a
+                              href={directWaLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[11px] font-semibold border border-emerald-200 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Open Web</span>
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1764,6 +3938,988 @@ export default function WhatsAppPage() {
                 </div>
               )
             )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 1: DYNAMIC TEMPLATE EDITOR MODAL (templateModalOpen)
+          ========================================================================= */}
+      {templateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {editingTemplateId ? 'Edit WhatsApp Template' : 'Create New Dynamic WhatsApp Template'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Customize message copy, assign to competition groups, and insert merge tags without modifying code.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateModalOpen(false);
+                  setEditingTemplateId(null);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Template Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={tplTitle}
+                    onChange={(e) => setTplTitle(e.target.value)}
+                    placeholder="e.g. Online Quiz Round 1 Confirmation"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Competition Group
+                  </label>
+                  <select
+                    value={tplCategory}
+                    onChange={(e) => setTplCategory(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                  >
+                    <option value="ALL">ALL Competitions (Universal)</option>
+                    {(competitions.length > 0 ? competitions : OFFICIAL_COMPETITION_CATEGORIES).map((comp) => (
+                      <option key={comp} value={comp}>
+                        {comp}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Meta Template Name (WABA)
+                  </label>
+                  <input
+                    type="text"
+                    value={tplMetaName}
+                    onChange={(e) => setTplMetaName(e.target.value)}
+                    placeholder="admit_card_new"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                  />
+                  <span className="text-[10px] text-slate-500">
+                    Meta WhatsApp Business API approved template name
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Template Description / Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={tplDesc}
+                    onChange={(e) => setTplDesc(e.target.value)}
+                    placeholder="e.g. Sent to quiz participants with registration details"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                  />
+                </div>
+              </div>
+
+              {/* Merge Tags Pills */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>Available Merge Tags (Click to append into template):</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Replaced automatically per student</span>
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                  {WHATSAPP_MERGE_TAGS.map(({ tag, label }) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setTplContent((prev) => prev ? `${prev} ${tag}` : tag)}
+                      className="px-2 py-1 bg-white hover:bg-[#7a0c16] hover:text-white text-slate-700 rounded-md text-[11px] font-mono border border-slate-200 shadow-2xs transition-colors flex items-center space-x-1"
+                      title={label}
+                    >
+                      <span>{tag}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Template Content */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    WhatsApp Message Text *
+                  </label>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {tplContent.length} characters
+                  </span>
+                </div>
+                <textarea
+                  rows={8}
+                  value={tplContent}
+                  onChange={(e) => setTplContent(e.target.value)}
+                  placeholder="Enter message text... (e.g. Dear {name}, your form has been registered with {reg_no}. Group link: {whatsapp_group_link})"
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#7a0c16] leading-relaxed"
+                />
+              </div>
+
+              {/* WhatsApp Live Preview */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1">
+                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>WhatsApp Live Preview (Sample Participant)</span>
+                </label>
+                <div className="p-4 bg-[#efeae2] rounded-xl border border-slate-200">
+                  <div className="max-w-md bg-[#d9fdd3] text-slate-800 p-3 rounded-2xl rounded-tl-none shadow-xs text-xs whitespace-pre-wrap font-sans leading-relaxed">
+                    {tplContent
+                      ? renderMessageTemplate(
+                          tplContent,
+                          {
+                            studentId: 'preview_1',
+                            registrationNumber: 'MS261001',
+                            name: 'RAHUL SHARMA',
+                            fatherName: 'SURESH SHARMA',
+                            schoolOrCollege: 'DAV PUBLIC SCHOOL',
+                            className: '10',
+                            competitionName: tplCategory === 'ALL' ? 'ONLINE QUIZ' : tplCategory,
+                            phone: '9876543210',
+                            dateOfBirth: '15/08/2012',
+                            status: 'ACTIVE',
+                            createdAt: new Date().toISOString(),
+                            createdBy: 'System',
+                            updatedAt: new Date().toISOString(),
+                            updatedBy: 'System',
+                            dataVersion: 1,
+                          },
+                          settings
+                        )
+                      : 'Type template content above to preview message...'}
+                    <div className="flex items-center justify-end space-x-1 mt-2 text-[10px] text-slate-500">
+                      <span>12:00 PM</span>
+                      <CheckCircle2 className="w-3 h-3 text-[#53bdeb]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateModalOpen(false);
+                  setEditingTemplateId(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate || !tplTitle.trim() || !tplContent.trim()}
+                className="px-5 py-2 text-xs font-bold text-white bg-[#7a0c16] hover:bg-[#5c000b] disabled:bg-slate-300 rounded-xl shadow-xs transition-colors flex items-center space-x-1.5"
+              >
+                {savingTemplate ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving Template...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save & Publish Template</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 2: CAMPAIGN LAUNCHER MODAL (campaignModalOpen)
+          ========================================================================= */}
+      {campaignModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/10 text-emerald-700 flex items-center justify-center">
+                  <Flame className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Launch Targeted WhatsApp Campaign
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Dispatch customized WhatsApp messages to targeted competition and class groups.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCampaignModalOpen(false);
+                  setCampaignResult(null);
+                  setCampaignConfirmed(false);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4 overflow-y-auto">
+              {campaignResult ? (
+                <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-200 text-center space-y-4">
+                  <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-emerald-900">
+                      Campaign Dispatched Successfully!
+                    </h4>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      {campaignResult.message || 'All records have been synchronized to database and Excel log.'}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto text-center pt-2">
+                    <div className="p-2 bg-white rounded-xl border border-emerald-100">
+                      <div className="text-base font-bold text-slate-900">{campaignResult.total}</div>
+                      <div className="text-[10px] text-slate-500 font-semibold uppercase">Total</div>
+                    </div>
+                    <div className="p-2 bg-white rounded-xl border border-emerald-100">
+                      <div className="text-base font-bold text-emerald-700">{campaignResult.succeeded}</div>
+                      <div className="text-[10px] text-emerald-600 font-semibold uppercase">Sent</div>
+                    </div>
+                    <div className="p-2 bg-white rounded-xl border border-emerald-100">
+                      <div className="text-base font-bold text-rose-700">{campaignResult.failed}</div>
+                      <div className="text-[10px] text-rose-600 font-semibold uppercase">Failed</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCampaignModalOpen(false);
+                      setCampaignResult(null);
+                      setCampaignConfirmed(false);
+                      setActiveTab('history');
+                    }}
+                    className="mt-4 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+                  >
+                    View Campaign Audit Trail &rarr;
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Campaign Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Campaign Title / Name
+                    </label>
+                    <input
+                      type="text"
+                      value={campaignNameInput}
+                      onChange={(e) => setCampaignNameInput(e.target.value)}
+                      placeholder={`e.g. ${campaignTargetGroup} Blast (${new Date().toLocaleDateString('en-IN')})`}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
+                  </div>
+
+                  {/* Target Competition & Class Rows */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Target Competition *
+                      </label>
+                      <select
+                        value={campaignTargetGroup}
+                        onChange={(e) => setCampaignTargetGroup(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      >
+                        <option value="ALL">
+                          🏆 ALL Competitions ({stats.totalActive} Candidates)
+                        </option>
+                        {(competitions.length > 0 ? competitions : OFFICIAL_COMPETITION_CATEGORIES).map((comp) => {
+                          const cStat = competitionStats[comp];
+                          return (
+                            <option key={comp} value={comp}>
+                              {comp} ({cStat?.total || 0})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Target Class Range *
+                      </label>
+                      <select
+                        value={campaignTargetClass}
+                        onChange={(e) => setCampaignTargetClass(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      >
+                        <option value="ALL">All Class Tiers</option>
+                        {availableClassCategories.map((cls) => {
+                          const cStat = classCategoryStats[cls];
+                          return (
+                            <option key={cls} value={cls}>
+                              {cls} {cStat ? `(${cStat.total})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Live Group Link Preview Card */}
+                  {(() => {
+                    const assignedLink = getCategoryGroupLink(
+                      campaignTargetGroup === 'ALL' ? '' : campaignTargetGroup,
+                      settings,
+                      campaignTargetClass === 'ALL' ? '' : campaignTargetClass
+                    );
+                    return (
+                      <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between font-bold text-emerald-950">
+                          <span className="flex items-center space-x-1">
+                            <LinkIcon className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Assigned WhatsApp Community for Target:</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                            {campaignTargetGroup} &bull; {campaignTargetClass}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={assignedLink}
+                            className="flex-1 p-2 bg-white border border-emerald-300 rounded-lg text-xs font-mono select-all focus:outline-none text-slate-700"
+                          />
+                          <a
+                            href={assignedLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 shrink-0"
+                          >
+                            <span>Test</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                        <p className="text-[10px] text-emerald-800">
+                          All personalized messages for this campaign will dynamically embed this exact community link.
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Template Selection */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Message Template to Send
+                    </label>
+                    <select
+                      value={campaignTargetTemplate}
+                      onChange={(e) => setCampaignTargetTemplate(e.target.value)}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    >
+                      <optgroup label="Official Mind Spark Built-in Templates">
+                        <option value="REGISTRATION_CONFIRMATION">
+                          Registration Confirmation (Admit Card Notice & WhatsApp Link)
+                        </option>
+                        <option value="ADMIT_CARD_READY">
+                          Admit Card Released (Direct Download URL)
+                        </option>
+                        <option value="EXAM_REMINDER">
+                          Exam Day Final Reminder (Date & Venue)
+                        </option>
+                      </optgroup>
+                      {customTemplates.length > 0 && (
+                        <optgroup label="Custom Admin Templates">
+                          {customTemplates.map((tpl) => (
+                            <option key={tpl.id} value={tpl.id}>
+                              {tpl.title} ({tpl.categoryFilter || 'ALL'}) {tpl.version ? `(v${tpl.version})` : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Target Candidate Filter */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Target Audience Filter
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <label className={`p-3 rounded-xl border flex items-center space-x-2 cursor-pointer transition-colors ${campaignOnlyUnsent ? 'border-emerald-600 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                        <input
+                          type="radio"
+                          name="targetAudience"
+                          checked={campaignOnlyUnsent}
+                          onChange={() => setCampaignOnlyUnsent(true)}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-800">Only Unsent / Pending</div>
+                          <div className="text-[10px] text-slate-500">Safely skips already sent candidates</div>
+                        </div>
+                      </label>
+
+                      <label className={`p-3 rounded-xl border flex items-center space-x-2 cursor-pointer transition-colors ${!campaignOnlyUnsent ? 'border-emerald-600 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                        <input
+                          type="radio"
+                          name="targetAudience"
+                          checked={!campaignOnlyUnsent}
+                          onChange={() => setCampaignOnlyUnsent(false)}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-800">All Candidates in Group</div>
+                          <div className="text-[10px] text-slate-500">Includes previously messaged</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Controlled Message Repetition */}
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <label className="flex items-start space-x-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={usePreviousTemplateForResend}
+                        onChange={(e) => setUsePreviousTemplateForResend(e.target.checked)}
+                        className="mt-0.5 rounded text-[#7a0c16] focus:ring-[#7a0c16]"
+                      />
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-800">
+                          🔁 Controlled Message Repetition (Retain Original Template & Group)
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                          When resending to candidates who already received a message, resend their previously used template version and original group link by default.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Gateway Provider */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Gateway Integration Provider
+                    </label>
+                    <select
+                      value={campaignProvider}
+                      onChange={(e) => setCampaignProvider(e.target.value as any)}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    >
+                      <option value="icpaas">
+                        ⚡ ICPaaS Gateway v23.0 (Meta Cloud API Endpoint: 1346032508598977) - Recommended
+                      </option>
+                      <option value="cloud_api">
+                        🌐 Official Meta Cloud API (graph.facebook.com)
+                      </option>
+                      <option value="browser_queue_sync">
+                        🖥️ Browser Queue Sync (Interactive WhatsApp Web)
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* Confirmation Checkbox */}
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+                    <label className="flex items-start space-x-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={campaignConfirmed}
+                        onChange={(e) => setCampaignConfirmed(e.target.checked)}
+                        className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="text-xs">
+                        <span className="font-bold text-amber-950">
+                          Confirm Launch Authorization
+                        </span>
+                        <p className="text-[11px] text-amber-800 mt-0.5">
+                          I verify the target category, template content, and category community link. Launch WhatsApp campaign to eligible candidates.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!campaignResult && (
+              <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCampaignModalOpen(false);
+                    setCampaignConfirmed(false);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLaunchCampaign}
+                  disabled={launchingCampaign || !campaignConfirmed}
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 rounded-xl shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
+                >
+                  {launchingCampaign ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Dispatching Campaign...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Launch WhatsApp Blast &rarr;</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: CANDIDATE WHATSAPP HISTORY MODAL (historyModalStudent)
+          ========================================================================= */}
+      {historyModalStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Candidate WhatsApp Audit Trail & History
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {historyModalStudent.name} &bull; Reg: {historyModalStudent.registrationNumber}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryModalStudent(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Candidate Summary Banner */}
+            <div className="p-4 bg-amber-50/50 border-b border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Phone</span>
+                <div className="font-mono font-bold text-slate-800">+91 {historyModalStudent.phone}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Event & Class</span>
+                <div className="font-semibold text-slate-800 truncate">
+                  {historyModalStudent.competitionName} ({normalizeClassCategory(historyModalStudent.className)})
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">School</span>
+                <div className="text-slate-700 truncate">{historyModalStudent.schoolOrCollege}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Current Status</span>
+                <div>
+                  {historyModalStudent.whatsappStatus === 'SENT' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <Check className="w-3 h-3 mr-0.5" /> SENT
+                    </span>
+                  ) : historyModalStudent.whatsappStatus === 'FAILED' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                      <AlertCircle className="w-3 h-3 mr-0.5" /> FAILED
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      <Clock className="w-3 h-3 mr-0.5" /> PENDING
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* History Records */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              {Array.isArray(historyModalStudent.messageHistory) && historyModalStudent.messageHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {historyModalStudent.messageHistory.map((rec: StudentMessageRecord, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-3 hover:border-slate-300 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 flex items-center space-x-1.5">
+                          <MessageSquare className="w-3.5 h-3.5 text-[#7a0c16]" />
+                          <span>{rec.templateName || rec.templateId}</span>
+                          {rec.templateVersion && (
+                            <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-800 rounded font-mono text-[10px] font-bold">
+                              {typeof rec.templateVersion === 'number' ? `v${rec.templateVersion}` : rec.templateVersion}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-500">
+                          {new Date(rec.sentAt).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                        <div>
+                          <span className="text-slate-400">Provider:</span>{' '}
+                          <span className="font-semibold text-slate-700">{rec.provider || 'WhatsApp Gateway'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Delivery Status:</span>{' '}
+                          <span className={`font-bold ${rec.status === 'SENT' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {rec.status}
+                          </span>
+                        </div>
+                        {rec.messageId && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-slate-400">Meta ID:</span>
+                            <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px] text-slate-800 truncate max-w-[120px]">
+                              {rec.messageId}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(rec.messageId || '');
+                                setActionSuccessMsg('Meta Message ID copied to clipboard!');
+                                setTimeout(() => setActionSuccessMsg(null), 2500);
+                              }}
+                              className="text-slate-400 hover:text-slate-700 p-0.5 rounded"
+                              title="Copy Meta wamid"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Group Link Record */}
+                      {rec.groupLink && (
+                        <div className="p-2 bg-emerald-50/70 border border-emerald-200 rounded-lg flex items-center justify-between text-[11px]">
+                          <span className="text-emerald-900 font-semibold truncate mr-2">
+                            Assigned Group: {rec.groupLink}
+                          </span>
+                          <div className="flex items-center space-x-1 shrink-0">
+                            <a
+                              href={rec.groupLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1 text-emerald-700 hover:text-emerald-900"
+                              title="Open Group Link"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                copyToClipboard(rec.groupLink || '');
+                                setActionSuccessMsg('Group link copied!');
+                                setTimeout(() => setActionSuccessMsg(null), 2500);
+                              }}
+                              className="p-1 text-emerald-700 hover:text-emerald-900"
+                              title="Copy Group Link"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Exact Rendered Content Preview */}
+                      {rec.messageContent && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                            Exact Dispatched Message:
+                          </span>
+                          <div className="p-3 bg-[#efeae2] rounded-xl border border-slate-200">
+                            <div className="max-w-[95%] bg-[#d9fdd3] text-slate-800 p-3 rounded-xl rounded-tl-none shadow-2xs text-xs whitespace-pre-wrap font-sans leading-relaxed">
+                              {rec.messageContent}
+                              <div className="text-[9px] text-slate-500 text-right mt-1.5 flex items-center justify-end space-x-1">
+                                <span>{new Date(rec.sentAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-[#53bdeb] font-bold">&#10003;&#10003;</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {rec.error && (
+                        <div className="p-2 bg-rose-50 text-rose-700 rounded-lg text-[11px] border border-rose-100 flex items-center space-x-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Error: {rec.error}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : historyModalStudent.whatsappStatus === 'SENT' ? (
+                <div className="space-y-3">
+                  <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-900 flex items-center space-x-1">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>{historyModalStudent.lastTemplateName || 'Registration Confirmation (Mind Spark 2026)'}</span>
+                        {historyModalStudent.lastTemplateVersion && (
+                          <span className="px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded font-mono text-[10px] font-bold">
+                            {historyModalStudent.lastTemplateVersion}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[11px] font-mono text-emerald-700">
+                        {historyModalStudent.whatsappSentAt ? new Date(historyModalStudent.whatsappSentAt).toLocaleString('en-IN') : 'Dispatched'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700">
+                      Candidate was recorded as SENT in the database and synchronized with Master Registry.
+                    </p>
+                    {historyModalStudent.lastGroupLink && (
+                      <div className="text-[11px] font-mono text-emerald-800 break-all pt-1">
+                        Assigned Link: {historyModalStudent.lastGroupLink}
+                      </div>
+                    )}
+                  </div>
+
+                  {historyModalStudent.lastMessageContent && (
+                    <div className="p-3 bg-[#efeae2] rounded-xl border border-slate-200">
+                      <div className="max-w-[95%] bg-[#d9fdd3] text-slate-800 p-3 rounded-xl rounded-tl-none text-xs whitespace-pre-wrap font-sans leading-relaxed">
+                        {historyModalStudent.lastMessageContent}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-xs text-slate-500 space-y-2">
+                  <MessageCircle className="w-8 h-8 mx-auto text-slate-300" />
+                  <p className="font-medium text-slate-700">No message dispatches recorded yet</p>
+                  <p className="text-[11px] text-slate-400">
+                    Launch a campaign or send a direct single message to dispatch WhatsApp to this candidate.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleSafeResend(historyModalStudent)}
+                  disabled={resendingStudentId === historyModalStudent.studentId}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl transition-colors flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                  title="Resend previous approved template and exact group link"
+                >
+                  {resendingStudentId === historyModalStudent.studentId ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Resending Message...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>🔁 Safe Resend Previous</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSingleStudent(historyModalStudent);
+                    setActiveTab('single');
+                    setHistoryModalStudent(null);
+                  }}
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors flex items-center space-x-1.5"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#7a0c16]" />
+                  <span>Open in Single Chat &rarr;</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setHistoryModalStudent(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 4: WHATSAPP GROUP ADD / EDIT MODAL (groupModalOpen)
+          ========================================================================= */}
+      {groupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {editingGroup ? 'Edit WhatsApp Community Link' : 'Add New WhatsApp Community Link'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Mind Spark 2026 Category-Specific WhatsApp Group
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGroupModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGroup} className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Community Group Display Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={groupFormName}
+                  onChange={(e) => setGroupFormName(e.target.value)}
+                  placeholder="e.g. Mind Spark 2026 - Online Quiz (11-12)"
+                  className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Competition Category *
+                  </label>
+                  <select
+                    value={groupFormComp}
+                    onChange={(e) => setGroupFormComp(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  >
+                    {(competitions.length > 0 ? competitions : OFFICIAL_COMPETITION_CATEGORIES).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    <option value="All">All Competitions (General)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Class Range *
+                  </label>
+                  <select
+                    value={groupFormClass}
+                    onChange={(e) => setGroupFormClass(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  >
+                    <option value="All">All Classes (General)</option>
+                    {availableClassCategories.map((cls) => (
+                      <option key={cls} value={cls}>{cls}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  WhatsApp Community Invite URL *
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={groupFormUrl}
+                  onChange={(e) => setGroupFormUrl(e.target.value.trim())}
+                  placeholder="https://chat.whatsapp.com/..."
+                  className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Must be an official WhatsApp group invite link starting with <code>https://chat.whatsapp.com/</code>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Internal Description / Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={groupFormDesc}
+                  onChange={(e) => setGroupFormDesc(e.target.value)}
+                  placeholder="e.g. Official WhatsApp community for classes 11 & 12"
+                  className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setGroupModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingGroup}
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-xl shadow-xs transition-colors flex items-center space-x-2"
+                >
+                  {savingGroup ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Community Link...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Community Link</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

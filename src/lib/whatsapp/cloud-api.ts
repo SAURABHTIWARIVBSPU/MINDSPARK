@@ -14,12 +14,16 @@ export interface WhatsAppBatchItem {
   studentId: string;
   phone: string;
   message: string;
+  templateParams?: string[];
+  templateName?: string;
+  language?: string;
 }
 
 export interface WhatsAppBatchResult {
   total: number;
   succeeded: string[];
   failed: Array<{ studentId: string; error: string }>;
+  results?: Array<{ studentId: string; success: boolean; messageId?: string; error?: string }>;
 }
 
 export class WhatsAppCloudApiAdapter {
@@ -99,13 +103,16 @@ export class WhatsAppCloudApiAdapter {
   async sendBatch(items: WhatsAppBatchItem[], delayMs: number = 80): Promise<WhatsAppBatchResult> {
     const succeeded: string[] = [];
     const failed: Array<{ studentId: string; error: string }> = [];
+    const results: Array<{ studentId: string; success: boolean; messageId?: string; error?: string }> = [];
 
     for (const item of items) {
       const result = await this.sendMessage(item.phone, item.message);
       if (result.success) {
         succeeded.push(item.studentId);
+        results.push({ studentId: item.studentId, success: true, messageId: result.messageId });
       } else {
         failed.push({ studentId: item.studentId, error: result.error || 'Failed' });
+        results.push({ studentId: item.studentId, success: false, error: result.error || 'Failed' });
       }
 
       if (delayMs > 0 && items.length > 1) {
@@ -117,6 +124,7 @@ export class WhatsAppCloudApiAdapter {
       total: items.length,
       succeeded,
       failed,
+      results,
     };
   }
 }

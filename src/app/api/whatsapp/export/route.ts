@@ -8,6 +8,7 @@ import {
   generateWhatsAppLink,
   WHATSAPP_TEMPLATES,
   WhatsAppTemplateId,
+  getCategoryGroupLink,
 } from '@/lib/whatsapp/message-builder';
 import { normalizePhone, sanitizeForSpreadsheet } from '@/lib/excel/normalizer';
 
@@ -49,7 +50,9 @@ export async function POST(req: NextRequest) {
       'WhatsApp Click-to-Chat Link',
       'School / College',
       'Class',
+      'Class Category',
       'Competition',
+      'Assigned WhatsApp Group Link',
       'Personalized Message',
       'WhatsApp Status',
       'Last Sent At',
@@ -59,6 +62,7 @@ export async function POST(req: NextRequest) {
       const cleanPhone = normalizePhone(s.phone);
       const renderedMsg = renderMessageTemplate(rawTemplate, s, settings, origin);
       const waLink = generateWhatsAppLink(s, settings, renderedMsg);
+      const assignedGroupLink = getCategoryGroupLink(s.competitionName, settings, s.className);
 
       return [
         sanitizeForSpreadsheet(s.registrationNumber),
@@ -68,7 +72,9 @@ export async function POST(req: NextRequest) {
         waLink,
         sanitizeForSpreadsheet(s.schoolOrCollege),
         sanitizeForSpreadsheet(s.className),
+        s.className || 'General',
         sanitizeForSpreadsheet(s.competitionName),
+        assignedGroupLink,
         renderedMsg,
         s.whatsappStatus || 'NOT_SENT',
         s.whatsappSentAt || '',
@@ -84,7 +90,9 @@ export async function POST(req: NextRequest) {
       { wch: 35 },
       { wch: 28 },
       { wch: 10 },
-      { wch: 20 },
+      { wch: 14 },
+      { wch: 24 },
+      { wch: 45 },
       { wch: 50 },
       { wch: 14 },
       { wch: 20 },

@@ -76,4 +76,33 @@ describe('ICPaaSAdapter Unit Tests', () => {
     expect(batchRes.failed.length).toBe(1);
     expect(batchRes.failed[0].studentId).toBe('s2');
   });
+
+  it('supports official Meta Cloud API messages response containing wamid', async () => {
+    const adapter = new ICPaaSAdapter('f4aaf8f8-1866-49e6-b035-fa06893b010d', 'meenashahschool');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        messaging_product: 'whatsapp',
+        contacts: [{ input: '+918948905711', wa_id: '918948905711' }],
+        messages: [{ id: 'wamid.HBgMOTE4OTQ4OTA1NzExFQIAERgSOTFBNjEzOEEyNTI3ODUzQUI4AA==', message_status: 'accepted' }],
+      }),
+    } as any);
+
+    const result = await adapter.sendMessage('8948905711', 'Sample Admit Card Notification', {
+      templateName: 'admit_card_new',
+      language: 'en',
+      bodyParams: [
+        'Mind Spark Competition- 2026',
+        'Participant Test Student',
+        'Your form has been successfully enrolled...',
+        'After 26th October...',
+        'Join whatspp group...',
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBe('wamid.HBgMOTE4OTQ4OTA1NzExFQIAERgSOTFBNjEzOEEyNTI3ODUzQUI4AA==');
+  });
 });

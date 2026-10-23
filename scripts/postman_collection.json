@@ -1,0 +1,174 @@
+{
+  "info": {
+    "_postman_id": "dbe22a52-8f35-443a-8ac7-e6ce8ac83cf2",
+    "name": "SingleSendingAPI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "10603113"
+  },
+  "item": [
+    {
+      "name": "SMS",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "YOUR_BEARER_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"channel\": \"SMS\",\r\n  \"to\": [\"919876543210\"],\r\n  \"from\": \"DEMOBANK\",\r\n  \"content\": {\r\n    \"data\": {\r\n      \"text\": \"OTP is {#var1#} for Verification - {#var2#}\"\r\n    },\r\n    \"params\": {\r\n        \"var1\": \"123456\",\r\n        \"var2\": \"Demo Bank\"\r\n      }\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/api/v1/send",
+          "protocol": "https",
+          "host": [
+            "api",
+            "example",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "send"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "RCS",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "YOUR_BEARER_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"channel\": \"RCSMessage\",\r\n  \"to\": [\"919876543210\"],\r\n  \"from\": \"demoAgentID123456\",\r\n  \"content\": {\r\n    \"data\": {\r\n      \"templatename\": \"RCS_Demo_Template\"\r\n    },\r\n    \"params\": {\r\n        \"otp\": \"123456\",\r\n        \"bank\": \"Demo Bank\"\r\n      }\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/api/v1/send",
+          "protocol": "https",
+          "host": [
+            "api",
+            "example",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "send"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "WHATSAPP",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "YOUR_BEARER_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"channel\": \"WhatsApp\",\r\n    \"to\": [\r\n        \"919876543210\"\r\n    ],\r\n    \"from\": \"1234567890123456\",\r\n    \"content\": {\r\n        \"data\": {\r\n            \"templatepayload\": {\r\n                \"messaging_product\": \"whatsapp\",\r\n                \"recipient_type\": \"individual\",\r\n                \"type\": \"template\",\r\n                \"template\": {\r\n                    \"name\": \"demo_template\",\r\n                    \"language\": {\r\n                        \"code\": \"en\"\r\n                    },\r\n                    \"components\": [\r\n                        {\r\n                            \"type\": \"header\",\r\n                            \"parameters\": [\r\n                                {\r\n                                    \"type\": \"image\",\r\n                                    \"image\": {\r\n                                        \"id\": \"1234567890123456\"\r\n                                    }\r\n                                }\r\n                            ]\r\n                        },\r\n                        {\r\n                            \"type\": \"body\",\r\n                            \"parameters\": [\r\n                                {\r\n                                    \"type\": \"text\",\r\n                                    \"text\": \"param1_value\"\r\n                                },\r\n                                {\r\n                                    \"type\": \"text\",\r\n                                    \"text\": \"param2_value\"\r\n                                }\r\n                            ]\r\n                        },\r\n                        {\r\n                            \"type\": \"limited_time_offer\",\r\n                            \"parameters\": [\r\n                                {\r\n                                    \"type\": \"limited_time_offer\",\r\n                                    \"limited_time_offer\": {\r\n                                        \"expiration_time_ms\": 3600000\r\n                                    }\r\n                                }\r\n                            ]\r\n                        },\r\n                        {\r\n                            \"type\": \"button\",\r\n                            \"parameters\": [\r\n                                {\r\n                                    \"type\": \"payload\",\r\n                                    \"payload\": \"demo_payload_123\"\r\n                                }\r\n                            ],\r\n                            \"sub_type\": \"copy_code\",\r\n                            \"index\": \"0\"\r\n                        },\r\n                        {\r\n                            \"type\": \"button\",\r\n                            \"parameters\": [\r\n                                {\r\n                                    \"type\": \"text\",\r\n                                    \"text\": \"https://example.com\"\r\n                                }\r\n                            ],\r\n                            \"sub_type\": \"url\",\r\n                            \"index\": \"1\"\r\n                        }\r\n                    ]\r\n                },\r\n                \"biz_opaque_callback_data\": \"demo_callback_data\"\r\n            }\r\n        }\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/api/v1/send",
+          "protocol": "https",
+          "host": [
+            "api",
+            "example",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "send"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "JOURNEY",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "YOUR_BEARER_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"channel\": \"Journey\",\r\n    \"to\": [\r\n        \"919876543210\"\r\n    ],\r\n    \"scheduledatetime\": \"2026-12-31T11:30:00Z\",\r\n    \"content\": {\r\n        \"data\": {\r\n            \"journeyname\": \"Demo_Journey\",\r\n            \"journeypayload\": {\r\n                \"nodes\": {\r\n                    \"1\": {\r\n                        \"templateType\": \"WHATSAPP\",\r\n                        \"data\": {\r\n                            \"channelName\": \"Demo Company - 1234567890\",\r\n                            \"category\": \"Marketing\",\r\n                            \"templateName\": \"demo_template_1\",\r\n                            \"headerFormat\": \"\",\r\n                            \"headerVariables\": [],\r\n                            \"bodyVariables\": [\r\n                                {\r\n                                    \"index\": 1,\r\n                                    \"type\": \"static\",\r\n                                    \"value\": \"Value1\",\r\n                                    \"format\": \"{{1}}\"\r\n                                },\r\n                                {\r\n                                    \"index\": 2,\r\n                                    \"type\": \"static\",\r\n                                    \"value\": \"Value2\",\r\n                                    \"format\": \"{{2}}\"\r\n                                },\r\n                                {\r\n                                    \"index\": 3,\r\n                                    \"type\": \"static\",\r\n                                    \"value\": \"Value3\",\r\n                                    \"format\": \"{{3}}\"\r\n                                }\r\n                            ],\r\n                            \"buttonVariables\": [],\r\n                            \"carouselCards\": [],\r\n                            \"limitedTimeOffer\": []\r\n                        }\r\n                    },\r\n                    \"2\": {\r\n                        \"templateType\": \"RCSMESSAGE\",\r\n                        \"data\": {\r\n                            \"agentID\": \"2_12345678-1234-1234-1234-123456789012\",\r\n                            \"templateName\": \"Demo_RCS_Template\",\r\n                            \"headerData\": {},\r\n                            \"bodyData\": {\r\n                                \"{{1}}\": \"Demo Value\"\r\n                            },\r\n                            \"footerData\": {},\r\n                            \"cardData\": []\r\n                        }\r\n                    },\r\n                    \"3\": {\r\n                        \"templateType\": \"SMS\",\r\n                        \"data\": {\r\n                            \"senderId\": \"DEMOBANK\",\r\n                            \"isFlashSms\": false,\r\n                            \"isTinyCampaign\": false,\r\n                            \"originalTemplateText\": \"Demo SMS message - Your OTP is 123456 for verification\"\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n        }\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/api/v1/send",
+          "protocol": "https",
+          "host": [
+            "api",
+            "example",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "send"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

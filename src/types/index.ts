@@ -37,7 +37,77 @@ export interface User {
 
 export type StudentStatus = 'ACTIVE' | 'ARCHIVED' | 'VOID';
 
-export type WhatsAppStatus = 'NOT_SENT' | 'OPENED' | 'SENT' | 'FAILED';
+export type WhatsAppStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'OPENED';
+
+export interface WhatsAppGroupLinkItem {
+  id: string;
+  groupName: string;
+  competition: string;
+  classRange: string; // e.g. '9-10', '11-12', 'Graduation', '6-8', '4-5', '2-3', '1', 'UKG', 'LKG', 'Nursery', 'Play Group', 'All'
+  url: string;
+  description?: string;
+  isOfficial?: boolean;
+  studentCount?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface StudentMessageRecord {
+  templateId: string;
+  templateName: string;
+  templateVersion?: number | string;
+  messageContent?: string;
+  groupLink?: string;
+  campaignId?: string;
+  campaignName?: string;
+  sentAt: string;
+  status: WhatsAppStatus;
+  messageId?: string;
+  error?: string;
+  provider?: string;
+  retryCount?: number;
+}
+
+export interface CustomWhatsAppTemplate {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  categoryFilter?: string; // e.g. 'ONLINE QUIZ' or 'ALL'
+  classFilter?: string; // e.g. '9-10', '11-12', 'Graduation' or 'ALL'
+  version: number;
+  versionsHistory?: Array<{
+    version: number;
+    content: string;
+    updatedAt: string;
+    updatedBy?: string;
+  }>;
+  active?: boolean;
+  language?: 'en' | 'hi' | 'bilingual';
+  metaTemplateName?: string;
+  metaLanguage?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+export interface WhatsAppCampaign {
+  campaignId: string;
+  name: string;
+  competitionGroup: string; // 'ALL' or specific competition title
+  classGroup?: string; // 'ALL' or specific class group
+  templateId: string;
+  templateName: string;
+  templateVersion?: number | string;
+  dispatchedAt: string;
+  dispatchedBy: string;
+  totalCandidates: number;
+  succeededCount: number;
+  failedCount: number;
+  pendingCount?: number;
+  provider: string;
+  status: 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'PAUSED' | 'IN_PROGRESS';
+}
 
 export interface Student {
   studentId: string;
@@ -52,6 +122,12 @@ export interface Student {
   status: StudentStatus;
   whatsappStatus?: WhatsAppStatus;
   whatsappSentAt?: string;
+  lastTemplateId?: string;
+  lastTemplateName?: string;
+  lastTemplateVersion?: number | string;
+  lastMessageContent?: string;
+  lastGroupLink?: string;
+  messageHistory?: StudentMessageRecord[];
   sourceImportId?: string;
   createdAt: string;
   createdBy: string;
@@ -141,4 +217,9 @@ export interface SystemSettings {
   whatsappCloudToken?: string;
   whatsappPhoneNumberId?: string;
   whatsappTemplateName?: string;
+  categoryWhatsAppLinks?: Record<string, string>;
+  defaultWhatsAppGroupLink?: string;
+  whatsappGroupLinks?: WhatsAppGroupLinkItem[];
+  customTemplates?: CustomWhatsAppTemplate[];
+  whatsappCampaigns?: WhatsAppCampaign[];
 }

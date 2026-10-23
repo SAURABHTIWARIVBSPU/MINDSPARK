@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   IDatabaseAdapter,
@@ -15,6 +17,70 @@ import {
   User,
 } from '@/types';
 
+function getExtendedSettingsPath(): string {
+  const dir = path.join(process.cwd(), '.data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, 'whatsapp_extended_settings.json');
+}
+
+function getStudentHistoryPath(): string {
+  const dir = path.join(process.cwd(), '.data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, 'whatsapp_student_history.json');
+}
+
+function loadExtendedSettings(): Partial<SystemSettings> {
+  try {
+    const p = getExtendedSettingsPath();
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Failed to read extended settings:', e);
+  }
+  return {};
+}
+
+function saveExtendedSettings(ext: Partial<SystemSettings>) {
+  try {
+    const current = loadExtendedSettings();
+    const updated = { ...current, ...ext };
+    fs.writeFileSync(getExtendedSettingsPath(), JSON.stringify(updated, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Failed to write extended settings:', e);
+  }
+}
+
+function loadStudentHistoryMap(): Record<
+  string,
+  {
+    lastTemplateId?: string;
+    lastTemplateName?: string;
+    lastTemplateVersion?: number | string;
+    lastMessageContent?: string;
+    lastGroupLink?: string;
+    messageHistory: any[];
+  }
+> {
+  try {
+    const p = getStudentHistoryPath();
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Failed to read student history:', e);
+  }
+  return {};
+}
+
+function saveStudentHistoryMap(map: Record<string, any>) {
+  try {
+    fs.writeFileSync(getStudentHistoryPath(), JSON.stringify(map, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Failed to write student history:', e);
+  }
+}
+
 const DEFAULT_SETTINGS: SystemSettings = {
   schoolName: 'Mind-Spark Inter-School Competition',
   competitionTitle: 'Annual Mind-Spark Academic Olympiad 2026',
@@ -26,6 +92,11 @@ const DEFAULT_SETTINGS: SystemSettings = {
   regNoPrefix: 'MS',
   regNoYear: '26',
   regNoSeqCurrent: 1000,
+  categoryWhatsAppLinks: {},
+  defaultWhatsAppGroupLink: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+  whatsappGroupLinks: [],
+  customTemplates: [],
+  whatsappCampaigns: [],
 };
 
 export class SupabaseAdapter implements IDatabaseAdapter {
@@ -210,7 +281,32 @@ export class SupabaseAdapter implements IDatabaseAdapter {
 
   async batchUpdateStudentWhatsAppStatus(
     studentIds: string[],
-    status: WhatsAppStatus
+    status: WhatsAppStatus,
+    metadata?: {
+      templateId?: string;
+      templateName?: string;
+      templateVersion?: number | string;
+      provider?: string;
+      error?: string;
+      messageId?: string;
+      groupLink?: string;
+      campaignId?: string;
+      campaignName?: string;
+      perStudentMetadata?: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number | string;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      >;
+    }
   ): Promise<number> {
     if (studentIds.length === 0) return 0;
 
@@ -225,6 +321,52 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       .in('student_id', studentIds);
 
     if (error) throw new Error(`Supabase batch whatsapp update error: ${error.message}`);
+
+    // Update extended student message history store
+    try {
+      const historyMap = loadStudentHistoryMap();
+      for (const sId of studentIds) {
+        const studentRecord = historyMap[sId] || { messageHistory: [] };
+        const sMeta = metadata?.perStudentMetadata?.[sId];
+        const tId = sMeta?.templateId || metadata?.templateId || 'admit_card_new';
+        const tName = sMeta?.templateName || metadata?.templateName || 'Registration Confirmation';
+        const tVer = sMeta?.templateVersion ?? metadata?.templateVersion ?? 1;
+        const msgContent = sMeta?.messageContent || '';
+        const grpLink = sMeta?.groupLink || metadata?.groupLink || '';
+        const campId = sMeta?.campaignId || metadata?.campaignId || '';
+        const campName = sMeta?.campaignName || metadata?.campaignName || '';
+        const msgId = sMeta?.messageId || metadata?.messageId;
+        const err = sMeta?.error || metadata?.error;
+
+        studentRecord.lastTemplateId = tId;
+        studentRecord.lastTemplateName = tName;
+        studentRecord.lastTemplateVersion = tVer;
+        if (msgContent) studentRecord.lastMessageContent = msgContent;
+        if (grpLink) studentRecord.lastGroupLink = grpLink;
+        studentRecord.messageHistory = Array.isArray(studentRecord.messageHistory) ? studentRecord.messageHistory : [];
+        studentRecord.messageHistory.push({
+          templateId: tId,
+          templateName: tName,
+          templateVersion: tVer,
+          messageContent: msgContent,
+          groupLink: grpLink,
+          campaignId: campId,
+          campaignName: campName,
+          sentAt: now,
+          status,
+          messageId: msgId,
+          error: err,
+          provider: metadata?.provider || 'WhatsApp Gateway',
+          retryCount: studentRecord.messageHistory.length + 1,
+        });
+
+        historyMap[sId] = studentRecord;
+      }
+      saveStudentHistoryMap(historyMap);
+    } catch (histErr) {
+      console.error('Failed to update student history map:', histErr);
+    }
+
     return count || studentIds.length;
   }
 
@@ -536,7 +678,11 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       .eq('id', 'default_settings')
       .maybeSingle();
 
-    if (error || !data) return DEFAULT_SETTINGS;
+    const ext = loadExtendedSettings();
+
+    if (error || !data) {
+      return { ...DEFAULT_SETTINGS, ...ext };
+    }
 
     return {
       schoolName: data.school_name || DEFAULT_SETTINGS.schoolName,
@@ -552,12 +698,26 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       whatsappCloudToken: data.whatsapp_cloud_token,
       whatsappPhoneNumberId: data.whatsapp_phone_number_id,
       whatsappTemplateName: data.whatsapp_template_name,
+      categoryWhatsAppLinks: ext.categoryWhatsAppLinks || {},
+      defaultWhatsAppGroupLink: ext.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+      whatsappGroupLinks: ext.whatsappGroupLinks || [],
+      customTemplates: ext.customTemplates || [],
+      whatsappCampaigns: ext.whatsappCampaigns || [],
     };
   }
 
   async updateSettings(settings: Partial<SystemSettings>): Promise<SystemSettings> {
     const current = await this.getSettings();
     const updated = { ...current, ...settings };
+
+    // Persist dynamic extended WhatsApp settings to local store
+    saveExtendedSettings({
+      categoryWhatsAppLinks: updated.categoryWhatsAppLinks,
+      defaultWhatsAppGroupLink: updated.defaultWhatsAppGroupLink,
+      whatsappGroupLinks: updated.whatsappGroupLinks,
+      customTemplates: updated.customTemplates,
+      whatsappCampaigns: updated.whatsappCampaigns,
+    });
 
     const row = {
       id: 'default_settings',
@@ -635,6 +795,9 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   // --- Helper mappers ---
 
   private mapRowToStudent(row: any): Student {
+    const historyMap = loadStudentHistoryMap();
+    const hist = historyMap[row.student_id];
+
     return {
       studentId: row.student_id,
       registrationNumber: row.registration_number,
@@ -648,6 +811,12 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       status: row.status,
       whatsappStatus: row.whatsapp_status,
       whatsappSentAt: row.whatsapp_sent_at,
+      lastTemplateId: hist?.lastTemplateId,
+      lastTemplateName: hist?.lastTemplateName,
+      lastTemplateVersion: hist?.lastTemplateVersion,
+      lastMessageContent: hist?.lastMessageContent,
+      lastGroupLink: hist?.lastGroupLink,
+      messageHistory: hist?.messageHistory || [],
       sourceImportId: row.source_import_id,
       createdAt: row.created_at,
       createdBy: row.created_by,

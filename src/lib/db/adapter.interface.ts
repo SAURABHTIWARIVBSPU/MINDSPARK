@@ -36,7 +36,35 @@ export interface IDatabaseAdapter {
   getStudentByRegNo(regNo: string): Promise<Student | null>;
   createStudent(student: Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>): Promise<Student>;
   updateStudent(studentId: string, updates: Partial<Student>): Promise<Student>;
-  batchUpdateStudentWhatsAppStatus(studentIds: string[], status: WhatsAppStatus): Promise<number>;
+  batchUpdateStudentWhatsAppStatus(
+    studentIds: string[],
+    status: WhatsAppStatus,
+    metadata?: {
+      templateId?: string;
+      templateName?: string;
+      templateVersion?: number | string;
+      provider?: string;
+      error?: string;
+      messageId?: string;
+      groupLink?: string;
+      campaignId?: string;
+      campaignName?: string;
+      perStudentMetadata?: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number | string;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      >;
+    }
+  ): Promise<number>;
   archiveStudent(studentId: string, actorUid: string): Promise<boolean>;
   batchCreateStudents(students: Array<Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>>): Promise<{ createdCount: number; studentIds: string[] }>;
 

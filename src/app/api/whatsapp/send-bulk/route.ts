@@ -4,8 +4,15 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { WhatsAppCloudApiAdapter } from '@/lib/whatsapp/cloud-api';
 import { ICPaaSAdapter } from '@/lib/whatsapp/icpaas.adapter';
-import { renderMessageTemplate, WHATSAPP_TEMPLATES, WhatsAppTemplateId } from '@/lib/whatsapp/message-builder';
-import { WhatsAppStatus } from '@/types';
+import {
+  renderMessageTemplate,
+  WHATSAPP_TEMPLATES,
+  WhatsAppTemplateId,
+  getCategoryGroupLink,
+  getAllAvailableTemplates,
+  resolveStudentWhatsAppGroup,
+} from '@/lib/whatsapp/message-builder';
+import { WhatsAppStatus, WhatsAppCampaign } from '@/types';
 import { logWhatsAppDispatchRealTime, DispatchLogEntry } from '@/lib/whatsapp/excel-logger';
 
 export async function POST(req: NextRequest) {
@@ -23,6 +30,13 @@ export async function POST(req: NextRequest) {
       customMessage = '',
       status = 'SENT',
       delayMs = 100,
+      templateName,
+      templateLanguage,
+      variableMapping,
+      campaignName,
+      competitionGroup = 'ALL',
+      classGroup = 'ALL',
+      usePreviousTemplateForResend = true,
     } = body;
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
@@ -31,17 +45,86 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     const origin = req.nextUrl.origin;
+    const settings = await db.getSettings();
+    const allTemplates = getAllAvailableTemplates(settings);
+    const activeTemplateDef = allTemplates.find((t) => t.id === templateType) || WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
+
+    const campaignId = `camp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const effectiveCampaignName =
+      campaignName?.trim() ||
+      `${competitionGroup}${classGroup !== 'ALL' ? ' (' + classGroup + ')' : ''} Campaign (${new Date().toLocaleDateString('en-IN')})`;
 
     // Action 1: Mark as Sent / Opened (from Browser Queue or Operator action)
     if (provider === 'browser_queue_sync' || provider === 'mark_sent') {
       assertPermission(user, 'messages.prepare');
       const targetStatus: WhatsAppStatus = status === 'OPENED' ? 'OPENED' : 'SENT';
-      const updatedCount = await db.batchUpdateStudentWhatsAppStatus(studentIds, targetStatus);
+
+      const allActive = await db.getAllActiveStudents();
+      const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
+
+      const perStudentMeta: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      > = {};
+
+      for (const id of studentIds) {
+        const student = studentMap.get(id);
+        if (student) {
+          let msgContent = '';
+          let grpLink = '';
+          let tId = templateType;
+          let tTitle = activeTemplateDef.title;
+          let tVer = activeTemplateDef.version || 1;
+
+          // Safe Message Resend: Default to previously saved template version and exact message content
+          if (usePreviousTemplateForResend && student.lastMessageContent) {
+            msgContent = student.lastMessageContent;
+            grpLink = student.lastGroupLink || getCategoryGroupLink(student.competitionName, settings, student.className);
+            tId = student.lastTemplateId || templateType;
+            tTitle = student.lastTemplateName || activeTemplateDef.title;
+            tVer = Number(student.lastTemplateVersion || 1);
+          } else {
+            const rawTemplate = (customMessage && customMessage.trim()) ? customMessage : activeTemplateDef.defaultText;
+            msgContent = renderMessageTemplate(rawTemplate, student, settings, origin);
+            grpLink = getCategoryGroupLink(student.competitionName, settings, student.className);
+          }
+
+          perStudentMeta[student.studentId] = {
+            messageId: `wa_web_${Date.now()}_${student.registrationNumber}`,
+            templateId: tId,
+            templateName: tTitle,
+            templateVersion: tVer,
+            messageContent: msgContent,
+            groupLink: grpLink,
+            campaignId,
+            campaignName: effectiveCampaignName,
+          };
+        }
+      }
+
+      const updatedCount = await db.batchUpdateStudentWhatsAppStatus(studentIds, targetStatus, {
+        templateId: templateType,
+        templateName: activeTemplateDef.title,
+        templateVersion: activeTemplateDef.version || 1,
+        provider: 'Browser Queue / wa.me',
+        messageId: `wa_web_${Date.now()}`,
+        campaignId,
+        campaignName: effectiveCampaignName,
+        perStudentMetadata: perStudentMeta,
+      });
 
       // Real-time synchronization to local Excel log & Master Spreadsheet
       try {
-        const allActive = await db.getAllActiveStudents();
-        const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
         const nowIso = new Date().toISOString();
         const logEntries: DispatchLogEntry[] = studentIds
           .map((id) => studentMap.get(id))
@@ -57,11 +140,37 @@ export async function POST(req: NextRequest) {
             schoolOrCollege: student.schoolOrCollege,
             status: targetStatus,
             provider: 'Browser Queue / wa.me',
-            details: `Candidate marked as ${targetStatus}`,
+            details: `Candidate marked as ${targetStatus} (Template: ${activeTemplateDef.title}) [Group: ${perStudentMeta[student.studentId]?.groupLink || 'Default'}]`,
           }));
         await logWhatsAppDispatchRealTime(logEntries);
       } catch (logErr) {
         console.error('Failed to write real-time dispatch log to Excel:', logErr);
+      }
+
+      // Record campaign history
+      try {
+        const campaignRecord: WhatsAppCampaign = {
+          campaignId,
+          name: effectiveCampaignName,
+          competitionGroup: competitionGroup || 'ALL',
+          classGroup: classGroup || 'ALL',
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          dispatchedAt: new Date().toISOString(),
+          dispatchedBy: user.email || user.displayName || 'Admin',
+          totalCandidates: studentIds.length,
+          succeededCount: updatedCount,
+          failedCount: 0,
+          pendingCount: 0,
+          provider: 'Browser Queue / wa.me',
+          status: 'COMPLETED',
+        };
+        const currentCampaigns = Array.isArray(settings.whatsappCampaigns) ? [...settings.whatsappCampaigns] : [];
+        currentCampaigns.unshift(campaignRecord);
+        await db.updateSettings({ whatsappCampaigns: currentCampaigns.slice(0, 50) });
+      } catch (campErr) {
+        console.error('Failed to record campaign history:', campErr);
       }
 
       await db.addAuditLog({
@@ -69,11 +178,14 @@ export async function POST(req: NextRequest) {
         actorEmail: user.email,
         action: 'WHATSAPP_BULK_DISPATCH_RECORDED',
         targetType: 'WHATSAPP',
-        targetId: `bulk_${Date.now()}`,
+        targetId: campaignId,
         details: {
           count: updatedCount,
           status: targetStatus,
           provider: 'browser_wa_me_queue',
+          templateId: templateType,
+          competitionGroup,
+          classGroup,
         },
       });
 
@@ -81,7 +193,8 @@ export async function POST(req: NextRequest) {
         success: true,
         updatedCount,
         status: targetStatus,
-        message: `Successfully updated ${updatedCount} candidates to ${targetStatus}`,
+        campaignId,
+        message: `Successfully processed ${updatedCount} candidates in ${targetStatus}`,
       });
     }
 
@@ -111,7 +224,6 @@ export async function POST(req: NextRequest) {
     if (provider === 'cloud_api') {
       assertPermission(user, 'messages.send');
 
-      const settings = await db.getSettings();
       const adapter = new WhatsAppCloudApiAdapter(
         settings.whatsappCloudToken,
         settings.whatsappPhoneNumberId
@@ -128,37 +240,137 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Fetch student details for all requested IDs
       const allActive = await db.getAllActiveStudents();
       const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
 
-      const templateDef = WHATSAPP_TEMPLATES[templateType as WhatsAppTemplateId] || WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
-      const rawTemplate = (customMessage && customMessage.trim()) ? customMessage : templateDef.defaultText;
+      const defaultRawTemplate = (customMessage && customMessage.trim()) ? customMessage : activeTemplateDef.defaultText;
+      const studentTemplateMap = new Map<
+        string,
+        { id: string; title: string; version: number; message: string; groupLink: string }
+      >();
 
       const batchItems = [];
       for (const id of studentIds) {
         const student = studentMap.get(id);
         if (student) {
-          const messageText = renderMessageTemplate(rawTemplate, student, settings, origin);
+          let studentMessage = '';
+          let studentGrpLink = '';
+          let studentTId = templateType;
+          let studentTTitle = activeTemplateDef.title;
+          let studentTVersion = activeTemplateDef.version || 1;
+
+          // Safe Resending: if enabled and student has prior message content, preserve it identically
+          if (usePreviousTemplateForResend && student.lastMessageContent) {
+            studentMessage = student.lastMessageContent;
+            studentGrpLink = student.lastGroupLink || getCategoryGroupLink(student.competitionName, settings, student.className);
+            studentTId = student.lastTemplateId || templateType;
+            studentTTitle = student.lastTemplateName || activeTemplateDef.title;
+            studentTVersion = Number(student.lastTemplateVersion || 1);
+          } else {
+            studentMessage = renderMessageTemplate(defaultRawTemplate, student, settings, origin);
+            studentGrpLink = getCategoryGroupLink(student.competitionName, settings, student.className);
+          }
+
+          studentTemplateMap.set(student.studentId, {
+            id: studentTId,
+            title: studentTTitle,
+            version: studentTVersion,
+            message: studentMessage,
+            groupLink: studentGrpLink,
+          });
+
           batchItems.push({
             studentId: student.studentId,
             phone: student.phone,
-            message: messageText,
+            message: studentMessage,
           });
         }
       }
 
       const batchResult = await adapter.sendBatch(batchItems, Math.max(50, Number(delayMs) || 100));
 
+      // Build per-student metadata including exact message ID / wamid
+      const perStudentMeta: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      > = {};
+
+      for (const res of batchResult.results || []) {
+        const tInfo = studentTemplateMap.get(res.studentId);
+        perStudentMeta[res.studentId] = {
+          messageId: res.messageId,
+          error: res.error,
+          templateId: tInfo?.id || templateType,
+          templateName: tInfo?.title || activeTemplateDef.title,
+          templateVersion: tInfo?.version || 1,
+          messageContent: tInfo?.message || '',
+          groupLink: tInfo?.groupLink || '',
+          campaignId,
+          campaignName: effectiveCampaignName,
+        };
+      }
+
       // Persist success statuses
       if (batchResult.succeeded.length > 0) {
-        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT');
+        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT', {
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          provider: 'WhatsApp Cloud API',
+          campaignId,
+          campaignName: effectiveCampaignName,
+          perStudentMetadata: perStudentMeta,
+        });
       }
 
       // Persist failure statuses
       if (batchResult.failed.length > 0) {
         const failedIds = batchResult.failed.map((f) => f.studentId);
-        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED');
+        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED', {
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          provider: 'WhatsApp Cloud API',
+          campaignId,
+          campaignName: effectiveCampaignName,
+          perStudentMetadata: perStudentMeta,
+        });
+      }
+
+      // Record campaign history
+      try {
+        const campaignRecord: WhatsAppCampaign = {
+          campaignId,
+          name: effectiveCampaignName,
+          competitionGroup: competitionGroup || 'ALL',
+          classGroup: classGroup || 'ALL',
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          dispatchedAt: new Date().toISOString(),
+          dispatchedBy: user.email || user.displayName || 'Admin',
+          totalCandidates: batchResult.total,
+          succeededCount: batchResult.succeeded.length,
+          failedCount: batchResult.failed.length,
+          pendingCount: 0,
+          provider: 'WhatsApp Cloud API',
+          status: batchResult.failed.length === 0 ? 'COMPLETED' : (batchResult.succeeded.length > 0 ? 'PARTIAL' : 'FAILED'),
+        };
+        const currentCampaigns = Array.isArray(settings.whatsappCampaigns) ? [...settings.whatsappCampaigns] : [];
+        currentCampaigns.unshift(campaignRecord);
+        await db.updateSettings({ whatsappCampaigns: currentCampaigns.slice(0, 50) });
+      } catch (campErr) {
+        console.error('Failed to record campaign history:', campErr);
       }
 
       // Real-time synchronization to local Excel log & Master Spreadsheet
@@ -170,6 +382,7 @@ export async function POST(req: NextRequest) {
         const logEntries: DispatchLogEntry[] = batchItems.map((item) => {
           const student = studentMap.get(item.studentId)!;
           const isSucceeded = succeededSet.has(item.studentId);
+          const tInfo = studentTemplateMap.get(item.studentId);
           return {
             timestamp: nowIso,
             studentId: student.studentId,
@@ -182,7 +395,7 @@ export async function POST(req: NextRequest) {
             status: isSucceeded ? 'SENT' : 'FAILED',
             provider: 'WhatsApp Cloud API',
             details: isSucceeded
-              ? 'Delivered via official Meta Cloud API'
+              ? `Delivered via official Meta Cloud API (ID: ${perStudentMeta[student.studentId]?.messageId || 'wamid'}) [Group: ${tInfo?.groupLink || 'N/A'}]`
               : (failedMap.get(item.studentId) || 'Cloud API send error'),
           };
         });
@@ -197,16 +410,20 @@ export async function POST(req: NextRequest) {
         actorEmail: user.email,
         action: 'WHATSAPP_CLOUD_API_BULK_SEND',
         targetType: 'WHATSAPP',
-        targetId: `cloud_job_${Date.now()}`,
+        targetId: campaignId,
         details: {
           total: batchResult.total,
           succeeded: batchResult.succeeded.length,
           failed: batchResult.failed.length,
+          competitionGroup,
+          classGroup,
+          templateId: templateType,
         },
       });
 
       return NextResponse.json({
         success: true,
+        campaignId,
         total: batchResult.total,
         succeededCount: batchResult.succeeded.length,
         failedCount: batchResult.failed.length,
@@ -230,35 +447,193 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const settings = await db.getSettings();
       const allActive = await db.getAllActiveStudents();
       const studentMap = new Map(allActive.map((s) => [s.studentId, s]));
 
-      const templateDef = WHATSAPP_TEMPLATES[templateType as WhatsAppTemplateId] || WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
-      const rawTemplate = (customMessage && customMessage.trim()) ? customMessage : templateDef.defaultText;
+      const defaultRawTemplate = (customMessage && customMessage.trim()) ? customMessage : activeTemplateDef.defaultText;
+      const targetTemplateName = templateName || settings.whatsappTemplateName || process.env.ICPAAS_TEMPLATE_NAME || 'admit_card_new';
+      const targetLanguage = templateLanguage || 'en';
+      const studentTemplateMap = new Map<
+        string,
+        { id: string; title: string; version: number; message: string; groupLink: string }
+      >();
 
       const batchItems = [];
       for (const id of studentIds) {
         const student = studentMap.get(id);
         if (student) {
-          const messageText = renderMessageTemplate(rawTemplate, student, settings, origin);
+          let studentMessage = '';
+          let studentGrpLink = '';
+          let studentTId = templateType;
+          let studentTTitle = activeTemplateDef.title;
+          let studentTVersion = activeTemplateDef.version || 1;
+
+          // Safe Resending: if enabled and student has prior message content, preserve it identically
+          if (usePreviousTemplateForResend && student.lastMessageContent) {
+            studentMessage = student.lastMessageContent;
+            studentGrpLink = student.lastGroupLink || getCategoryGroupLink(student.competitionName, settings, student.className);
+            studentTId = student.lastTemplateId || templateType;
+            studentTTitle = student.lastTemplateName || activeTemplateDef.title;
+            studentTVersion = Number(student.lastTemplateVersion || 1);
+          } else {
+            studentMessage = renderMessageTemplate(defaultRawTemplate, student, settings, origin);
+            studentGrpLink = getCategoryGroupLink(student.competitionName, settings, student.className);
+          }
+
+          studentTemplateMap.set(student.studentId, {
+            id: studentTId,
+            title: studentTTitle,
+            version: studentTVersion,
+            message: studentMessage,
+            groupLink: studentGrpLink,
+          });
+
+          // Build template parameter body variables for official ICPaaS / Meta approved templates
+          let bodyParams: string[] = [];
+          if (Array.isArray(variableMapping) && variableMapping.length > 0) {
+            bodyParams = variableMapping.map((field: string) => {
+              switch (field) {
+                case 'competitionTitle':
+                  return settings.competitionTitle || 'Mind Spark Competition- 2026';
+                case 'participantName':
+                  return student.name ? `Participant ${student.name}` : 'Participant';
+                case 'enrollmentNotice':
+                  return `Your form has been successfully enrolled for Mind Spark Competition 2026 This is your Registration Number: ${student.registrationNumber}`;
+                case 'admitCardInstructions':
+                  return 'After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.';
+                case 'groupLinkNotice':
+                  return `Join whatspp group for more update ${studentGrpLink}`;
+                case 'name': return student.name;
+                case 'registrationNumber': return student.registrationNumber;
+                case 'className': return student.className;
+                case 'competitionName': return student.competitionName;
+                case 'schoolOrCollege': return student.schoolOrCollege;
+                case 'fatherName': return student.fatherName;
+                case 'examDate': return settings.examDate || '01 Nov 2026';
+                case 'reportingTime': return settings.reportingTime || '09:00 AM';
+                case 'venue': return settings.venue || 'MSITM DEGREE COLLEGE GONDA';
+                case 'admitCardDate': return '25 October 2026';
+                case 'admitCardUrl': return `${origin}/admit-cards?regNo=${student.registrationNumber}`;
+                case 'whatsappGroupLink':
+                case 'groupLink':
+                  return studentGrpLink;
+                case 'dateOfBirth':
+                case 'dob':
+                  return student.dateOfBirth || '';
+                default: return field;
+              }
+            });
+          } else if (targetTemplateName === 'admit_card_new') {
+            bodyParams = [
+              settings.competitionTitle || 'Mind Spark Competition- 2026',
+              student.name ? `Participant ${student.name}` : 'Participant',
+              `Your form has been successfully enrolled for Mind Spark Competition 2026 This is your Registration Number: ${student.registrationNumber}`,
+              'After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.',
+              `Join whatspp group for more update ${studentGrpLink}`,
+            ];
+          } else {
+            bodyParams = [
+              student.name,
+              student.registrationNumber,
+              student.className || student.competitionName,
+              '25 October 2026',
+              studentGrpLink,
+            ];
+          }
+
           batchItems.push({
             studentId: student.studentId,
             phone: student.phone,
-            message: messageText,
+            message: studentMessage,
+            templateName: targetTemplateName,
+            language: targetLanguage,
+            templateParams: bodyParams,
           });
         }
       }
 
       const batchResult = await adapter.sendBatch(batchItems, Math.max(50, Number(delayMs) || 100));
 
+      // Build per-student metadata including exact message ID / wamid
+      const perStudentMeta: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      > = {};
+
+      for (const res of batchResult.results || []) {
+        const tInfo = studentTemplateMap.get(res.studentId);
+        perStudentMeta[res.studentId] = {
+          messageId: res.messageId,
+          error: res.error,
+          templateId: tInfo?.id || templateType,
+          templateName: tInfo?.title || activeTemplateDef.title,
+          templateVersion: tInfo?.version || 1,
+          messageContent: tInfo?.message || '',
+          groupLink: tInfo?.groupLink || '',
+          campaignId,
+          campaignName: effectiveCampaignName,
+        };
+      }
+
       if (batchResult.succeeded.length > 0) {
-        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT');
+        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT', {
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          provider: 'ICPaaS Gateway (v23.0)',
+          campaignId,
+          campaignName: effectiveCampaignName,
+          perStudentMetadata: perStudentMeta,
+        });
       }
 
       if (batchResult.failed.length > 0) {
         const failedIds = batchResult.failed.map((f) => f.studentId);
-        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED');
+        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED', {
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          provider: 'ICPaaS Gateway (v23.0)',
+          campaignId,
+          campaignName: effectiveCampaignName,
+          perStudentMetadata: perStudentMeta,
+        });
+      }
+
+      // Record campaign history
+      try {
+        const campaignRecord: WhatsAppCampaign = {
+          campaignId,
+          name: effectiveCampaignName,
+          competitionGroup: competitionGroup || 'ALL',
+          classGroup: classGroup || 'ALL',
+          templateId: templateType,
+          templateName: activeTemplateDef.title,
+          templateVersion: activeTemplateDef.version || 1,
+          dispatchedAt: new Date().toISOString(),
+          dispatchedBy: user.email || user.displayName || 'Admin',
+          totalCandidates: batchResult.total,
+          succeededCount: batchResult.succeeded.length,
+          failedCount: batchResult.failed.length,
+          pendingCount: 0,
+          provider: 'ICPaaS Gateway (v23.0)',
+          status: batchResult.failed.length === 0 ? 'COMPLETED' : (batchResult.succeeded.length > 0 ? 'PARTIAL' : 'FAILED'),
+        };
+        const currentCampaigns = Array.isArray(settings.whatsappCampaigns) ? [...settings.whatsappCampaigns] : [];
+        currentCampaigns.unshift(campaignRecord);
+        await db.updateSettings({ whatsappCampaigns: currentCampaigns.slice(0, 50) });
+      } catch (campErr) {
+        console.error('Failed to record campaign history:', campErr);
       }
 
       // Real-time synchronization to local Excel log & Master Spreadsheet
@@ -270,6 +645,7 @@ export async function POST(req: NextRequest) {
         const logEntries: DispatchLogEntry[] = batchItems.map((item) => {
           const student = studentMap.get(item.studentId)!;
           const isSucceeded = succeededSet.has(item.studentId);
+          const tInfo = studentTemplateMap.get(item.studentId);
           return {
             timestamp: nowIso,
             studentId: student.studentId,
@@ -280,9 +656,9 @@ export async function POST(req: NextRequest) {
             competitionName: student.competitionName,
             schoolOrCollege: student.schoolOrCollege,
             status: isSucceeded ? 'SENT' : 'FAILED',
-            provider: 'ICPaaS Gateway (100 Bulk)',
+            provider: 'ICPaaS Gateway (v23.0)',
             details: isSucceeded
-              ? 'Admit card notification dispatched via ICPaaS gateway'
+              ? `Admit card notification dispatched via ICPaaS (Meta ID: ${perStudentMeta[student.studentId]?.messageId || 'wamid'}) [Group: ${tInfo?.groupLink || 'N/A'}]`
               : (failedMap.get(item.studentId) || 'ICPaaS gateway error'),
           };
         });
@@ -297,17 +673,21 @@ export async function POST(req: NextRequest) {
         actorEmail: user.email,
         action: 'WHATSAPP_ICPAAS_BULK_SEND',
         targetType: 'WHATSAPP',
-        targetId: `icpaas_job_${Date.now()}`,
+        targetId: campaignId,
         details: {
           total: batchResult.total,
           succeeded: batchResult.succeeded.length,
           failed: batchResult.failed.length,
           provider: 'icpaas.in',
+          competitionGroup,
+          classGroup,
+          templateId: templateType,
         },
       });
 
       return NextResponse.json({
         success: true,
+        campaignId,
         total: batchResult.total,
         succeededCount: batchResult.succeeded.length,
         failedCount: batchResult.failed.length,

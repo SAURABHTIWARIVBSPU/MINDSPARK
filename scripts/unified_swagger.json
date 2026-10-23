@@ -1,0 +1,903 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Single Sending API",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/user/balance": {
+      "get": {
+        "tags": [
+          "Balance"
+        ],
+        "summary": "Get Wallet Balance",
+        "description": "Returns available wallet balance across all channels.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/meta/templates": {
+      "get": {
+        "tags": [
+          "Moengage/Meta API's Templates"
+        ],
+        "summary": "Get templates",
+        "description": "Returns paginated WhatsApp templates from local DB.",
+        "operationId": "GetTemplates",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "template_name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meta/templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Moengage/Meta API's Templates"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/meta/templates/sync": {
+      "post": {
+        "tags": [
+          "Moengage/Meta API's Templates"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/send": {
+      "post": {
+        "tags": [
+          "Single Sending API's"
+        ],
+        "summary": "Send a message",
+        "description": "Sends a message through the selected channel (SMS / WhatsApp / RCS / Journey).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelApiRequest"
+              },
+              "examples": {
+                "SMS": {
+                  "summary": "Send SMS",
+                  "value": {
+                    "channel": "SMS",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "BRANDX",
+                    "content": {
+                      "data": {
+                        "dlttemplateid": "your_dlt_templateid",
+                        "text": "Secret OTP is {#var1#} for Aadhaar Verification - {#var2#}",
+                        "peid": "your_peid",
+                        "chainvalue": "your_chainvalue"
+                      },
+                      "params": {
+                        "var1": "123456",
+                        "var2": "BrandX"
+                      }
+                    }
+                  }
+                },
+                "RCS": {
+                  "summary": "Send RCS Message",
+                  "value": {
+                    "channel": "RCSMessage",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "your_rcs_agent_id",
+                    "content": {
+                      "data": {
+                        "templatename": "Sample_Template"
+                      },
+                      "params": {
+                        "otp": "123456",
+                        "bank": "BrandX"
+                      }
+                    }
+                  }
+                },
+                "WhatsApp": {
+                  "summary": "Send WhatsApp Template",
+                  "value": {
+                    "channel": "WhatsApp",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "000000000000000",
+                    "content": {
+                      "data": {
+                        "templatepayload": {
+                          "messaging_product": "whatsapp",
+                          "recipient_type": "individual",
+                          "type": "template",
+                          "template": {
+                            "name": "sample_template",
+                            "language": {
+                              "code": "en"
+                            },
+                            "components": [
+                              {
+                                "type": "header",
+                                "parameters": [
+                                  {
+                                    "type": "image",
+                                    "image": {
+                                      "id": "0000000000000000"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "body",
+                                "parameters": [
+                                  {
+                                    "type": "text",
+                                    "text": "value1"
+                                  },
+                                  {
+                                    "type": "text",
+                                    "text": "value2"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "limited_time_offer",
+                                "parameters": [
+                                  {
+                                    "type": "limited_time_offer",
+                                    "limited_time_offer": {
+                                      "expiration_time_ms": 0
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "button",
+                                "parameters": [
+                                  {
+                                    "type": "payload",
+                                    "payload": "PROMO123"
+                                  }
+                                ],
+                                "sub_type": "copy_code",
+                                "index": "0"
+                              },
+                              {
+                                "type": "button",
+                                "parameters": [
+                                  {
+                                    "type": "text",
+                                    "text": "sample-url-suffix"
+                                  }
+                                ],
+                                "sub_type": "url",
+                                "index": "1"
+                              }
+                            ]
+                          },
+                          "biz_opaque_callback_data": "your-tracking-id"
+                        }
+                      }
+                    }
+                  }
+                },
+                "Journey": {
+                  "summary": "Send Journey",
+                  "value": {
+                    "channel": "Journey",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "scheduledatetime": "2026-12-31T10:00:00Z",
+                    "content": {
+                      "data": {
+                        "journeyname": "Sample_Journey",
+                        "journeypayload": {
+                          "nodes": {
+                            "1": {
+                              "templateType": "WHATSAPP",
+                              "data": {
+                                "channelName": "Your Channel - 0000000000000",
+                                "category": "Marketing",
+                                "templateName": "sample_template",
+                                "headerFormat": "",
+                                "headerVariables": [],
+                                "bodyVariables": [
+                                  {
+                                    "index": 1,
+                                    "type": "static",
+                                    "value": "value1",
+                                    "format": "{{1}}"
+                                  },
+                                  {
+                                    "index": 2,
+                                    "type": "static",
+                                    "value": "value2",
+                                    "format": "{{2}}"
+                                  },
+                                  {
+                                    "index": 3,
+                                    "type": "static",
+                                    "value": "value3",
+                                    "format": "{{3}}"
+                                  }
+                                ],
+                                "buttonVariables": [],
+                                "carouselCards": [],
+                                "limitedTimeOffer": []
+                              }
+                            },
+                            "2": {
+                              "templateType": "RCSMESSAGE",
+                              "data": {
+                                "agentID": "your_rcs_agent_id",
+                                "templateName": "Sample_Template",
+                                "headerData": {},
+                                "bodyData": {
+                                  "{{1}}": "value1"
+                                },
+                                "footerData": {},
+                                "cardData": []
+                              }
+                            },
+                            "3": {
+                              "templateType": "SMS",
+                              "data": {
+                                "senderId": "brandx",
+                                "isFlashSms": false,
+                                "isTinyCampaign": false,
+                                "originalTemplateText": "Sample SMS text with OTP 123456 from BrandX"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "TextToSpeech": {
+                  "summary": "Send Text To Speech",
+                  "value": {
+                    "channel": "TextToSpeech",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "9999999999",
+                    "content": {
+                      "data": {
+                        "templateid": 19,
+                        "ttsvariables": [
+                          {
+                            "Index": 1,
+                            "Type": "SoundFile",
+                            "Value": "28"
+                          },
+                          {
+                            "Index": 2,
+                            "Type": "TTS",
+                            "Value": "John"
+                          },
+                          {
+                            "Index": 3,
+                            "Type": "SoundFile",
+                            "Value": "28"
+                          },
+                          {
+                            "Index": 4,
+                            "Type": "SayNumber",
+                            "Value": "1234"
+                          },
+                          {
+                            "Index": 5,
+                            "Type": "SoundFile",
+                            "Value": "28"
+                          },
+                          {
+                            "Index": 6,
+                            "Type": "SayNumber",
+                            "Value": "567890"
+                          },
+                          {
+                            "Index": 7,
+                            "Type": "SoundFile",
+                            "Value": "28"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "ClickToCall": {
+                  "summary": "Send Click To Call",
+                  "value": {
+                    "channel": "ClickToCall",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "9999999999",
+                    "content": {
+                      "data": {
+                        "agentnumber": "919999999999",
+                        "isagentcallfirst": 1,
+                        "iscallrecording": 1
+                      }
+                    }
+                  }
+                },
+                "VoiceFile": {
+                  "summary": "Send Voice File",
+                  "value": {
+                    "channel": "Voice",
+                    "to": [
+                      "919999999999"
+                    ],
+                    "from": "9999999999",
+                    "content": {
+                      "data": {
+                        "fileid": 1145,
+                        "isdtmfenabled": 0,
+                        "botid": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorIReadOnlyListApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiRequestResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiRequestResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiRequestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiRequestResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChannelApiRequest": {
+        "required": [
+          "channel",
+          "content",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/EnumProducts"
+          },
+          "apiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "to": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scheduleDateTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "$ref": "#/components/schemas/MessageContent"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnumProducts": {
+        "enum": [
+          "IVR",
+          "Voice",
+          "ClickToCall",
+          "TextToSpeech",
+          "SMS",
+          "WhatsApp",
+          "Email",
+          "RCSMessage",
+          "URLShortener",
+          "Journey",
+          "TemplateCategory",
+          "APIs",
+          "Shopify",
+          "CleaverTap",
+          "ZohoFlow",
+          "Plabbly",
+          "Freshworks",
+          "Moengage",
+          "GoogleSheets",
+          "WebEngage",
+          "zapier",
+          "WooCommerce",
+          "Hubspot",
+          "ZohoIntegration",
+          "CloudAgent",
+          "AI",
+          "DefaultProduct",
+          "GlobalSMS"
+        ],
+        "type": "string"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "emailAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MessageContent": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Raw JSON payload (schema-less)"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PagedTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "total_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_pages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateResponseDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderButton": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProviderButtonData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderButtonData": {
+        "type": "object",
+        "properties": {
+          "button_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "action_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "action_value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderCarousel": {
+        "type": "object",
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderCarouselCard"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderCarouselCard": {
+        "type": "object",
+        "properties": {
+          "header": {
+            "$ref": "#/components/schemas/ProviderHeader"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderButton"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderContent": {
+        "type": "object",
+        "properties": {
+          "header": {
+            "$ref": "#/components/schemas/ProviderHeader"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "footer": {
+            "type": "string",
+            "nullable": true
+          },
+          "limited_time_offer": {
+            "$ref": "#/components/schemas/ProviderLimitedTimeOffer"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderButton"
+            },
+            "nullable": true
+          },
+          "carousel": {
+            "$ref": "#/components/schemas/ProviderCarousel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderHeader": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "media_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProviderLimitedTimeOffer": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "has_expiration": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "template_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "category_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "$ref": "#/components/schemas/ProviderContent"
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_synced_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationErrorIReadOnlyListApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Enter Bearer token in the format: **Bearer &lt;token&gt;**",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ]
+}

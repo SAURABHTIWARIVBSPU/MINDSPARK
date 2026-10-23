@@ -333,7 +333,35 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     return updated;
   }
 
-  async batchUpdateStudentWhatsAppStatus(studentIds: string[], status: WhatsAppStatus): Promise<number> {
+  async batchUpdateStudentWhatsAppStatus(
+    studentIds: string[],
+    status: WhatsAppStatus,
+    metadata?: {
+      templateId?: string;
+      templateName?: string;
+      templateVersion?: number | string;
+      provider?: string;
+      error?: string;
+      messageId?: string;
+      groupLink?: string;
+      campaignId?: string;
+      campaignName?: string;
+      perStudentMetadata?: Record<
+        string,
+        {
+          messageId?: string;
+          error?: string;
+          templateId?: string;
+          templateName?: string;
+          templateVersion?: number | string;
+          messageContent?: string;
+          groupLink?: string;
+          campaignId?: string;
+          campaignName?: string;
+        }
+      >;
+    }
+  ): Promise<number> {
     if (!studentIds || studentIds.length === 0) return 0;
     const now = new Date().toISOString();
     const idSet = new Set(studentIds);
@@ -341,12 +369,50 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
 
     for (let i = 0; i < this.data.students.length; i++) {
       if (idSet.has(this.data.students[i].studentId)) {
+        const student = this.data.students[i];
+        const history = Array.isArray(student.messageHistory) ? [...student.messageHistory] : [];
+        const studentMeta = metadata?.perStudentMetadata?.[student.studentId];
+
+        const tId = studentMeta?.templateId || metadata?.templateId || 'admit_card_new';
+        const tName = studentMeta?.templateName || metadata?.templateName || 'Registration Confirmation';
+        const tVer = studentMeta?.templateVersion ?? metadata?.templateVersion ?? 1;
+        const msgContent = studentMeta?.messageContent || '';
+        const grpLink = studentMeta?.groupLink || metadata?.groupLink || '';
+        const campId = studentMeta?.campaignId || metadata?.campaignId || '';
+        const campName = studentMeta?.campaignName || metadata?.campaignName || '';
+        const msgId = studentMeta?.messageId || metadata?.messageId;
+        const err = studentMeta?.error || metadata?.error;
+
+        if (metadata?.templateId || metadata?.templateName || studentMeta) {
+          history.push({
+            templateId: tId,
+            templateName: tName,
+            templateVersion: tVer,
+            messageContent: msgContent,
+            groupLink: grpLink,
+            campaignId: campId,
+            campaignName: campName,
+            sentAt: now,
+            status,
+            messageId: msgId,
+            error: err,
+            provider: metadata?.provider || 'WhatsApp Gateway',
+            retryCount: history.length + 1,
+          });
+        }
+
         this.data.students[i] = {
-          ...this.data.students[i],
+          ...student,
           whatsappStatus: status,
-          whatsappSentAt: (status === 'SENT' || status === 'OPENED') ? now : this.data.students[i].whatsappSentAt,
+          whatsappSentAt: (status === 'SENT' || status === 'OPENED') ? now : student.whatsappSentAt,
+          lastTemplateId: tId || student.lastTemplateId,
+          lastTemplateName: tName || student.lastTemplateName,
+          lastTemplateVersion: tVer || student.lastTemplateVersion,
+          lastMessageContent: msgContent || student.lastMessageContent,
+          lastGroupLink: grpLink || student.lastGroupLink,
+          messageHistory: history,
           updatedAt: now,
-          dataVersion: this.data.students[i].dataVersion + 1,
+          dataVersion: student.dataVersion + 1,
         };
         updatedCount++;
       }

@@ -99,5 +99,53 @@ describe('WhatsApp Message Builder & Template Engine', () => {
     expect(tags).toContain('{reg_no}');
     expect(tags).toContain('{venue}');
     expect(tags).toContain('{exam_date}');
+    expect(tags).toContain('{whatsapp_group_link}');
+    expect(tags).toContain('{dob}');
+  });
+
+  it('dynamically resolves category-specific WhatsApp group links', () => {
+    const customSettings: SystemSettings = {
+      ...mockSettings,
+      categoryWhatsAppLinks: {
+        'ONLINE QUIZ': 'https://chat.whatsapp.com/OnlineQuiz2026',
+        'PAINT YOUR IMAGINATION': 'https://chat.whatsapp.com/ArtPainting2026',
+      },
+      defaultWhatsAppGroupLink: 'https://chat.whatsapp.com/MindSparkGeneral',
+    };
+
+    const quizStudent: Student = { ...mockStudent, competitionName: 'ONLINE QUIZ' };
+    const artStudent: Student = { ...mockStudent, competitionName: 'PAINT YOUR IMAGINATION' };
+    const unlistedStudent: Student = { ...mockStudent, competitionName: 'OTHER EVENT' };
+
+    const tpl = 'Join group: {whatsapp_group_link}';
+    expect(renderMessageTemplate(tpl, quizStudent, customSettings)).toContain('https://chat.whatsapp.com/OnlineQuiz2026');
+    expect(renderMessageTemplate(tpl, artStudent, customSettings)).toContain('https://chat.whatsapp.com/ArtPainting2026');
+    expect(renderMessageTemplate(tpl, unlistedStudent, customSettings)).toContain('https://chat.whatsapp.com/MindSparkGeneral');
+  });
+
+  it('renders official Mind Spark 2026 Enrollment Confirmation with registration number and category group link', () => {
+    const customSettings: SystemSettings = {
+      ...mockSettings,
+      categoryWhatsAppLinks: {
+        'ONLINE QUIZ': 'https://chat.whatsapp.com/OnlineQuiz2026',
+      },
+    };
+    const student: Student = {
+      ...mockStudent,
+      name: 'PRIYA SINGH',
+      registrationNumber: 'MS261044',
+      competitionName: 'ONLINE QUIZ',
+    };
+
+    const tpl = WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION.defaultText;
+    const msg = renderMessageTemplate(tpl, student, customSettings);
+
+    expect(msg).toContain('Meena Shah Public School, Gonda');
+    expect(msg).toContain('Mind Spark Competition- 2026');
+    expect(msg).toContain('Dear Participant (PRIYA SINGH),');
+    expect(msg).toContain('This is your Registration Number: MS261044');
+    expect(msg).toContain('After 26th October, we will provide a link on your WhatsApp to download your admit card');
+    expect(msg).toContain('Link: https://chat.whatsapp.com/OnlineQuiz2026');
+    expect(msg).toContain('Team Meena Shah Public School, Gonda');
   });
 });
