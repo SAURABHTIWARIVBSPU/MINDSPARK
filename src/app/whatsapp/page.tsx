@@ -1833,7 +1833,7 @@ export default function WhatsAppPage() {
                     href={generateWhatsAppLink(previewCandidate, settings, renderedPreviewMessage)}
                     target="_blank"
                     rel="noreferrer"
-                    onClick={() => updateStudentStatusInDb(previewCandidate.studentId, 'OPENED')}
+                    onClick={() => updateStudentStatusInDb(previewCandidate.studentId, 'SENT')}
                     className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-2 text-center shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -2555,7 +2555,7 @@ export default function WhatsAppPage() {
                                   )}
                                   target="_blank"
                                   rel="noreferrer"
-                                  onClick={() => updateStudentStatusInDb(s.studentId, 'OPENED')}
+                                  onClick={() => updateStudentStatusInDb(s.studentId, 'SENT')}
                                   className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-medium transition-colors"
                                 >
                                   <Send className="w-3 h-3" />
@@ -3762,7 +3762,7 @@ export default function WhatsAppPage() {
                   )}
                   target="_blank"
                   rel="noreferrer"
-                  onClick={() => updateStudentStatusInDb(singleStudent.studentId, 'OPENED')}
+                  onClick={() => updateStudentStatusInDb(singleStudent.studentId, 'SENT')}
                   className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2 text-center"
                 >
                   <Send className="w-4 h-4" />
