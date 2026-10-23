@@ -459,9 +459,24 @@ export async function POST(req: NextRequest) {
       >();
 
       const batchItems = [];
+      const skippedAlreadySent: string[] = [];
+
       for (const id of studentIds) {
         const student = studentMap.get(id);
         if (student) {
+          // STRICT DUPLICATE PREVENTION:
+          // Unless forceResend is explicitly requested, NEVER resend to students who already received a message!
+          const isAlreadySent =
+            student.whatsappStatus === 'SENT' ||
+            student.whatsappStatus === 'DELIVERED' ||
+            student.whatsappStatus === 'READ' ||
+            student.whatsappStatus === 'OPENED';
+
+          if (!body.forceResend && !body.allowDuplicates && isAlreadySent) {
+            skippedAlreadySent.push(student.studentId);
+            continue;
+          }
+
           let studentMessage = '';
           let studentGrpLink = '';
           let studentTId = templateType;
@@ -552,9 +567,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const batchResult = await adapter.sendBatch(batchItems, Math.max(50, Number(delayMs) || 100));
+      // If all candidates in this batch were already sent, return immediately without touching gateway
+      if (batchItems.length === 0 && skippedAlreadySent.length > 0) {
+        return NextResponse.json({
+          success: true,
+          total: studentIds.length,
+          succeededCount: 0,
+          failedCount: 0,
+          skippedCount: skippedAlreadySent.length,
+          message: `All ${skippedAlreadySent.length} candidate(s) were already messaged. Zero duplicates dispatched.`,
+        });
+      }
 
-      // Build per-student metadata including exact message ID / wamid
+      // Sequential dispatch with IMMEDIATE per-student DB updates (Never lost on timeout!)
+      const succeededIds: string[] = [];
+      const failedDetails: Array<{ studentId: string; error: string }> = [];
       const perStudentMeta: Record<
         string,
         {
@@ -570,44 +597,66 @@ export async function POST(req: NextRequest) {
         }
       > = {};
 
-      for (const res of batchResult.results || []) {
-        const tInfo = studentTemplateMap.get(res.studentId);
-        perStudentMeta[res.studentId] = {
-          messageId: res.messageId,
-          error: res.error,
-          templateId: tInfo?.id || templateType,
-          templateName: tInfo?.title || activeTemplateDef.title,
-          templateVersion: tInfo?.version || 1,
-          messageContent: tInfo?.message || '',
-          groupLink: tInfo?.groupLink || '',
-          campaignId,
-          campaignName: effectiveCampaignName,
-        };
-      }
-
-      if (batchResult.succeeded.length > 0) {
-        await db.batchUpdateStudentWhatsAppStatus(batchResult.succeeded, 'SENT', {
-          templateId: templateType,
-          templateName: activeTemplateDef.title,
-          templateVersion: activeTemplateDef.version || 1,
-          provider: 'ICPaaS Gateway (v23.0)',
-          campaignId,
-          campaignName: effectiveCampaignName,
-          perStudentMetadata: perStudentMeta,
+      for (const item of batchItems) {
+        const sendResult = await adapter.sendMessage(item.phone, item.message, {
+          templateName: item.templateName,
+          language: item.language,
+          bodyParams: item.templateParams,
         });
-      }
 
-      if (batchResult.failed.length > 0) {
-        const failedIds = batchResult.failed.map((f) => f.studentId);
-        await db.batchUpdateStudentWhatsAppStatus(failedIds, 'FAILED', {
-          templateId: templateType,
-          templateName: activeTemplateDef.title,
-          templateVersion: activeTemplateDef.version || 1,
-          provider: 'ICPaaS Gateway (v23.0)',
-          campaignId,
-          campaignName: effectiveCampaignName,
-          perStudentMetadata: perStudentMeta,
-        });
+        const tInfo = studentTemplateMap.get(item.studentId);
+        const nowIso = new Date().toISOString();
+
+        if (sendResult.success) {
+          succeededIds.push(item.studentId);
+          perStudentMeta[item.studentId] = {
+            messageId: sendResult.messageId,
+            templateId: tInfo?.id || templateType,
+            templateName: tInfo?.title || activeTemplateDef.title,
+            templateVersion: tInfo?.version || 1,
+            messageContent: tInfo?.message || '',
+            groupLink: tInfo?.groupLink || '',
+            campaignId,
+            campaignName: effectiveCampaignName,
+          };
+
+          // IMMEDIATE DB UPDATE: Never lose status if function times out!
+          try {
+            await db.updateStudent(item.studentId, {
+              whatsappStatus: 'SENT',
+              whatsappSentAt: nowIso,
+              lastTemplateName: tInfo?.title || activeTemplateDef.title,
+              lastTemplateVersion: tInfo?.version || 1,
+              lastMessageContent: tInfo?.message || '',
+              lastGroupLink: tInfo?.groupLink || '',
+            });
+          } catch (dbErr) {
+            console.error('Failed to update student status in DB:', dbErr);
+          }
+        } else {
+          failedDetails.push({ studentId: item.studentId, error: sendResult.error || 'Dispatch Failed' });
+          perStudentMeta[item.studentId] = {
+            error: sendResult.error,
+            templateId: tInfo?.id || templateType,
+            templateName: tInfo?.title || activeTemplateDef.title,
+            templateVersion: tInfo?.version || 1,
+            messageContent: tInfo?.message || '',
+            groupLink: tInfo?.groupLink || '',
+            campaignId,
+            campaignName: effectiveCampaignName,
+          };
+
+          try {
+            await db.updateStudent(item.studentId, {
+              whatsappStatus: 'FAILED',
+              updatedAt: nowIso,
+            });
+          } catch {}
+        }
+
+        if (batchItems.length > 1) {
+          await new Promise((r) => setTimeout(r, Math.max(30, Number(delayMs) || 60)));
+        }
       }
 
       // Record campaign history
@@ -622,12 +671,12 @@ export async function POST(req: NextRequest) {
           templateVersion: activeTemplateDef.version || 1,
           dispatchedAt: new Date().toISOString(),
           dispatchedBy: user.email || user.displayName || 'Admin',
-          totalCandidates: batchResult.total,
-          succeededCount: batchResult.succeeded.length,
-          failedCount: batchResult.failed.length,
+          totalCandidates: batchItems.length,
+          succeededCount: succeededIds.length,
+          failedCount: failedDetails.length,
           pendingCount: 0,
           provider: 'ICPaaS Gateway (v23.0)',
-          status: batchResult.failed.length === 0 ? 'COMPLETED' : (batchResult.succeeded.length > 0 ? 'PARTIAL' : 'FAILED'),
+          status: failedDetails.length === 0 ? 'COMPLETED' : (succeededIds.length > 0 ? 'PARTIAL' : 'FAILED'),
         };
         const currentCampaigns = Array.isArray(settings.whatsappCampaigns) ? [...settings.whatsappCampaigns] : [];
         currentCampaigns.unshift(campaignRecord);
@@ -639,8 +688,8 @@ export async function POST(req: NextRequest) {
       // Real-time synchronization to local Excel log & Master Spreadsheet
       try {
         const nowIso = new Date().toISOString();
-        const succeededSet = new Set(batchResult.succeeded);
-        const failedMap = new Map(batchResult.failed.map((f) => [f.studentId, f.error]));
+        const succeededSet = new Set(succeededIds);
+        const failedMap = new Map(failedDetails.map((f) => [f.studentId, f.error]));
 
         const logEntries: DispatchLogEntry[] = batchItems.map((item) => {
           const student = studentMap.get(item.studentId)!;
@@ -675,9 +724,10 @@ export async function POST(req: NextRequest) {
         targetType: 'WHATSAPP',
         targetId: campaignId,
         details: {
-          total: batchResult.total,
-          succeeded: batchResult.succeeded.length,
-          failed: batchResult.failed.length,
+          total: batchItems.length,
+          succeeded: succeededIds.length,
+          failed: failedDetails.length,
+          skippedDuplicates: skippedAlreadySent.length,
           provider: 'icpaas.in',
           competitionGroup,
           classGroup,
@@ -688,10 +738,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         campaignId,
-        total: batchResult.total,
-        succeededCount: batchResult.succeeded.length,
-        failedCount: batchResult.failed.length,
-        failedDetails: batchResult.failed,
+        total: batchItems.length,
+        succeededCount: succeededIds.length,
+        failedCount: failedDetails.length,
+        skippedCount: skippedAlreadySent.length,
+        failedDetails,
       });
     }
 

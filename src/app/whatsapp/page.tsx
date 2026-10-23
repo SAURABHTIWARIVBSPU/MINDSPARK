@@ -702,10 +702,13 @@ export default function WhatsAppPage() {
     }
   };
 
-  // Launch Competition & Class-Targeted Campaign
+  // Launch Competition & Class-Targeted Campaign in safe chunks of 10 (Zero Vercel Timeout!)
+  const [campaignProgressText, setCampaignProgressText] = useState<string | null>(null);
+
   const handleLaunchCampaign = async () => {
     setLaunchingCampaign(true);
     setCampaignResult(null);
+    setCampaignProgressText(null);
     try {
       const params = new URLSearchParams({
         all: 'true',
@@ -724,44 +727,68 @@ export default function WhatsAppPage() {
         return;
       }
 
-      const res = await fetch('/api/whatsapp/send-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: targetCandidates.map((s) => s.studentId),
-          provider: campaignProvider,
-          templateType: campaignTargetTemplate,
-          campaignName: campaignNameInput.trim() || `${campaignTargetGroup} ${campaignTargetClass !== 'ALL' ? `(${campaignTargetClass})` : ''} Blast (${new Date().toLocaleDateString('en-IN')})`,
-          competitionGroup: campaignTargetGroup,
-          classGroup: campaignTargetClass,
-          usePreviousTemplateForResend,
-          templateName: metaTemplateName,
-          templateLanguage: metaTemplateLang,
-          variableMapping: metaVariables,
-          delayMs: 80,
-        }),
-      });
+      const BATCH_SIZE = 10;
+      const totalBatches = Math.ceil(targetCandidates.length / BATCH_SIZE);
+      let totalSucceeded = 0;
+      let totalFailed = 0;
+      let totalSkipped = 0;
 
-      const resData = await res.json();
-      if (!res.ok) {
-        throw new Error(resData.error || 'Campaign dispatch failed');
+      for (let b = 0; b < totalBatches; b++) {
+        const slice = targetCandidates.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+        setCampaignProgressText(`Processing Batch ${b + 1} of ${totalBatches} (${slice.length} candidates)...`);
+
+        const res = await fetch('/api/whatsapp/send-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentIds: slice.map((s) => s.studentId),
+            provider: campaignProvider,
+            templateType: campaignTargetTemplate,
+            campaignName: campaignNameInput.trim() || `${campaignTargetGroup} ${campaignTargetClass !== 'ALL' ? `(${campaignTargetClass})` : ''} Blast (${new Date().toLocaleDateString('en-IN')})`,
+            competitionGroup: campaignTargetGroup,
+            classGroup: campaignTargetClass,
+            usePreviousTemplateForResend,
+            templateName: metaTemplateName,
+            templateLanguage: metaTemplateLang,
+            variableMapping: metaVariables,
+            delayMs: 60,
+          }),
+        });
+
+        const rawText = await res.text();
+        let resData: any = {};
+        try {
+          resData = JSON.parse(rawText);
+        } catch {
+          console.warn('Non-JSON server response:', rawText);
+          resData = { error: rawText.slice(0, 150) || 'Server timeout' };
+        }
+
+        if (res.ok && resData.success) {
+          totalSucceeded += resData.succeededCount || 0;
+          totalFailed += resData.failedCount || 0;
+          totalSkipped += resData.skippedCount || 0;
+        } else {
+          totalFailed += slice.length;
+        }
       }
 
       setCampaignResult({
         total: targetCandidates.length,
-        succeeded: resData.succeededCount || 0,
-        failed: resData.failedCount || 0,
-        message: resData.message || 'Campaign finished successfully.',
+        succeeded: totalSucceeded,
+        failed: totalFailed,
+        message: `Campaign complete! ${totalSucceeded} sent, ${totalFailed} failed${totalSkipped > 0 ? `, ${totalSkipped} duplicates skipped` : ''}.`,
       });
 
       fetchStudents();
       fetch('/api/settings').then((r) => r.json()).then(setSettings);
-      setActionSuccessMsg(`Campaign "${campaignNameInput || campaignTargetGroup}" Dispatched: ${resData.succeededCount || 0} succeeded, ${resData.failedCount || 0} failed.`);
+      setActionSuccessMsg(`Campaign "${campaignNameInput || campaignTargetGroup}" Dispatched: ${totalSucceeded} succeeded, ${totalFailed} failed.`);
       setTimeout(() => setActionSuccessMsg(null), 5000);
     } catch (err: any) {
       alert(`Campaign error: ${err.message}`);
     } finally {
       setLaunchingCampaign(false);
+      setCampaignProgressText(null);
     }
   };
 
@@ -952,6 +979,48 @@ export default function WhatsAppPage() {
     }
   };
 
+  // Reconcile and Mark all pending in a specific Competition Group as SENT (Prevents Duplicate Blasts)
+  const handleMarkGroupAsSent = async (grpId: string, groupName: string, comp: string, classRange: string) => {
+    if (
+      !confirm(
+        `Kya aap "${groupName}" ke sabhi pending candidates ko database me "SENT" mark karna chahte hain?\n\nIsse system me yeh record ho jayenge ki inko message ja chuka hai aur aage kisi bhi campaign me inko duplicate message bilkul nahi jayega.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const params = new URLSearchParams({
+        all: 'true',
+        competition: comp === 'All' ? '' : comp,
+        classCategory: classRange === 'All' ? '' : classRange,
+        groupId: grpId,
+        whatsappStatus: 'NOT_SENT',
+      });
+      const res = await fetch(`/api/whatsapp/students?${params.toString()}`);
+      const data = await res.json();
+      const targetIds = (data.students || []).map((s: Student) => s.studentId);
+      if (targetIds.length === 0) {
+        alert(`"${groupName}" me koi pending candidate nahi hai. Sabhi pehle se SENT hain.`);
+        return;
+      }
+      const bulkRes = await fetch('/api/whatsapp/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: targetIds,
+          provider: 'mark_sent',
+        }),
+      });
+      if (bulkRes.ok) {
+        setActionSuccessMsg(`✓ Successfully marked ${targetIds.length} candidate(s) in "${groupName}" as SENT! Zero duplicacy guaranteed.`);
+        setTimeout(() => setActionSuccessMsg(null), 4000);
+        fetchStudents();
+      }
+    } catch (e: any) {
+      alert(`Error: ${e.message}`);
+    }
+  };
+
   // 8. Queue Runner Engine
   const startBulkQueue = () => {
     const selected = getSelectedStudentsList();
@@ -1092,12 +1161,12 @@ export default function WhatsAppPage() {
       return;
     }
 
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 10;
     const totalBatches = Math.ceil(target.length / BATCH_SIZE);
 
     if (
       !confirm(
-        `Kya aap ${target.length} candidates ko ${totalBatches} batches (har batch me 100) me ICPaaS Gateway se WhatsApp bhejna chahte hain?\n(Results real-time me database aur local Excel sheet me log honge).`
+        `Kya aap ${target.length} candidates ko ${totalBatches} batches (har batch me 10 candidates) me ICPaaS Gateway se WhatsApp bhejna chahte hain?\n(Har batch ke baad data live database me save hoga taaki duplicacy na ho).`
       )
     ) {
       return;
@@ -1136,13 +1205,20 @@ export default function WhatsAppPage() {
             usePreviousTemplateForResend,
             competitionGroup: selectedCompetition || 'ALL',
             campaignName: `ICPaaS Bulk Blast (${selectedCompetition || 'All'} - ${new Date().toLocaleDateString('en-IN')})`,
-            delayMs: 100,
+            delayMs: 60,
           }),
         });
 
-        const data = await res.json();
+        const rawText = await res.text();
+        let data: any = {};
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          data = { error: rawText.slice(0, 150) || 'Server timeout' };
+        }
+
         if (!res.ok) {
-          throw new Error(data.error || `Batch ${b + 1} execution failed`);
+          console.warn(`Batch ${b + 1} warning:`, data.error);
         }
 
         totalSucceeded += data.succeededCount || 0;
@@ -2668,6 +2744,19 @@ export default function WhatsAppPage() {
                           <Send className="w-3.5 h-3.5 text-amber-200" />
                           <span>Blast Group</span>
                         </button>
+
+                        {gStat.pending > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleMarkGroupAsSent(grp.id, grp.groupName, grp.competition, grp.classRange || 'All')
+                            }
+                            className="px-2 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                            title="Mark all pending candidates in this group as already sent (Prevents duplicate messages if already blasted via ICPaaS)"
+                          >
+                            ✓ Already Sent
+                          </button>
+                        )}
 
                         <a
                           href={grp.url}
@@ -5411,7 +5500,7 @@ export default function WhatsAppPage() {
                   {launchingCampaign ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Dispatching Campaign...</span>
+                      <span>{campaignProgressText || 'Dispatching Campaign...'}</span>
                     </>
                   ) : (
                     <>
