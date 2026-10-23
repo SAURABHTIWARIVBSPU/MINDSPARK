@@ -129,15 +129,19 @@ export async function GET(req: NextRequest) {
     // Filter pipeline
     let filtered = [...allActive];
 
-    if (competition && competition.toUpperCase() !== 'ALL') {
-      const nCompFilter = normalizeCompetitionCategory(competition);
-      filtered = filtered.filter((s) => normalizeCompetitionCategory(s.competitionName) === nCompFilter);
-    }
+    // If a specific official group is selected, that group's assignment is authoritative.
+    // Only apply standalone competition / class filters when not filtering by a specific group.
+    if (!groupId || groupId.toUpperCase() === 'ALL') {
+      if (competition && competition.toUpperCase() !== 'ALL') {
+        const nCompFilter = normalizeCompetitionCategory(competition);
+        filtered = filtered.filter((s) => normalizeCompetitionCategory(s.competitionName) === nCompFilter);
+      }
 
-    if (classCategory && classCategory.toUpperCase() !== 'ALL') {
-      const nClsFilter = normalizeClassCategory(classCategory);
-      if (nClsFilter !== 'All') {
-        filtered = filtered.filter((s) => normalizeClassCategory(s.className) === nClsFilter);
+      if (classCategory && classCategory.toUpperCase() !== 'ALL') {
+        const nClsFilter = normalizeClassCategory(classCategory);
+        if (nClsFilter !== 'All') {
+          filtered = filtered.filter((s) => normalizeClassCategory(s.className) === nClsFilter);
+        }
       }
     }
 

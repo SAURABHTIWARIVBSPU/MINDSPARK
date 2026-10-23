@@ -153,7 +153,7 @@ export default function WhatsAppPage() {
   const [campaignTargetClass, setCampaignTargetClass] = useState('ALL');
   const [campaignTargetOfficialGroup, setCampaignTargetOfficialGroup] = useState('');
   const [campaignTargetTemplate, setCampaignTargetTemplate] = useState('REGISTRATION_CONFIRMATION');
-  const [campaignProvider, setCampaignProvider] = useState<'icpaas' | 'cloud_api' | 'browser_queue_sync'>('icpaas');
+  const campaignProvider = 'icpaas';
   const [campaignOnlyUnsent, setCampaignOnlyUnsent] = useState(true);
   const [campaignConfirmed, setCampaignConfirmed] = useState(false);
   const [launchingCampaign, setLaunchingCampaign] = useState(false);
@@ -229,8 +229,7 @@ export default function WhatsAppPage() {
   const [queueSkippedCount, setQueueSkippedCount] = useState(0);
   const [queueFinished, setQueueFinished] = useState(false);
 
-  // Bulk Cloud API dispatch state
-  const [isCloudSending, setIsCloudSending] = useState(false);
+  // Dispatch status summary state
   const [cloudSendSummary, setCloudSendSummary] = useState<string | null>(null);
 
   // Utility feedback
@@ -818,6 +817,8 @@ export default function WhatsAppPage() {
   // Select Official WhatsApp Community Group (18 Communities)
   const handleSelectOfficialGroup = (grpId: string) => {
     setSelectedGroupId(grpId);
+    setSelectedCompetition('');
+    setSelectedClassCategory('');
     setPage(1);
     if (!grpId) {
       return;
@@ -825,14 +826,6 @@ export default function WhatsAppPage() {
     const configuredList = groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS;
     const foundGroup = configuredList.find((g) => g.id === grpId);
     if (foundGroup) {
-      if (foundGroup.competition && foundGroup.competition !== 'All') {
-        setSelectedCompetition(foundGroup.competition);
-      }
-      if (foundGroup.classRange && foundGroup.classRange !== 'All') {
-        setSelectedClassCategory(foundGroup.classRange);
-      } else if (foundGroup.classRange === 'All') {
-        setSelectedClassCategory('');
-      }
       // Automatically switch composer template to match this official group
       const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === grpId);
       if (matchingTpl) {
@@ -861,8 +854,20 @@ export default function WhatsAppPage() {
     }, 50);
   };
 
-  // 6. Checkbox Selection Logic
+  // 6. Checkbox Selection Logic (Strictly Enforce Deduplication Policy)
+  const isCandidateDelivered = (s: Student) =>
+    s.whatsappStatus === 'SENT' ||
+    s.whatsappStatus === 'DELIVERED' ||
+    s.whatsappStatus === 'READ' ||
+    s.whatsappStatus === 'OPENED';
+
   const handleToggleSelect = (studentId: string) => {
+    const student = students.find((s) => s.studentId === studentId);
+    if (student && isCandidateDelivered(student)) {
+      alert(`Candidate "${student.name}" has already received their Admit Card notification (Status: ${student.whatsappStatus}). Duplicate bulk selection is blocked.`);
+      return;
+    }
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(studentId)) {
@@ -876,14 +881,17 @@ export default function WhatsAppPage() {
   };
 
   const handleSelectPage = () => {
-    const pageIds = students.map((s) => s.studentId);
+    const eligiblePageStudents = students.filter((s) => !isCandidateDelivered(s));
+    const eligiblePageIds = eligiblePageStudents.map((s) => s.studentId);
+    if (eligiblePageIds.length === 0) return;
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      const allOnPageSelected = pageIds.every((id) => next.has(id));
-      if (allOnPageSelected) {
-        pageIds.forEach((id) => next.delete(id));
+      const allEligibleSelected = eligiblePageIds.every((id) => next.has(id));
+      if (allEligibleSelected) {
+        eligiblePageIds.forEach((id) => next.delete(id));
       } else {
-        pageIds.forEach((id) => next.add(id));
+        eligiblePageIds.forEach((id) => next.add(id));
       }
       return next;
     });
@@ -914,8 +922,10 @@ export default function WhatsAppPage() {
       if (res.ok) {
         const data = await res.json();
         const allList: Student[] = data.students || [];
-        setAllMatchingStudents(allList);
-        setSelectedIds(new Set(allList.map((s) => s.studentId)));
+        // Only select eligible pending / failed candidates
+        const eligibleList = allList.filter((s) => !isCandidateDelivered(s));
+        setAllMatchingStudents(eligibleList);
+        setSelectedIds(new Set(eligibleList.map((s) => s.studentId)));
         setSelectAllMatching(true);
       }
     } catch (e) {
@@ -1137,56 +1147,7 @@ export default function WhatsAppPage() {
     }
   }, [isQueueActive, queueMode, isQueuePaused, queueFinished, queueCountdown, queueIndex, queueCandidates.length]);
 
-  // 9. Meta Cloud API Bulk Dispatch
-  const handleCloudApiBulkSend = async () => {
-    const list = getSelectedStudentsList();
-    let target = list.length > 0 ? list : await fetchAllMatchingFilteredCandidates();
-    if (!usePreviousTemplateForResend) {
-      target = target.filter(
-        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ' && s.whatsappStatus !== 'OPENED'
-      );
-    }
-    if (target.length === 0) {
-      alert('All selected / displayed candidates have already received messages. No duplicate messages will be sent.');
-      return;
-    }
 
-    if (!confirm(`Are you sure you want to send automated WhatsApp messages to ${target.length} candidate(s) via official Meta Cloud API?`)) {
-      return;
-    }
-
-    setIsCloudSending(true);
-    setCloudSendSummary(null);
-    try {
-      const res = await fetch('/api/whatsapp/send-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: target.map((s) => s.studentId),
-          provider: 'cloud_api',
-          templateType: activeTemplate,
-          customMessage: customText,
-          usePreviousTemplateForResend,
-          competitionGroup: selectedCompetition || 'ALL',
-          campaignName: `Cloud API Dispatch (${selectedCompetition || 'All'} - ${new Date().toLocaleDateString('en-IN')})`,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to dispatch via Cloud API');
-      }
-
-      setCloudSendSummary(
-        `Dispatched ${data.total} messages: ${data.succeededCount} succeeded, ${data.failedCount} failed.`
-      );
-      fetchStudents();
-    } catch (err: any) {
-      alert(`Cloud API Send Error: ${err.message}`);
-    } finally {
-      setIsCloudSending(false);
-    }
-  };
 
   // 9b. ICPaaS Official Gateway Bulk Dispatch in Chunks of 100
   const [isIcpaasSending, setIsIcpaasSending] = useState(false);
@@ -1295,6 +1256,59 @@ export default function WhatsAppPage() {
     } finally {
       setIsIcpaasSending(false);
       setIcpaasProgress(null);
+    }
+  };
+
+  // 9c. Single Candidate Personal Admin Dispatch via Approved ICPaaS Gateway
+  const [isSingleSending, setIsSingleSending] = useState(false);
+  const handleSendSingleIcpaas = async (student: Student) => {
+    if (!student) return;
+    const isAlreadySent =
+      student.whatsappStatus === 'SENT' ||
+      student.whatsappStatus === 'DELIVERED' ||
+      student.whatsappStatus === 'READ' ||
+      student.whatsappStatus === 'OPENED';
+
+    if (isAlreadySent) {
+      alert(
+        `Deduplication Policy Enforced: Candidate "${student.name}" has already received their Admit Card notification (Status: ${student.whatsappStatus}).\nDuplicate messages cannot be sent.`
+      );
+      return;
+    }
+
+    if (!confirm(`Kya aap ${student.name} (+91 ${student.phone}) ko official ICPaaS Gateway se WhatsApp bhejna chahte hain?`)) {
+      return;
+    }
+
+    setIsSingleSending(true);
+    try {
+      const res = await fetch('/api/whatsapp/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: [student.studentId],
+          provider: 'icpaas',
+          templateType: activeTemplate,
+          customMessage: customText,
+          templateName: metaTemplateName,
+          templateLanguage: metaTemplateLang,
+          variableMapping: metaVariables,
+          campaignName: `Personal Admin Dispatch (${student.name} - ${new Date().toLocaleDateString('en-IN')})`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || data.succeededCount === 0) {
+        throw new Error(data.error || data.failedDetails?.[0]?.error || 'Dispatch failed');
+      }
+
+      setActionSuccessMsg(`✓ WhatsApp notification delivered to ${student.name} via ICPaaS Gateway!`);
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+      fetchStudents();
+    } catch (err: any) {
+      alert(`Send Error: ${err.message}`);
+    } finally {
+      setIsSingleSending(false);
     }
   };
 
@@ -1846,19 +1860,37 @@ export default function WhatsAppPage() {
                 )}
               </div>
 
-              {/* Quick Launch Button for this previewed student */}
+              {/* Dispatch Action for this previewed student */}
               {previewCandidate && settings && (
                 <div className="pt-2">
-                  <a
-                    href={generateWhatsAppLink(previewCandidate, settings, renderedPreviewMessage)}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => updateStudentStatusInDb(previewCandidate.studentId, 'SENT')}
-                    className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-2 text-center shadow-xs"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Send Test to {previewCandidate.name.split(' ')[0]}</span>
-                  </a>
+                  {(() => {
+                    const isAlreadyDelivered =
+                      previewCandidate.whatsappStatus === 'SENT' ||
+                      previewCandidate.whatsappStatus === 'DELIVERED' ||
+                      previewCandidate.whatsappStatus === 'READ' ||
+                      previewCandidate.whatsappStatus === 'OPENED';
+
+                    if (isAlreadyDelivered) {
+                      return (
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-center text-xs text-emerald-800 font-semibold flex items-center justify-center space-x-1.5 shadow-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>Delivered ({previewCandidate.whatsappStatus}) &bull; Re-send Blocked</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => handleSendSingleIcpaas(previewCandidate)}
+                        disabled={isSingleSending}
+                        className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-2 text-center shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>{isSingleSending ? 'Dispatching...' : `⚡ Send via ICPaaS to ${previewCandidate.name.split(' ')[0]}`}</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1895,7 +1927,7 @@ export default function WhatsAppPage() {
                   <button
                     type="button"
                     onClick={handleIcpaasBulkSend}
-                    disabled={isIcpaasSending || isCloudSending || total === 0}
+                    disabled={isIcpaasSending || total === 0}
                     className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5 text-emerald-200" />
@@ -1906,25 +1938,7 @@ export default function WhatsAppPage() {
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={startBulkQueue}
-                    disabled={total === 0}
-                    className="px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Start Queue ({selectedCount > 0 ? selectedCount : total})</span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={handleCloudApiBulkSend}
-                    disabled={isCloudSending || isIcpaasSending || total === 0}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{isCloudSending ? 'Sending Cloud...' : `Cloud API (${selectedCount > 0 ? selectedCount : total})`}</span>
-                  </button>
 
                   <a
                     href="/api/whatsapp/export"
@@ -2399,12 +2413,20 @@ export default function WhatsAppPage() {
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
                     <th className="py-2.5 px-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={students.length > 0 && students.every((s) => selectedIds.has(s.studentId))}
-                        onChange={handleSelectPage}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      />
+                      {(() => {
+                        const eligibleOnPage = students.filter((s) => !isCandidateDelivered(s));
+                        const isAllSelected = eligibleOnPage.length > 0 && eligibleOnPage.every((s) => selectedIds.has(s.studentId));
+                        return (
+                          <input
+                            type="checkbox"
+                            checked={isAllSelected}
+                            disabled={eligibleOnPage.length === 0}
+                            onChange={handleSelectPage}
+                            title={eligibleOnPage.length === 0 ? 'No eligible pending/failed candidates on this page' : 'Select all eligible candidates on this page'}
+                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-40 cursor-pointer"
+                          />
+                        );
+                      })()}
                     </th>
                     <th className="py-2.5 px-3">Reg No</th>
                     <th className="py-2.5 px-3">Candidate Name</th>
@@ -2450,12 +2472,21 @@ export default function WhatsAppPage() {
                           }`}
                         >
                           <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleToggleSelect(s.studentId)}
-                              className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16]"
-                            />
+                            {isCandidateDelivered(s) ? (
+                              <div
+                                title="Already delivered - Excluded from bulk selection by duplicate prevention policy"
+                                className="inline-flex items-center justify-center text-emerald-600 cursor-not-allowed"
+                              >
+                                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                              </div>
+                            ) : (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelect(s.studentId)}
+                                className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16] cursor-pointer"
+                              />
+                            )}
                           </td>
                           <td className="py-2.5 px-3 font-mono font-bold text-[#7a0c16]">
                             {s.registrationNumber}
@@ -2872,19 +2903,46 @@ export default function WhatsAppPage() {
                         </div>
 
                         {/* Counts Row */}
-                        <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center">
-                          <div>
+                        <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50 rounded-xl text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectOfficialGroup(grp.id);
+                              setStatusFilter('SENT');
+                              setActiveTab('bulk');
+                            }}
+                            className="p-1 hover:bg-emerald-100/70 rounded-lg transition-colors cursor-pointer text-center"
+                            title={`View ${gStat.sent} Sent candidates in ${grp.groupName}`}
+                          >
                             <div className="text-[9px] font-bold text-emerald-700 uppercase">Sent</div>
                             <div className="text-sm font-extrabold text-emerald-700">{gStat.sent}</div>
-                          </div>
-                          <div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectOfficialGroup(grp.id);
+                              setStatusFilter('NOT_SENT');
+                              setActiveTab('bulk');
+                            }}
+                            className="p-1 hover:bg-amber-100/70 rounded-lg transition-colors cursor-pointer text-center"
+                            title={`View ${gStat.pending} Pending candidates in ${grp.groupName}`}
+                          >
                             <div className="text-[9px] font-bold text-amber-700 uppercase">Pending</div>
                             <div className="text-sm font-extrabold text-amber-800">{gStat.pending}</div>
-                          </div>
-                          <div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectOfficialGroup(grp.id);
+                              setStatusFilter('FAILED');
+                              setActiveTab('bulk');
+                            }}
+                            className="p-1 hover:bg-rose-100/70 rounded-lg transition-colors cursor-pointer text-center"
+                            title={`View ${gStat.failed} Failed candidates in ${grp.groupName}`}
+                          >
                             <div className="text-[9px] font-bold text-rose-700 uppercase">Failed</div>
                             <div className="text-sm font-extrabold text-rose-700">{gStat.failed}</div>
-                          </div>
+                          </button>
                         </div>
 
                         {/* Progress Bar */}
@@ -2934,10 +2992,11 @@ export default function WhatsAppPage() {
                           type="button"
                           onClick={() => {
                             handleSelectOfficialGroup(grp.id);
+                            setStatusFilter('ALL');
                             setActiveTab('bulk');
                           }}
                           className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer"
-                          title={`Filter and view all candidates in ${grp.groupName}`}
+                          title={`Filter and view all ${gStat.total} candidates in ${grp.groupName}`}
                         >
                           <Users className="w-3.5 h-3.5 text-slate-600" />
                           <span>View ({gStat.total})</span>
@@ -3776,20 +3835,50 @@ export default function WhatsAppPage() {
                   {buildStudentWhatsAppMessage(singleStudent, settings, customText)}
                 </div>
 
-                <a
-                  href={generateWhatsAppLink(
-                    singleStudent,
-                    settings,
-                    buildStudentWhatsAppMessage(singleStudent, settings, customText)
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => updateStudentStatusInDb(singleStudent.studentId, 'SENT')}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2 text-center"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>Launch WhatsApp Chat</span>
-                </a>
+                {(() => {
+                  const isDelivered =
+                    singleStudent.whatsappStatus === 'SENT' ||
+                    singleStudent.whatsappStatus === 'DELIVERED' ||
+                    singleStudent.whatsappStatus === 'READ' ||
+                    singleStudent.whatsappStatus === 'OPENED';
+
+                  if (isDelivered) {
+                    return (
+                      <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 text-xs">
+                        <div className="flex items-center space-x-2 text-emerald-800 font-bold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Duplicate Send Blocked (Already Delivered)</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700 leading-snug">
+                          This candidate has already successfully received their Admit Card notification (Status:{' '}
+                          <span className="font-mono font-bold uppercase">{singleStudent.whatsappStatus}</span>).
+                          Ordinary re-sending from the Personal Admin Desk is blocked by policy to prevent duplicate messages.
+                        </p>
+                        <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                          <span>Target Phone: +91 {singleStudent.phone}</span>
+                          <span className="text-emerald-700 font-bold">PROTECTED</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSendSingleIcpaas(singleStudent)}
+                        disabled={isSingleSending}
+                        className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2 text-center cursor-pointer disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>{isSingleSending ? 'Dispatching via ICPaaS...' : '⚡ Dispatch via ICPaaS Gateway'}</span>
+                      </button>
+                      <div className="text-[10px] text-center text-slate-400">
+                        Dispatches official Meta v23.0 template via ICPS-approved ICPaaS Gateway.
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="py-12 text-center text-xs text-slate-400">
@@ -5651,26 +5740,27 @@ export default function WhatsAppPage() {
                     </label>
                   </div>
 
-                  {/* Gateway Provider */}
+                  {/* Approved Gateway Provider */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Gateway Integration Provider
+                      Approved Messaging Integration Gateway
                     </label>
-                    <select
-                      value={campaignProvider}
-                      onChange={(e) => setCampaignProvider(e.target.value as any)}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                    >
-                      <option value="icpaas">
-                        ⚡ ICPaaS Gateway v23.0 (Meta Cloud API Endpoint: 1346032508598977) - Recommended
-                      </option>
-                      <option value="cloud_api">
-                        🌐 Official Meta Cloud API (graph.facebook.com)
-                      </option>
-                      <option value="browser_queue_sync">
-                        🖥️ Browser Queue Sync (Interactive WhatsApp Web)
-                      </option>
-                    </select>
+                    <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                        <div>
+                          <div className="font-bold text-emerald-950">
+                            ⚡ ICPaaS Official Gateway (Meta v23.0 Cloud Endpoint)
+                          </div>
+                          <div className="text-[10px] text-emerald-700 font-mono">
+                            Endpoint: 1346032508598977 &bull; Template: {metaTemplateName} ({metaTemplateLang})
+                          </div>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 bg-emerald-700 text-white font-mono text-[10px] font-bold rounded">
+                        APPROVED
+                      </span>
+                    </div>
                   </div>
 
                   {/* Confirmation Checkbox */}
