@@ -8,23 +8,9 @@ import {
   normalizeCompetitionCategory,
   normalizeClassCategory,
   OFFICIAL_COMPETITION_CATEGORIES,
+  CLASS_CATEGORIES,
 } from '@/lib/whatsapp/message-builder';
 import { WhatsAppGroupLinkItem } from '@/types';
-
-export const CLASS_CATEGORIES = [
-  'Play Group',
-  'Nursery',
-  'LKG',
-  'UKG',
-  '1',
-  '2-3',
-  '4-5',
-  '6-8',
-  '9-10',
-  '11-12',
-  'Graduation',
-  'All',
-] as const;
 
 export async function GET() {
   try {

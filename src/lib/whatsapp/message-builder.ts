@@ -17,6 +17,10 @@ export interface WhatsAppTemplateDef {
   classFilter?: string;
   version?: number;
   isCustom?: boolean;
+  isOfficial?: boolean;
+  groupLinkId?: string;
+  groupUrl?: string;
+  metaTemplateName?: string;
 }
 
 /**
@@ -188,6 +192,21 @@ export const OFFICIAL_WHATSAPP_GROUPS: WhatsAppGroupLinkItem[] = [
   },
 ];
 
+export const CLASS_CATEGORIES = [
+  'Play Group',
+  'Nursery',
+  'LKG',
+  'UKG',
+  '1',
+  '2-3',
+  '4-5',
+  '6-8',
+  '9-10',
+  '11-12',
+  'Graduation',
+  'All',
+] as const;
+
 /**
  * Normalizes class representation into canonical categories:
  * 'Play Group' | 'Nursery' | 'LKG' | 'UKG' | '1' | '2-3' | '4-5' | '6-8' | '9-10' | '11-12' | 'Graduation'
@@ -241,8 +260,627 @@ export function normalizeCompetitionCategory(compName?: string): string {
 /**
  * Returns both built-in templates and admin custom-created templates from settings.
  */
+/**
+ * 4 Universal Built-in WhatsApp Message Templates
+ */
+export const UNIVERSAL_TEMPLATES: WhatsAppTemplateDef[] = [
+  {
+    id: 'REGISTRATION_CONFIRMATION',
+    title: 'Registration Confirmation (Official Mind Spark 2026)',
+    description: 'Universal enrollment confirmation with admit card release timeline and category WhatsApp link',
+    isOfficial: true,
+    version: 1,
+    defaultText:
+      `Meena Shah Public School, Gonda\n\n` +
+      `Mind Spark Competition- 2026\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for Mind Spark Competition 2026.\n\n` +
+      `This is your Registration Number: {reg_no}\n\n` +
+      `After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.\n\n` +
+      `नोट: आप सभी प्रतिभागियों के लिए नीचे दिए गए अपने Competition से संबंधित व्हाट्सएप ग्रुप लिंक पर क्लिक करके जॉइन करना अनिवार्य है।\n\n` +
+      `👇\n\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `Thank you,\n\n` +
+      `Team Meena Shah Public School, Gonda`,
+  },
+  {
+    id: 'ADMIT_CARD_READY',
+    title: 'Admit Card Released',
+    description: 'Notify candidate that admit card is ready for download',
+    isOfficial: true,
+    version: 1,
+    defaultText:
+      `*MIND-SPARK ADMIT CARD RELEASED*\n\n` +
+      `Dear *{name}*,\n\n` +
+      `Your Admit Card for *{competition}* is now available for download!\n\n` +
+      `📋 *Registration No:* {reg_no}\n` +
+      `📅 *Exam Date:* {exam_date}\n` +
+      `⏰ *Reporting Time:* {reporting_time}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `📥 *Download your Admit Card:* {admit_card_url}\n\n` +
+      `Please print in A4 format and bring your original School ID.\n` +
+      `Helpdesk: {contact_phone}`,
+  },
+  {
+    id: 'EXAM_REMINDER',
+    title: 'Exam Day Reminder',
+    description: 'Urgent reminder sent 24-48 hours prior to exam',
+    isOfficial: true,
+    version: 1,
+    defaultText:
+      `*IMPORTANT REMINDER: MIND-SPARK EXAM*\n\n` +
+      `Dear *{name}*,\n\n` +
+      `This is a gentle reminder that your *{competition}* examination will be conducted on:\n\n` +
+      `📅 *Date:* {exam_date}\n` +
+      `⏰ *Reporting Time:* {reporting_time}\n` +
+      `📍 *Venue:* {venue}\n` +
+      `📋 *Registration No:* {reg_no}\n\n` +
+      `⚠️ Mandatory Checklist:\n` +
+      `1. Printed Admit Card\n` +
+      `2. School Identity Card\n` +
+      `3. Blue/Black Ballpoint pen\n\n` +
+      `In case of any difficulty, call {contact_phone}. Good luck!`,
+  },
+  {
+    id: 'CUSTOM',
+    title: 'Custom Announcement',
+    description: 'Custom composed announcement with merge tags',
+    isOfficial: true,
+    version: 1,
+    defaultText:
+      `*IMPORTANT ANNOUNCEMENT - MIND-SPARK*\n\n` +
+      `Dear *{name}* ({reg_no}),\n\n` +
+      `Please be informed regarding *{competition}*:\n\n` +
+      `📅 Exam Date: {exam_date}\n` +
+      `📍 Venue: {venue}\n\n` +
+      `For assistance: {contact_phone}`,
+  },
+];
+
+/**
+ * All 18 Official Competition-Specific WhatsApp Templates for Mind Spark 2026.
+ * Each template is custom-tailored for its specific competition & class category group.
+ */
+export const OFFICIAL_COMPETITION_TEMPLATES: WhatsAppTemplateDef[] = [
+  {
+    id: 'tpl_essay_writing',
+    title: 'Mind Spark Essay Writing (All Classes)',
+    description: 'Official template with essay guidelines, topics notice, and official Essay WhatsApp group link',
+    categoryFilter: 'ESSAY WRITING',
+    classFilter: 'All',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_essay_writing',
+    groupUrl: 'https://chat.whatsapp.com/KoiQ7KE6j11HlstZw68WJ3?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Essay Writing Competition*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Essay Writing Competition 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🏫 *School/College:* {school}\n` +
+      `📍 *Exam Venue:* {venue}\n\n` +
+      `📝 *Competition Guidelines:*\n` +
+      `• Essay topics, word count limits, and evaluation rubrics will be announced in the official community.\n` +
+      `• Bring your blue/black ballpoint pens and exam clipboard.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Essay Writing के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_online_quiz_grad',
+    title: 'Mind Spark Online Quiz (Graduation)',
+    description: 'Official template for College / Graduation candidates (BBA, BCA, BA, BSc, BCom) with Quiz link',
+    categoryFilter: 'ONLINE QUIZ',
+    classFilter: 'Graduation',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_online_quiz_grad',
+    groupUrl: 'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Online Quiz (Graduation & College Level)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Online Quiz (Graduation / Degree Level) 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🎓 *Degree/Class:* {class}\n` +
+      `📍 *Exam Venue:* {venue}\n\n` +
+      `💡 *Online Quiz Guidelines:*\n` +
+      `• Quiz portal login link, mock test schedule, and time slots will be provided in this official group.\n` +
+      `• Ensure stable high-speed internet and updated Chrome/Edge browser.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Online Quiz (Graduation) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_writing_quest_11_12',
+    title: 'Mind Spark Writing Quest (Classes 11–12)',
+    description: 'Official template for Senior Secondary Writing Quest with literature & analytical guidelines',
+    categoryFilter: 'WRITING QUEST',
+    classFilter: '11-12',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_writing_quest_11_12',
+    groupUrl: 'https://chat.whatsapp.com/BKaf16sFinG6uj6JzfK5MI?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Writing Quest (Classes 11–12)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Writing Quest 2026* for Senior Secondary Students.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `📚 *Class:* {class}\n` +
+      `🏫 *School/College:* {school}\n\n` +
+      `✍️ *Writing Quest Guidelines:*\n` +
+      `• Thematic prompts, analytical writing guidelines, and scoring criteria will be shared in the community.\n` +
+      `• Bring your School ID Card and ballpoint pens.\n` +
+      `• Admit card download link will be activated after 26th October.\n\n` +
+      `*नोट: Writing Quest (Classes 11-12) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_online_quiz_11_12',
+    title: 'Mind Spark Online Quiz (Classes 11–12)',
+    description: 'Official template for Senior Secondary Online Quiz covering Science, Commerce & General Studies',
+    categoryFilter: 'ONLINE QUIZ',
+    classFilter: '11-12',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_online_quiz_11_12',
+    groupUrl: 'https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Online Quiz (Classes 11–12)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Online Quiz 2026* for Classes 11–12.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `📚 *Class:* {class}\n` +
+      `📍 *Exam Venue:* {venue}\n\n` +
+      `🧠 *Online Quiz Guidelines:*\n` +
+      `• Syllabus, quiz format, and live test portal links will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be sent to your WhatsApp.\n\n` +
+      `*नोट: Online Quiz (Classes 11–12) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_online_quiz_9_10',
+    title: 'Mind Spark Online Quiz (Classes 9–10)',
+    description: 'Official template for Secondary Online Quiz (Classes 9–10) with quiz rules and official group',
+    categoryFilter: 'ONLINE QUIZ',
+    classFilter: '9-10',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_online_quiz_9_10',
+    groupUrl: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Online Quiz (Classes 9–10)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Online Quiz 2026* for Classes 9–10.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `📚 *Class:* {class}\n` +
+      `📍 *Exam Venue:* {venue}\n\n` +
+      `⚡ *Online Quiz Guidelines:*\n` +
+      `• Practice tests, rules, and quiz portal access will be shared inside this official WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Online Quiz (Classes 9–10) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_young_innovators_9_10',
+    title: 'Mind Spark Young Innovators (Classes 9–10)',
+    description: 'Official template for Science & Tech innovations showcase with project synopsis instructions',
+    categoryFilter: 'YOUNG INNOVATORS',
+    classFilter: '9-10',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_young_innovators_9_10',
+    groupUrl: 'https://chat.whatsapp.com/LVZkMALJ7t13QS1OQeWRAp?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Young Innovators (Classes 9–10)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Young Innovators 2026* (Innovation Exhibition).\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🔬 *Class:* {class}\n` +
+      `📍 *Exhibition Venue:* {venue}\n\n` +
+      `🚀 *Innovation Guidelines:*\n` +
+      `• Model demonstration stalls, electrical socket availability, and synopsis submission details will be posted in this group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Young Innovators (Classes 9–10) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_fireless_cooking_6_8',
+    title: 'Mind Spark Fireless Cooking (Classes 6–8)',
+    description: 'Official template for culinary creativity without flame with hygiene and ingredients notice',
+    categoryFilter: 'FIRELESS COOKING',
+    classFilter: '6-8',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_fireless_cooking_6_8',
+    groupUrl: 'https://chat.whatsapp.com/CoSFm1OKCzI9dQvNPgoqr0?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Fireless Cooking (Classes 6–8)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Fireless Cooking 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🥗 *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `👩‍🍳 *Cooking Guidelines:*\n` +
+      `• Strictly no flame or electric heater. Bring pre-washed ingredients, apron, chef cap, and presentation plates.\n` +
+      `• Judging criteria (taste, presentation, nutritional value) will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Fireless Cooking (Classes 6–8) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_junior_scientist_6_8',
+    title: 'Mind Spark Junior Scientist (Classes 6–8)',
+    description: 'Official template for science experiments, working models and scientific presentations',
+    categoryFilter: 'JUNIOR SCIENTIST',
+    classFilter: '6-8',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_junior_scientist_6_8',
+    groupUrl: 'https://chat.whatsapp.com/DtdXSmSL9xw9iclQ8Bt3IS?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Junior Scientist (Classes 6–8)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Junior Scientist 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🔬 *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🧪 *Scientist Guidelines:*\n` +
+      `• Bring your working models, science charts, and apparatus for viva.\n` +
+      `• Display space and schedule will be announced in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Junior Scientist (Classes 6–8) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_battle_of_brains_4_5',
+    title: 'Mind Spark Battle of Brains (Classes 4–5)',
+    description: 'Official template for Primary level Battle of Brains quiz championship',
+    categoryFilter: 'BATTLE OF BRAINS',
+    classFilter: '4-5',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_battle_of_brains_4_5',
+    groupUrl: 'https://chat.whatsapp.com/LQ4cJOtKOu2GyZp1QLh1ul?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Battle of Brains (Classes 4–5)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Battle of Brains 2026* (Primary Quiz Championship).\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🧠 *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🏆 *Championship Guidelines:*\n` +
+      `• General awareness, mental math, and rapid buzzer quiz rounds format will be explained in this group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Battle of Brains (Classes 4–5) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_poster_artist_4_5',
+    title: 'Mind Spark Poster Artist (Classes 4–5)',
+    description: 'Official template for theme poster making with colours and drawing materials guidelines',
+    categoryFilter: 'POSTER ARTIST',
+    classFilter: '4-5',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_poster_artist_4_5',
+    groupUrl: 'https://chat.whatsapp.com/IXFH8stCsxQFBOn4RRCziG?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Poster Artist (Classes 4–5)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Poster Artist Competition 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🎨 *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🖌️ *Poster Guidelines:*\n` +
+      `• Drawing sheets provided at venue. Bring your colours (crayons/watercolour/sketch pens).\n` +
+      `• Theme will be revealed on exam day. Regular updates will be posted in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Poster Artist (Classes 4–5) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_paint_your_imagination_2_3',
+    title: 'Mind Spark Paint Your Imagination (Classes 2–3)',
+    description: 'Official template for junior painting with drawing sheet and colour material details',
+    categoryFilter: 'PAINT YOUR IMAGINATION',
+    classFilter: '2-3',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_paint_your_imagination_2_3',
+    groupUrl: 'https://chat.whatsapp.com/LN0NdN4Ov5Z0CenxbXhc2B?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Paint Your Imagination (Classes 2–3)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Paint Your Imagination 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🖍️ *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🎨 *Drawing Guidelines:*\n` +
+      `• Drawing sheets provided at the venue. Bring wax crayons or colour pencils.\n` +
+      `• Reporting instructions will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Paint Your Imagination (Classes 2–3) के सभी प्रतिभागियों के लिए नीचे दिए गए ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_writing_stars_2_3',
+    title: 'Mind Spark Writing Stars (Classes 2–3)',
+    description: 'Official template for handwriting & vocabulary challenge for Classes 2–3',
+    categoryFilter: 'WRITING STARS',
+    classFilter: '2-3',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_writing_stars_2_3',
+    groupUrl: 'https://chat.whatsapp.com/EZdzL8T1ADm51STsu7uv6F?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Writing Stars (Classes 2–3)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Writing Stars 2026* (Handwriting & English Challenge).\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `✏️ *Class:* {class}\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `⭐ *Handwriting Guidelines:*\n` +
+      `• Ruled sheets provided. Bring sharpened HB pencils and erasers.\n` +
+      `• Practice sheets and guidelines will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be shared on WhatsApp.\n\n` +
+      `*नोट: Writing Stars (Classes 2–3) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_dress_to_impress_1',
+    title: 'Mind Spark Dress To Impress (Class 1)',
+    description: 'Official template for Class 1 fancy dress & stage roleplay presentation',
+    categoryFilter: 'DRESS TO IMPRESS',
+    classFilter: '1',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_dress_to_impress_1',
+    groupUrl: 'https://chat.whatsapp.com/BC3BkmIFFGM2NHR6sKJeAq?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Dress To Impress (Class 1)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Dress To Impress (Fancy Dress) 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🎭 *Class:* Class 1\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `👗 *Competition Guidelines:*\n` +
+      `• Children can dress in their favourite character costume. 1-minute intro dialogue allowed on stage.\n` +
+      `• Green room arrangements and batch timings will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Dress To Impress (Class 1) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_clay_champs_1',
+    title: 'Mind Spark Clay Champs (Class 1)',
+    description: 'Official template for Class 1 clay modeling with material details and themes',
+    categoryFilter: 'CLAY CHAMPS',
+    classFilter: '1',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_clay_champs_1',
+    groupUrl: 'https://chat.whatsapp.com/Civ78EDwE9w3tx3QHTfF36?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Clay Champs (Class 1)*\n\n` +
+      `Dear Participant ({name}),\n\n` +
+      `Your form has been successfully enrolled for *Mind Spark Clay Champs (Clay Modeling) 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🏺 *Class:* Class 1\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🧱 *Clay Modeling Guidelines:*\n` +
+      `• Bring safe modeling clay / play-dough kit. Working board will be provided.\n` +
+      `• Sample creation themes and timings will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Clay Champs (Class 1) के सभी प्रतिभागियों के लिए नीचे दिए गए ऑफिशियल व्हाट्सएप ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_complete_the_picture_ukg',
+    title: 'Mind Spark Complete The Picture & Colour (UKG)',
+    description: 'Official template for UKG picture outline completion and colouring',
+    categoryFilter: 'COMPLETE THE PICTURE AND COLOUR',
+    classFilter: 'UKG',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_complete_the_picture_ukg',
+    groupUrl: 'https://chat.whatsapp.com/HK4oXdNxng7Kilg5GIkAdh?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Complete The Picture & Colour (UKG)*\n\n` +
+      `Dear Parent / Participant ({name}),\n\n` +
+      `Your child has been successfully enrolled for *Mind Spark Complete The Picture & Colour 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🖍️ *Class:* UKG\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🎨 *Activity Guidelines:*\n` +
+      `• Activity sheets will be provided. Please send wax crayons and pencil with your child.\n` +
+      `• Classroom allocation and event reporting details will be posted in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Complete The Picture & Colour (UKG) के सभी प्रतिभागियों के लिए नीचे दिए गए ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_join_the_dots_lkg',
+    title: 'Mind Spark Join The Dots & Colour (LKG)',
+    description: 'Official template for LKG number dot connection (1-20) and colouring',
+    categoryFilter: 'JOIN THE DOTS AND COLOUR',
+    classFilter: 'LKG',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_join_the_dots_lkg',
+    groupUrl: 'https://chat.whatsapp.com/CfTovkUjPoh1mtKJHKTzQw?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Join The Dots & Colour (LKG)*\n\n` +
+      `Dear Parent / Participant ({name}),\n\n` +
+      `Your child has been successfully enrolled for *Mind Spark Join The Dots & Colour 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `✏️ *Class:* LKG\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🔢 *Activity Guidelines:*\n` +
+      `• Number dot activity sheets (1-20) provided. Please send wax crayons and pencil.\n` +
+      `• Event updates and support guidelines will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Join The Dots & Colour (LKG) के सभी अभिभावकों के लिए नीचे दिए गए ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_colour_by_number_nursery',
+    title: 'Mind Spark Colour by Number (Nursery)',
+    description: 'Official template for Nursery numbered colouring activity with friendly teacher guidance',
+    categoryFilter: 'COLOUR BY NUMBER',
+    classFilter: 'Nursery',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_colour_by_number_nursery',
+    groupUrl: 'https://chat.whatsapp.com/LCkLkIPQjxoLYq83H1PL7B?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Colour by Number (Nursery)*\n\n` +
+      `Dear Parent / Participant ({name}),\n\n` +
+      `Your child has been successfully enrolled for *Mind Spark Colour by Number 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `🎨 *Class:* Nursery\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🖍️ *Activity Guidelines:*\n` +
+      `• Numbered colouring sheets provided. Bring safe jumbo wax crayons.\n` +
+      `• Loving teachers will guide toddlers. Parent seating and schedule updates in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Colour by Number (Nursery) के सभी अभिभावकों के लिए नीचे दिए गए ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+  {
+    id: 'tpl_handmade_fancy_playgroup',
+    title: 'Mind Spark Unique & Creative Handmade Fancy Dress (Play Group)',
+    description: 'Official template for Play Group handmade eco-friendly fancy dress toddler walk',
+    categoryFilter: 'UNIQUE AND CREATIVE HANDMADE FANCY DRESS',
+    classFilter: 'Play Group',
+    isOfficial: true,
+    version: 1,
+    groupLinkId: 'grp_handmade_fancy_playgroup',
+    groupUrl: 'https://chat.whatsapp.com/IRuKPAsQwsD3JOKvfoRlNe?s=cl&p=a&mlu=4&ilr=4',
+    defaultText:
+      `*Meena Shah Public School, Gonda*\n` +
+      `*Mind Spark Competition- 2026*\n` +
+      `*Category: Handmade Fancy Dress (Play Group)*\n\n` +
+      `Dear Parent / Participant ({name}),\n\n` +
+      `Your child has been successfully enrolled for *Mind Spark Unique & Creative Handmade Fancy Dress 2026*.\n\n` +
+      `📋 *Registration Number:* {reg_no}\n` +
+      `👶 *Class:* Play Group\n` +
+      `📍 *Venue:* {venue}\n\n` +
+      `🌟 *Toddler Stage Guidelines:*\n` +
+      `• Costumes made from eco-friendly / handmade materials. Parents can accompany toddlers on stage.\n` +
+      `• Stage timing and comfort instructions will be shared in this WhatsApp group.\n` +
+      `• After 26th October, admit card download link will be provided on WhatsApp.\n\n` +
+      `*नोट: Handmade Fancy Dress (Play Group) के सभी अभिभावकों के लिए नीचे दिए गए ग्रुप को जॉइन करना अनिवार्य है।*\n` +
+      `👇\n` +
+      `Link: {whatsapp_group_link}\n\n` +
+      `*Thank you,*\n` +
+      `*Team Meena Shah Public School, Gonda*`,
+  },
+];
+
+/**
+ * Complete registry of all WhatsApp templates (both Universal Presets and 18 Official Competition Templates).
+ */
+export const WHATSAPP_TEMPLATES: Record<string, WhatsAppTemplateDef> = {
+  REGISTRATION_CONFIRMATION: UNIVERSAL_TEMPLATES[0],
+  ADMIT_CARD_READY: UNIVERSAL_TEMPLATES[1],
+  EXAM_REMINDER: UNIVERSAL_TEMPLATES[2],
+  CUSTOM: UNIVERSAL_TEMPLATES[3],
+  ...OFFICIAL_COMPETITION_TEMPLATES.reduce((acc, t) => ({ ...acc, [t.id]: t }), {}),
+};
+
+/**
+ * Returns both built-in templates (Universal & 18 Competition-specific) and admin custom templates.
+ */
 export function getAllAvailableTemplates(settings?: SystemSettings | null): WhatsAppTemplateDef[] {
-  const builtIn: WhatsAppTemplateDef[] = Object.values(WHATSAPP_TEMPLATES);
+  const builtIn: WhatsAppTemplateDef[] = [
+    ...UNIVERSAL_TEMPLATES,
+    ...OFFICIAL_COMPETITION_TEMPLATES,
+  ];
   const custom: WhatsAppTemplateDef[] = (settings?.customTemplates || []).map((t) => ({
     id: t.id,
     title: t.title,
@@ -254,6 +892,41 @@ export function getAllAvailableTemplates(settings?: SystemSettings | null): What
     isCustom: true,
   }));
   return [...builtIn, ...custom];
+}
+
+/**
+ * Resolves the recommended or matching template for a candidate based on competition and class.
+ */
+export function getRecommendedTemplateForStudent(
+  student: Partial<Student>,
+  settings?: SystemSettings | null
+): WhatsAppTemplateDef {
+  const all = getAllAvailableTemplates(settings);
+  const nComp = normalizeCompetitionCategory(student.competitionName);
+  const nCls = normalizeClassCategory(student.className);
+
+  // 1. Check exact match in official competition templates or custom templates
+  const exact = all.find((t) => {
+    return (
+      t.categoryFilter &&
+      normalizeCompetitionCategory(t.categoryFilter) === nComp &&
+      t.classFilter &&
+      (normalizeClassCategory(t.classFilter) === nCls || t.classFilter === 'All')
+    );
+  });
+  if (exact) return exact;
+
+  // 2. Check competition match
+  const compMatch = all.find((t) => {
+    return (
+      t.categoryFilter &&
+      normalizeCompetitionCategory(t.categoryFilter) === nComp
+    );
+  });
+  if (compMatch) return compMatch;
+
+  // 3. Fallback to universal registration confirmation
+  return WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
 }
 
 export const WHATSAPP_MERGE_TAGS = [
@@ -427,71 +1100,7 @@ export function resolveStudentWhatsAppGroup(
   };
 }
 
-export const WHATSAPP_TEMPLATES: Record<WhatsAppTemplateId, WhatsAppTemplateDef> = {
-  REGISTRATION_CONFIRMATION: {
-    id: 'REGISTRATION_CONFIRMATION',
-    title: 'Registration Confirmation (Official Mind Spark 2026)',
-    description: 'Official enrollment confirmation with admit card notice and category WhatsApp link',
-    defaultText:
-      `Meena Shah Public School, Gonda\n\n` +
-      `Mind Spark Competition- 2026\n\n` +
-      `Dear Participant ({name}),\n\n` +
-      `Your form has been successfully enrolled for Mind Spark Competition 2026.\n\n` +
-      `This is your Registration Number: {reg_no}\n\n` +
-      `After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.\n\n` +
-      `नोट: आप सभी प्रतिभागियों के लिए नीचे दिए गए अपने Competition से संबंधित व्हाट्सएप ग्रुप लिंक पर क्लिक करके जॉइन करना अनिवार्य है।\n\n` +
-      `👇\n\n` +
-      `Link: {whatsapp_group_link}\n\n` +
-      `Thank you,\n\n` +
-      `Team Meena Shah Public School, Gonda`,
-  },
-  ADMIT_CARD_READY: {
-    id: 'ADMIT_CARD_READY',
-    title: 'Admit Card Released',
-    description: 'Notify candidate that admit card is ready for download',
-    defaultText:
-      `*MIND-SPARK ADMIT CARD RELEASED*\n\n` +
-      `Dear *{name}*,\n\n` +
-      `Your Admit Card for *{competition}* is now available for download!\n\n` +
-      `📋 *Registration No:* {reg_no}\n` +
-      `📅 *Exam Date:* {exam_date}\n` +
-      `⏰ *Reporting Time:* {reporting_time}\n` +
-      `📍 *Venue:* {venue}\n\n` +
-      `📥 *Download your Admit Card:* {admit_card_url}\n\n` +
-      `Please print in A4 format and bring your original School ID.\n` +
-      `Helpdesk: {contact_phone}`,
-  },
-  EXAM_REMINDER: {
-    id: 'EXAM_REMINDER',
-    title: 'Exam Day Reminder',
-    description: 'Urgent reminder sent 24-48 hours prior to exam',
-    defaultText:
-      `*IMPORTANT REMINDER: MIND-SPARK EXAM*\n\n` +
-      `Dear *{name}*,\n\n` +
-      `This is a gentle reminder that your *{competition}* examination will be conducted on:\n\n` +
-      `📅 *Date:* {exam_date}\n` +
-      `⏰ *Reporting Time:* {reporting_time}\n` +
-      `📍 *Venue:* {venue}\n` +
-      `📋 *Registration No:* {reg_no}\n\n` +
-      `⚠️ Mandatory Checklist:\n` +
-      `1. Printed Admit Card\n` +
-      `2. School Identity Card\n` +
-      `3. Blue/Black Ballpoint pen\n\n` +
-      `In case of any difficulty, call {contact_phone}. Good luck!`,
-  },
-  CUSTOM: {
-    id: 'CUSTOM',
-    title: 'Custom Announcement',
-    description: 'Custom composed announcement with merge tags',
-    defaultText:
-      `*IMPORTANT ANNOUNCEMENT - MIND-SPARK*\n\n` +
-      `Dear *{name}* ({reg_no}),\n\n` +
-      `Please be informed regarding *{competition}*:\n\n` +
-      `📅 Exam Date: {exam_date}\n` +
-      `📍 Venue: {venue}\n\n` +
-      `For assistance: {contact_phone}`,
-  },
-};
+
 
 /**
  * Validates whether an Indian mobile phone number has 10 clean digits starting with 6-9.

@@ -57,6 +57,8 @@ import {
 } from '@/types';
 import {
   WHATSAPP_TEMPLATES,
+  UNIVERSAL_TEMPLATES,
+  OFFICIAL_COMPETITION_TEMPLATES,
   WHATSAPP_MERGE_TAGS,
   WhatsAppTemplateId,
   renderMessageTemplate,
@@ -68,7 +70,9 @@ import {
   getAllAvailableTemplates,
   OFFICIAL_WHATSAPP_GROUPS,
   normalizeClassCategory,
+  normalizeCompetitionCategory,
   resolveStudentWhatsAppGroup,
+  getRecommendedTemplateForStudent,
 } from '@/lib/whatsapp/message-builder';
 import { normalizePhone } from '@/lib/excel/normalizer';
 
@@ -123,6 +127,12 @@ export default function WhatsAppPage() {
   const [tplContent, setTplContent] = useState('');
   const [tplMetaName, setTplMetaName] = useState('admit_card_new');
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Template Manager Filtering States
+  const [templateTabType, setTemplateTabType] = useState<'ALL' | 'COMPETITIONS' | 'UNIVERSAL' | 'CUSTOM'>('ALL');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [templateFilterComp, setTemplateFilterComp] = useState('ALL');
+  const [templateFilterClass, setTemplateFilterClass] = useState('ALL');
 
   // Controlled Message Repetition (Resend Mode)
   const [usePreviousTemplateForResend, setUsePreviousTemplateForResend] = useState(true);
@@ -745,9 +755,18 @@ export default function WhatsAppPage() {
   };
 
   // 4. Update template text when active template changes
-  const handleTemplateChange = (tplId: WhatsAppTemplateId) => {
-    setActiveTemplate(tplId);
-    setCustomText(WHATSAPP_TEMPLATES[tplId].defaultText);
+  const handleTemplateChange = (tplId: string) => {
+    setActiveTemplate(tplId as any);
+    const all = getAllAvailableTemplates(settings);
+    const found = all.find((t) => t.id === tplId);
+    if (found) {
+      setCustomText(found.defaultText);
+      if (found.metaTemplateName) {
+        setMetaTemplateName(found.metaTemplateName);
+      }
+    } else if (WHATSAPP_TEMPLATES[tplId]) {
+      setCustomText(WHATSAPP_TEMPLATES[tplId].defaultText);
+    }
   };
 
   // 5. Insert merge tag at cursor position
@@ -1391,64 +1410,139 @@ export default function WhatsAppPage() {
                 <span className="text-[11px] text-slate-500">Live dynamic variable merge</span>
               </div>
 
-              {/* Template Type Selector Pills */}
-              <div className="flex flex-wrap gap-1.5 items-center">
-                {(Object.keys(WHATSAPP_TEMPLATES) as WhatsAppTemplateId[]).map((tplKey) => {
-                  const tpl = WHATSAPP_TEMPLATES[tplKey];
-                  const isCurrent = activeTemplate === tplKey;
-                  return (
+              {/* Template Selector Section */}
+              <div className="space-y-2.5">
+                {/* Row 1: Universal Templates Pills & Auto-Select button */}
+                <div className="flex flex-wrap gap-1.5 items-center justify-between">
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-500 mr-1 tracking-wider">
+                      Universal:
+                    </span>
+                    {UNIVERSAL_TEMPLATES.map((tpl) => {
+                      const isCurrent = activeTemplate === tpl.id;
+                      return (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => handleTemplateChange(tpl.id)}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                            isCurrent
+                              ? 'bg-[#7a0c16] text-white shadow-xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {tpl.title.replace(' (Official Mind Spark 2026)', '')}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {(selectedCompetition || selectedClassCategory) && (
                     <button
-                      key={tplKey}
-                      type="button"
-                      onClick={() => handleTemplateChange(tplKey)}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                        isCurrent
-                          ? 'bg-[#7a0c16] text-white shadow-xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {tpl.title}
-                    </button>
-                  );
-                })}
-                {customTemplates.map((cTpl) => {
-                  const isCurrent = activeTemplate === cTpl.id;
-                  return (
-                    <button
-                      key={cTpl.id}
                       type="button"
                       onClick={() => {
-                        setActiveTemplate(cTpl.id as any);
-                        setCustomText(cTpl.content);
-                        if (cTpl.metaTemplateName) setMetaTemplateName(cTpl.metaTemplateName);
+                        const rec = getRecommendedTemplateForStudent(
+                          {
+                            competitionName: selectedCompetition || undefined,
+                            className: selectedClassCategory || undefined,
+                          },
+                          settings
+                        );
+                        handleTemplateChange(rec.id);
+                        setActionSuccessMsg(`🎯 Auto-selected: "${rec.title}" for current filter`);
+                        setTimeout(() => setActionSuccessMsg(null), 3000);
                       }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1 ${
-                        isCurrent
-                          ? 'bg-emerald-700 text-white shadow-xs'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
-                      }`}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] rounded-lg shadow-xs flex items-center space-x-1 cursor-pointer transition-colors"
+                      title="Auto-select matching official template for the active competition & class filters"
                     >
-                      <Sparkles className="w-3 h-3" />
-                      <span>{cTpl.title}</span>
+                      <Sparkles className="w-3 h-3 text-slate-950" />
+                      <span>Auto-Pick for Filter</span>
                     </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingTemplateId(null);
-                    setTplTitle('');
-                    setTplDesc('');
-                    setTplCategory('ALL');
-                    setTplContent('');
-                    setTplMetaName('admit_card_new');
-                    setTemplateModalOpen(true);
-                  }}
-                  className="px-2.5 py-1 text-xs font-bold text-[#7a0c16] hover:bg-rose-50 rounded-lg border border-dashed border-[#7a0c16] flex items-center space-x-1 transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>+ New Template</span>
-                </button>
+                  )}
+                </div>
+
+                {/* Row 2: 18 Official Competition-Specific Templates Selector */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-xl border border-amber-200/80">
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <span className="px-2 py-0.5 bg-amber-600 text-white rounded text-[10px] font-extrabold uppercase tracking-wide">
+                      18 Competition Presets
+                    </span>
+                    <span className="text-[11px] font-medium text-amber-950 hidden md:inline">
+                      Official tailored templates:
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <select
+                      value={OFFICIAL_COMPETITION_TEMPLATES.some((t) => t.id === activeTemplate) ? activeTemplate : ''}
+                      onChange={(e) => {
+                        if (e.target.value) handleTemplateChange(e.target.value);
+                      }}
+                      className="w-full text-xs font-semibold py-1.5 px-2.5 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900"
+                    >
+                      <option value="">-- Choose from 18 Competition Templates --</option>
+                      {OFFICIAL_COMPETITION_TEMPLATES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          🏆 {t.title} [{t.categoryFilter} &bull; {t.classFilter}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {OFFICIAL_COMPETITION_TEMPLATES.some((t) => t.id === activeTemplate) && (
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded shrink-0">
+                      ✓ Active Preset
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 3: Custom Admin Templates & Create New */}
+                <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                  {customTemplates.length > 0 && (
+                    <>
+                      <span className="text-[10px] font-extrabold uppercase text-indigo-600 mr-1 tracking-wider">
+                        Custom:
+                      </span>
+                      {customTemplates.map((cTpl) => {
+                        const isCurrent = activeTemplate === cTpl.id;
+                        return (
+                          <button
+                            key={cTpl.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveTemplate(cTpl.id as any);
+                              setCustomText(cTpl.content);
+                              if (cTpl.metaTemplateName) setMetaTemplateName(cTpl.metaTemplateName);
+                            }}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1 ${
+                              isCurrent
+                                ? 'bg-emerald-700 text-white shadow-xs'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>{cTpl.title} (v{cTpl.version || 1})</span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingTemplateId(null);
+                      setTplTitle('');
+                      setTplDesc('');
+                      setTplCategory('ALL');
+                      setTplContent('');
+                      setTplMetaName('admit_card_new');
+                      setTemplateModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 text-xs font-bold text-[#7a0c16] hover:bg-rose-50 rounded-lg border border-dashed border-[#7a0c16] flex items-center space-x-1 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ New Custom Template</span>
+                  </button>
+                </div>
               </div>
 
               {/* Merge Tag Chips */}
@@ -2330,193 +2424,381 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
+          {/* Templates Filters & Toolbar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Type Category Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'ALL', label: `All (${UNIVERSAL_TEMPLATES.length + OFFICIAL_COMPETITION_TEMPLATES.length + customTemplates.length})` },
+                  { id: 'COMPETITIONS', label: `🏆 18 Competition Presets (${OFFICIAL_COMPETITION_TEMPLATES.length})` },
+                  { id: 'UNIVERSAL', label: `🌟 Universal Presets (${UNIVERSAL_TEMPLATES.length})` },
+                  { id: 'CUSTOM', label: `✏️ Custom (${customTemplates.length})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setTemplateTabType(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                      templateTabType === tab.id
+                        ? 'bg-[#7a0c16] text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search input */}
+              <div className="relative min-w-[220px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={templateSearchQuery}
+                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                  placeholder="Search template title, text..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Filter Dropdowns Row */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-xs">
+              <div className="flex items-center space-x-1.5">
+                <Filter className="w-3.5 h-3.5 text-slate-500" />
+                <span className="font-bold text-slate-600">Filters:</span>
+              </div>
+
+              <select
+                value={templateFilterComp}
+                onChange={(e) => setTemplateFilterComp(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-600"
+              >
+                <option value="ALL">All Competitions</option>
+                {OFFICIAL_COMPETITION_CATEGORIES.map((comp) => (
+                  <option key={comp} value={comp}>{comp}</option>
+                ))}
+              </select>
+
+              <select
+                value={templateFilterClass}
+                onChange={(e) => setTemplateFilterClass(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-600"
+              >
+                <option value="ALL">All Class Tiers</option>
+                {availableClassCategories.map((cls) => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
+
+              {(templateTabType !== 'ALL' || templateFilterComp !== 'ALL' || templateFilterClass !== 'ALL' || templateSearchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateTabType('ALL');
+                    setTemplateFilterComp('ALL');
+                    setTemplateFilterClass('ALL');
+                    setTemplateSearchQuery('');
+                  }}
+                  className="text-xs text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Templates Grid */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <h3 className="font-bold text-sm text-slate-900">
-                Available Message Templates ({Object.keys(WHATSAPP_TEMPLATES).length + customTemplates.length} Total)
+                Message Templates Library
               </h3>
               <span className="text-xs text-slate-500">
-                {customTemplates.length} Custom Templates &bull; {Object.keys(WHATSAPP_TEMPLATES).length} Built-in Presets
+                18 Dedicated Competition Presets &bull; 4 Universal Presets &bull; {customTemplates.length} Custom Templates
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Built-in Presets */}
-              {(Object.keys(WHATSAPP_TEMPLATES) as WhatsAppTemplateId[]).map((tKey) => {
-                const tDef = WHATSAPP_TEMPLATES[tKey];
+            {(() => {
+              const allList = [
+                ...UNIVERSAL_TEMPLATES.map((t) => ({ ...t, kind: 'universal' as const })),
+                ...OFFICIAL_COMPETITION_TEMPLATES.map((t) => ({ ...t, kind: 'competition' as const })),
+                ...customTemplates.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  description: t.description,
+                  defaultText: t.content,
+                  categoryFilter: t.categoryFilter,
+                  classFilter: t.classFilter,
+                  version: t.version || 1,
+                  metaTemplateName: t.metaTemplateName,
+                  versionsHistory: t.versionsHistory,
+                  groupUrl: undefined as string | undefined,
+                  kind: 'custom' as const,
+                })),
+              ];
+
+              const filtered = allList.filter((item) => {
+                if (templateTabType === 'COMPETITIONS' && item.kind !== 'competition') return false;
+                if (templateTabType === 'UNIVERSAL' && item.kind !== 'universal') return false;
+                if (templateTabType === 'CUSTOM' && item.kind !== 'custom') return false;
+
+                if (templateFilterComp !== 'ALL') {
+                  if (item.categoryFilter && normalizeCompetitionCategory(item.categoryFilter) !== normalizeCompetitionCategory(templateFilterComp)) {
+                    return false;
+                  }
+                  if (!item.categoryFilter && item.kind !== 'universal') return false;
+                }
+
+                if (templateFilterClass !== 'ALL') {
+                  if (item.classFilter && item.classFilter !== 'All' && normalizeClassCategory(item.classFilter) !== normalizeClassCategory(templateFilterClass)) {
+                    return false;
+                  }
+                }
+
+                if (templateSearchQuery.trim()) {
+                  const q = templateSearchQuery.toLowerCase();
+                  const matchTitle = item.title.toLowerCase().includes(q);
+                  const matchDesc = (item.description || '').toLowerCase().includes(q);
+                  const matchText = item.defaultText.toLowerCase().includes(q);
+                  if (!matchTitle && !matchDesc && !matchText) return false;
+                }
+
+                return true;
+              });
+
+              if (filtered.length === 0) {
                 return (
-                  <div
-                    key={tKey}
-                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between space-y-4"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold uppercase">
-                              Preset
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold">
-                              All Categories
-                            </span>
-                          </div>
-                          <h4 className="font-bold text-sm text-slate-900 mt-1">{tDef.title}</h4>
-                        </div>
-                        <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                          admit_card_new
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-slate-500 line-clamp-2">{tDef.description}</p>
-
-                      {/* Message Preview in WhatsApp Bubble */}
-                      <div className="p-3 bg-[#e5ddd5]/50 rounded-xl border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-40 overflow-y-auto leading-relaxed">
-                        {previewCandidate && settings
-                          ? renderMessageTemplate(tDef.defaultText, previewCandidate, settings)
-                          : tDef.defaultText}
-                      </div>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleTemplateChange(tKey);
-                          setActiveTab('bulk');
-                        }}
-                        className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Use in Composer</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCampaignTargetTemplate(tKey);
-                          setCampaignNameInput(`${tDef.title} Campaign`);
-                          setCampaignModalOpen(true);
-                        }}
-                        className="py-2 px-3.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5 text-amber-200" />
-                        <span>🚀 Launch Campaign</span>
-                      </button>
-                    </div>
+                  <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
+                    <p className="text-sm font-bold text-slate-700">No message templates match the selected filter criteria.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTemplateTabType('ALL');
+                        setTemplateFilterComp('ALL');
+                        setTemplateFilterClass('ALL');
+                        setTemplateSearchQuery('');
+                      }}
+                      className="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Reset Filters
+                    </button>
                   </div>
                 );
-              })}
+              }
 
-              {/* Dynamic Custom Templates */}
-              {customTemplates.map((cTpl) => (
-                <div
-                  key={cTpl.id}
-                  className="bg-white rounded-2xl border-2 border-indigo-200 p-5 shadow-xs flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-extrabold uppercase">
-                            Custom Template
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded bg-indigo-600 text-white font-mono text-[10px] font-bold">
-                            v{cTpl.version || 1}
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
-                            {cTpl.categoryFilter || 'ALL'}
-                          </span>
-                          {cTpl.classFilter && cTpl.classFilter !== 'ALL' && (
-                            <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold font-mono">
-                              Class {cTpl.classFilter}
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {filtered.map((item) => {
+                    const isOfficialComp = item.kind === 'competition';
+                    const isUniversal = item.kind === 'universal';
+                    const isCustom = item.kind === 'custom';
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`bg-white rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4 border-2 transition-all ${
+                          isOfficialComp
+                            ? 'border-amber-200/90 hover:border-amber-400'
+                            : isCustom
+                            ? 'border-indigo-200 hover:border-indigo-400'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {isOfficialComp && (
+                                  <>
+                                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase tracking-wide">
+                                      🏆 18 Competition Preset
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold">
+                                      {item.categoryFilter}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold font-mono">
+                                      Class {item.classFilter}
+                                    </span>
+                                  </>
+                                )}
+                                {isUniversal && (
+                                  <>
+                                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase">
+                                      🌟 Universal Preset
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold">
+                                      All Categories & Classes
+                                    </span>
+                                  </>
+                                )}
+                                {isCustom && (
+                                  <>
+                                    <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-extrabold uppercase">
+                                      Custom v{item.version || 1}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
+                                      {item.categoryFilter || 'ALL'}
+                                    </span>
+                                    {item.classFilter && item.classFilter !== 'ALL' && (
+                                      <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold font-mono">
+                                        Class {item.classFilter}
+                                      </span>
+                                    )}
+                                    {item.versionsHistory && item.versionsHistory.length > 0 && (
+                                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono" title={`${item.versionsHistory.length} archived previous versions saved`}>
+                                        {item.versionsHistory.length} archived
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                              <h4 className="font-bold text-sm text-slate-900 mt-1">{item.title}</h4>
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                              {item.metaTemplateName || 'admit_card_new'}
                             </span>
+                          </div>
+
+                          {item.description && (
+                            <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>
                           )}
-                          {cTpl.versionsHistory && cTpl.versionsHistory.length > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono" title={`${cTpl.versionsHistory.length} archived previous versions saved`}>
-                              {cTpl.versionsHistory.length} archived
-                            </span>
+
+                          {/* If group link exists, show official WhatsApp group URL preview card */}
+                          {item.groupUrl && (
+                            <div className="flex items-center justify-between p-2.5 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-xs">
+                              <div className="flex items-center space-x-1.5 min-w-0 pr-2">
+                                <LinkIcon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span className="font-mono text-[11px] text-emerald-950 truncate select-all">
+                                  {item.groupUrl}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(item.groupUrl || '');
+                                    setActionSuccessMsg(`Copied group link for ${item.title}`);
+                                    setTimeout(() => setActionSuccessMsg(null), 2500);
+                                  }}
+                                  className="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-900 rounded text-[10px] font-bold border border-emerald-300 transition-colors cursor-pointer"
+                                  title="Copy official group link"
+                                >
+                                  Copy
+                                </button>
+                                <a
+                                  href={item.groupUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[10px] font-bold flex items-center space-x-0.5 transition-colors"
+                                  title="Test official group link in WhatsApp"
+                                >
+                                  <span>Test</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </div>
+                            </div>
                           )}
+
+                          {/* Message Preview in WhatsApp Bubble */}
+                          <div className="p-3.5 bg-[#e5ddd5]/50 rounded-xl border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed shadow-2xs">
+                            {previewCandidate && settings
+                              ? renderMessageTemplate(item.defaultText, previewCandidate, settings)
+                              : item.defaultText}
+                          </div>
                         </div>
-                        <h4 className="font-bold text-sm text-slate-900 mt-1">{cTpl.title}</h4>
+
+                        {/* Card Footer Actions */}
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="flex items-center space-x-1.5">
+                            {isCustom ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingTemplateId(item.id);
+                                    setTplTitle(item.title);
+                                    setTplDesc(item.description || '');
+                                    setTplCategory(item.categoryFilter || 'ALL');
+                                    setTplContent(item.defaultText);
+                                    setTplMetaName(item.metaTemplateName || 'admit_card_new');
+                                    setTemplateModalOpen(true);
+                                  }}
+                                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition-colors cursor-pointer"
+                                  title="Edit Template"
+                                >
+                                  <Edit className="w-3.5 h-3.5 text-slate-600" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTemplate(item.id)}
+                                  className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs transition-colors cursor-pointer"
+                                  title="Delete Template"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingTemplateId(null);
+                                  setTplTitle(`${item.title} (Custom)`);
+                                  setTplDesc(`Customized version of ${item.title}`);
+                                  setTplCategory(item.categoryFilter || 'ALL');
+                                  setTplContent(item.defaultText);
+                                  setTplMetaName('admit_card_new');
+                                  setTemplateModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold flex items-center space-x-1 transition-colors cursor-pointer"
+                                title="Clone and create a customized version of this template"
+                              >
+                                <Plus className="w-3 h-3 text-slate-500" />
+                                <span>Clone / Customize</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleTemplateChange(item.id);
+                                setActiveTab('bulk');
+                              }}
+                              className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Use in Composer</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCampaignTargetTemplate(item.id);
+                                if (item.categoryFilter && item.categoryFilter !== 'ALL') {
+                                  setCampaignTargetGroup(item.categoryFilter);
+                                }
+                                if (item.classFilter && item.classFilter !== 'ALL' && item.classFilter !== 'All') {
+                                  setCampaignTargetClass(item.classFilter);
+                                }
+                                setCampaignNameInput(`${item.title} Campaign`);
+                                setCampaignModalOpen(true);
+                              }}
+                              className="py-2 px-3.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
+                            >
+                              <Send className="w-3.5 h-3.5 text-amber-200" />
+                              <span>🚀 Launch Campaign</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                        {cTpl.metaTemplateName || 'admit_card_new'}
-                      </span>
-                    </div>
-
-                    {cTpl.description && (
-                      <p className="text-xs text-slate-500 line-clamp-2">{cTpl.description}</p>
-                    )}
-
-                    {/* Message Preview in WhatsApp Bubble */}
-                    <div className="p-3 bg-[#e5ddd5]/50 rounded-xl border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-40 overflow-y-auto leading-relaxed">
-                      {previewCandidate && settings
-                        ? renderMessageTemplate(cTpl.content, previewCandidate, settings)
-                        : cTpl.content}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingTemplateId(cTpl.id);
-                          setTplTitle(cTpl.title);
-                          setTplDesc(cTpl.description || '');
-                          setTplCategory(cTpl.categoryFilter || 'ALL');
-                          setTplContent(cTpl.content);
-                          setTplMetaName(cTpl.metaTemplateName || 'admit_card_new');
-                          setTemplateModalOpen(true);
-                        }}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition-colors cursor-pointer"
-                        title="Edit Template"
-                      >
-                        <Edit className="w-3.5 h-3.5 text-slate-600" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTemplate(cTpl.id)}
-                        className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs transition-colors cursor-pointer"
-                        title="Delete Template"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTemplate(cTpl.id as any);
-                          setCustomText(cTpl.content);
-                          if (cTpl.metaTemplateName) setMetaTemplateName(cTpl.metaTemplateName);
-                          setActiveTab('bulk');
-                        }}
-                        className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Use in Composer</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCampaignTargetTemplate(cTpl.id);
-                          setCampaignNameInput(`${cTpl.title} Campaign`);
-                          setCampaignModalOpen(true);
-                        }}
-                        className="py-2 px-3.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5 text-amber-200" />
-                        <span>🚀 Launch Campaign</span>
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -4347,9 +4629,9 @@ export default function WhatsAppPage() {
                       onChange={(e) => setCampaignTargetTemplate(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     >
-                      <optgroup label="Official Mind Spark Built-in Templates">
+                      <optgroup label="🌟 Universal Mind Spark Templates">
                         <option value="REGISTRATION_CONFIRMATION">
-                          Registration Confirmation (Admit Card Notice & WhatsApp Link)
+                          Registration Confirmation (Universal Notice & Link)
                         </option>
                         <option value="ADMIT_CARD_READY">
                           Admit Card Released (Direct Download URL)
@@ -4357,9 +4639,19 @@ export default function WhatsAppPage() {
                         <option value="EXAM_REMINDER">
                           Exam Day Final Reminder (Date & Venue)
                         </option>
+                        <option value="CUSTOM">
+                          Custom Announcement
+                        </option>
+                      </optgroup>
+                      <optgroup label="🏆 18 Official Competition-Specific Templates">
+                        {OFFICIAL_COMPETITION_TEMPLATES.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            🏆 {t.title} [{t.categoryFilter} • {t.classFilter}]
+                          </option>
+                        ))}
                       </optgroup>
                       {customTemplates.length > 0 && (
-                        <optgroup label="Custom Admin Templates">
+                        <optgroup label="✏️ Custom Admin Templates">
                           {customTemplates.map((tpl) => (
                             <option key={tpl.id} value={tpl.id}>
                               {tpl.title} ({tpl.categoryFilter || 'ALL'}) {tpl.version ? `(v${tpl.version})` : ''}
@@ -4368,6 +4660,29 @@ export default function WhatsAppPage() {
                         </optgroup>
                       )}
                     </select>
+                    {(() => {
+                      const rec = getRecommendedTemplateForStudent(
+                        { competitionName: campaignTargetGroup === 'ALL' ? undefined : campaignTargetGroup, className: campaignTargetClass === 'ALL' ? undefined : campaignTargetClass },
+                        settings
+                      );
+                      const isMatching = campaignTargetTemplate === rec.id;
+                      return (
+                        <div className="flex items-center justify-between mt-1 text-[11px]">
+                          <span className="text-slate-500">
+                            Recommended: <strong className="text-amber-900">{rec.title}</strong>
+                          </span>
+                          {!isMatching && (
+                            <button
+                              type="button"
+                              onClick={() => setCampaignTargetTemplate(rec.id)}
+                              className="text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
+                            >
+                              Auto-apply
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Target Candidate Filter */}

@@ -5,6 +5,9 @@ import {
   isValidIndianMobile,
   WHATSAPP_TEMPLATES,
   WHATSAPP_MERGE_TAGS,
+  OFFICIAL_COMPETITION_TEMPLATES,
+  OFFICIAL_WHATSAPP_GROUPS,
+  getRecommendedTemplateForStudent,
 } from '@/lib/whatsapp/message-builder';
 import { Student, SystemSettings } from '@/types';
 
@@ -147,5 +150,78 @@ describe('WhatsApp Message Builder & Template Engine', () => {
     expect(msg).toContain('After 26th October, we will provide a link on your WhatsApp to download your admit card');
     expect(msg).toContain('Link: https://chat.whatsapp.com/OnlineQuiz2026');
     expect(msg).toContain('Team Meena Shah Public School, Gonda');
+  });
+
+  it('provides all 18 dedicated official competition templates with accurate group URLs and guidelines', () => {
+    expect(OFFICIAL_COMPETITION_TEMPLATES).toHaveLength(18);
+    expect(OFFICIAL_WHATSAPP_GROUPS).toHaveLength(18);
+
+    for (const tpl of OFFICIAL_COMPETITION_TEMPLATES) {
+      expect(tpl.id).toBeTruthy();
+      expect(tpl.title).toBeTruthy();
+      expect(tpl.categoryFilter).toBeTruthy();
+      expect(tpl.classFilter).toBeTruthy();
+      expect(tpl.groupUrl).toMatch(/^https:\/\/chat\.whatsapp\.com\//);
+      expect(tpl.defaultText).toContain('Meena Shah Public School, Gonda');
+      expect(tpl.defaultText).toContain('{name}');
+      expect(tpl.defaultText).toContain('{reg_no}');
+      expect(tpl.defaultText).toContain('{whatsapp_group_link}');
+      expect(tpl.isOfficial).toBe(true);
+    }
+  });
+
+  it('correctly recommends matching official competition template for each candidate', () => {
+    // 1. Online Quiz (Graduation)
+    const gradStudent: Student = { ...mockStudent, competitionName: 'ONLINE QUIZ', className: 'Graduation' };
+    expect(getRecommendedTemplateForStudent(gradStudent).id).toBe('tpl_online_quiz_grad');
+
+    // 2. Online Quiz (Class 9)
+    const quiz9Student: Student = { ...mockStudent, competitionName: 'ONLINE QUIZ', className: '9' };
+    expect(getRecommendedTemplateForStudent(quiz9Student).id).toBe('tpl_online_quiz_9_10');
+
+    // 3. Online Quiz (Class 12)
+    const quiz12Student: Student = { ...mockStudent, competitionName: 'ONLINE QUIZ', className: '12' };
+    expect(getRecommendedTemplateForStudent(quiz12Student).id).toBe('tpl_online_quiz_11_12');
+
+    // 4. Young Innovators (Class 10)
+    const innovatorStudent: Student = { ...mockStudent, competitionName: 'YOUNG INNOVATORS', className: '10' };
+    expect(getRecommendedTemplateForStudent(innovatorStudent).id).toBe('tpl_young_innovators_9_10');
+
+    // 5. Clay Champs (Class 1)
+    const clayStudent: Student = { ...mockStudent, competitionName: 'CLAY CHAMPS', className: '1' };
+    expect(getRecommendedTemplateForStudent(clayStudent).id).toBe('tpl_clay_champs_1');
+
+    // 6. Essay Writing (All Classes)
+    const essayStudent: Student = { ...mockStudent, competitionName: 'ESSAY WRITING', className: '7' };
+    expect(getRecommendedTemplateForStudent(essayStudent).id).toBe('tpl_essay_writing');
+
+    // 7. Complete the picture (UKG)
+    const ukgStudent: Student = { ...mockStudent, competitionName: 'COMPLETE THE PICTURE AND COLOUR', className: 'UKG' };
+    expect(getRecommendedTemplateForStudent(ukgStudent).id).toBe('tpl_complete_the_picture_ukg');
+
+    // 8. Handmade Fancy Dress (Play Group)
+    const pgStudent: Student = { ...mockStudent, competitionName: 'UNIQUE AND CREATIVE HANDMADE FANCY DRESS', className: 'Play Group' };
+    expect(getRecommendedTemplateForStudent(pgStudent).id).toBe('tpl_handmade_fancy_playgroup');
+  });
+
+  it('renders competition-specific template with student data and official group link', () => {
+    const quizGradTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t: any) => t.id === 'tpl_online_quiz_grad');
+    expect(quizGradTpl).toBeDefined();
+
+    const student: Student = {
+      ...mockStudent,
+      name: 'VIVEK VERMA',
+      registrationNumber: 'MS269999',
+      competitionName: 'ONLINE QUIZ',
+      className: 'Graduation',
+      schoolOrCollege: 'MSITM DEGREE COLLEGE',
+    };
+
+    const rendered = renderMessageTemplate(quizGradTpl!.defaultText, student, mockSettings);
+    expect(rendered).toContain('VIVEK VERMA');
+    expect(rendered).toContain('MS269999');
+    expect(rendered).toContain('Graduation');
+    expect(rendered).toContain('Online Quiz (Graduation & College Level)');
+    expect(rendered).toContain('https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4');
   });
 });

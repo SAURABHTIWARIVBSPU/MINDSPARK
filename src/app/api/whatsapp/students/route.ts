@@ -8,8 +8,8 @@ import {
   normalizeClassCategory,
   normalizeCompetitionCategory,
   OFFICIAL_WHATSAPP_GROUPS,
+  CLASS_CATEGORIES,
 } from '@/lib/whatsapp/message-builder';
-import { CLASS_CATEGORIES } from '../groups/route';
 
 export async function GET(req: NextRequest) {
   try {

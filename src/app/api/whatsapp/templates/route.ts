@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
-import { getAllAvailableTemplates, WHATSAPP_TEMPLATES } from '@/lib/whatsapp/message-builder';
+import {
+  getAllAvailableTemplates,
+  WHATSAPP_TEMPLATES,
+  UNIVERSAL_TEMPLATES,
+  OFFICIAL_COMPETITION_TEMPLATES,
+} from '@/lib/whatsapp/message-builder';
 import { CustomWhatsAppTemplate } from '@/types';
 
 export async function GET() {
@@ -16,14 +21,16 @@ export async function GET() {
     const settings = await db.getSettings();
     const templates = getAllAvailableTemplates(settings);
 
-    // Official base templates with metadata
+    // Official base templates with accurate category, class and group URL metadata
     const officialBase = Object.values(WHATSAPP_TEMPLATES).map((t) => ({
       id: t.id,
       title: t.title,
       description: t.description,
       content: t.defaultText,
       categoryFilter: t.categoryFilter || 'ALL',
-      classFilter: 'ALL',
+      classFilter: t.classFilter || 'ALL',
+      groupLinkId: t.groupLinkId,
+      groupUrl: t.groupUrl,
       version: 1,
       active: true,
       language: 'bilingual' as const,
@@ -35,6 +42,8 @@ export async function GET() {
       templates,
       customTemplates: settings.customTemplates || [],
       officialTemplates: officialBase,
+      universalTemplates: UNIVERSAL_TEMPLATES,
+      competitionTemplates: OFFICIAL_COMPETITION_TEMPLATES,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
