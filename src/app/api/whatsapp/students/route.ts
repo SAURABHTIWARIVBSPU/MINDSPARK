@@ -164,9 +164,13 @@ export async function GET(req: NextRequest) {
     if (groupId && groupId !== 'ALL') {
       const targetGroup = configuredGroups.find((g) => g.id === groupId);
       if (targetGroup) {
+        const cleanTarget = targetGroup.url.split('?')[0].trim().toLowerCase();
         filtered = filtered.filter((s) => {
           const res = studentGroupMap.get(s.studentId);
-          return res && res.groupLink.trim() === targetGroup.url.trim();
+          if (!res) return false;
+          if (res.groupLink.trim() === targetGroup.url.trim()) return true;
+          const cleanRes = res.groupLink.split('?')[0].trim().toLowerCase();
+          return cleanRes === cleanTarget;
         });
       }
     }

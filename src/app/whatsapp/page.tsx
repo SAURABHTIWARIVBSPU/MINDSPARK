@@ -146,6 +146,7 @@ export default function WhatsAppPage() {
   const [campaignNameInput, setCampaignNameInput] = useState('');
   const [campaignTargetGroup, setCampaignTargetGroup] = useState('ALL');
   const [campaignTargetClass, setCampaignTargetClass] = useState('ALL');
+  const [campaignTargetOfficialGroup, setCampaignTargetOfficialGroup] = useState('');
   const [campaignTargetTemplate, setCampaignTargetTemplate] = useState('REGISTRATION_CONFIRMATION');
   const [campaignProvider, setCampaignProvider] = useState<'icpaas' | 'cloud_api' | 'browser_queue_sync'>('icpaas');
   const [campaignOnlyUnsent, setCampaignOnlyUnsent] = useState(true);
@@ -185,6 +186,8 @@ export default function WhatsAppPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [groupStats, setGroupStats] = useState<Record<string, { total: number; sent: number; pending: number; failed: number; groupName: string; url: string }>>({});
   const [selectedSchool, setSelectedSchool] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'NOT_SENT' | 'SENT' | 'OPENED'>('ALL');
 
@@ -588,6 +591,7 @@ export default function WhatsAppPage() {
         search: debouncedSearch,
         competition: selectedCompetition,
         classCategory: selectedClassCategory,
+        groupId: selectedGroupId,
         schoolOrCollege: selectedSchool,
         whatsappStatus: statusFilter === 'ALL' ? '' : statusFilter,
       });
@@ -602,6 +606,7 @@ export default function WhatsAppPage() {
         if (data.competitions) setCompetitions(data.competitions);
         if (data.competitionStats) setCompetitionStats(data.competitionStats);
         if (data.classCategoryStats) setClassCategoryStats(data.classCategoryStats);
+        if (data.groupStats) setGroupStats(data.groupStats);
         if (data.schools) setSchools(data.schools);
         if (data.stats) setStats(data.stats);
 
@@ -614,7 +619,7 @@ export default function WhatsAppPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debouncedSearch, selectedCompetition, selectedClassCategory, selectedSchool, statusFilter, singleStudent]);
+  }, [page, pageSize, debouncedSearch, selectedCompetition, selectedClassCategory, selectedGroupId, selectedSchool, statusFilter, singleStudent]);
 
   useEffect(() => {
     fetchStudents();
@@ -701,6 +706,7 @@ export default function WhatsAppPage() {
         all: 'true',
         competition: campaignTargetGroup === 'ALL' ? '' : campaignTargetGroup,
         classCategory: campaignTargetClass === 'ALL' ? '' : campaignTargetClass,
+        groupId: campaignTargetOfficialGroup,
         whatsappStatus: campaignOnlyUnsent ? 'NOT_SENT' : '',
       });
       const studentRes = await fetch(`/api/whatsapp/students?${params.toString()}`);
@@ -776,6 +782,32 @@ export default function WhatsAppPage() {
     }
   };
 
+  // Select Official WhatsApp Community Group (18 Communities)
+  const handleSelectOfficialGroup = (grpId: string) => {
+    setSelectedGroupId(grpId);
+    setPage(1);
+    if (!grpId) {
+      return;
+    }
+    const configuredList = groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS;
+    const foundGroup = configuredList.find((g) => g.id === grpId);
+    if (foundGroup) {
+      if (foundGroup.competition && foundGroup.competition !== 'All') {
+        setSelectedCompetition(foundGroup.competition);
+      }
+      if (foundGroup.classRange && foundGroup.classRange !== 'All') {
+        setSelectedClassCategory(foundGroup.classRange);
+      } else if (foundGroup.classRange === 'All') {
+        setSelectedClassCategory('');
+      }
+      // Automatically switch composer template to match this official group
+      const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === grpId);
+      if (matchingTpl) {
+        handleTemplateChange(matchingTpl.id);
+      }
+    }
+  };
+
   // 5. Insert merge tag at cursor position
   const insertMergeTag = (tag: string) => {
     const textarea = textareaRef.current;
@@ -840,6 +872,7 @@ export default function WhatsAppPage() {
         search: debouncedSearch,
         competition: selectedCompetition,
         classCategory: selectedClassCategory,
+        groupId: selectedGroupId,
         schoolOrCollege: selectedSchool,
         whatsappStatus: statusFilter === 'ALL' ? '' : statusFilter,
       });
@@ -1812,11 +1845,84 @@ export default function WhatsAppPage() {
                     />
                   </div>
 
+                  {/* Official WhatsApp Community Group Filter (18 Communities) */}
+                  <select
+                    value={selectedGroupId}
+                    onChange={(e) => handleSelectOfficialGroup(e.target.value)}
+                    className="px-2.5 py-1.5 border border-emerald-400 bg-emerald-50 text-emerald-950 rounded-lg text-xs font-bold focus:outline-none focus:ring-1 focus:ring-emerald-600 max-w-[260px] truncate"
+                    title="Filter candidates strictly by their official WhatsApp group (e.g. Online Quiz Graduation vs 9-10 vs 11-12)"
+                  >
+                    <option value="">📱 WhatsApp Group (All 18)</option>
+                    <optgroup label="🎓 Online Quiz Communities (Separate Tiers)">
+                      <option value="grp_online_quiz_grad">
+                        🎓 Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total})` : ''}
+                      </option>
+                      <option value="grp_online_quiz_9_10">
+                        📚 Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total})` : ''}
+                      </option>
+                      <option value="grp_online_quiz_11_12">
+                        🎓 Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total})` : ''}
+                      </option>
+                    </optgroup>
+                    <optgroup label="🏆 Senior Competitions">
+                      <option value="grp_essay_writing">
+                        📝 Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total})` : ''}
+                      </option>
+                      <option value="grp_writing_quest_11_12">
+                        ✍️ Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total})` : ''}
+                      </option>
+                      <option value="grp_young_innovators_9_10">
+                        💡 Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total})` : ''}
+                      </option>
+                    </optgroup>
+                    <optgroup label="🔬 Middle & Primary School">
+                      <option value="grp_fireless_cooking_6_8">
+                        🍳 Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total})` : ''}
+                      </option>
+                      <option value="grp_junior_scientist_6_8">
+                        🔬 Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total})` : ''}
+                      </option>
+                      <option value="grp_battle_of_brains_4_5">
+                        🧠 Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total})` : ''}
+                      </option>
+                      <option value="grp_poster_artist_4_5">
+                        🎨 Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total})` : ''}
+                      </option>
+                      <option value="grp_paint_your_imagination_2_3">
+                        🖌️ Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total})` : ''}
+                      </option>
+                      <option value="grp_writing_stars_2_3">
+                        ⭐ Writing Stars (Classes 2–3) {groupStats['grp_writing_stars_2_3'] ? `(${groupStats['grp_writing_stars_2_3'].total})` : ''}
+                      </option>
+                      <option value="grp_dress_to_impress_1">
+                        👗 Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total})` : ''}
+                      </option>
+                      <option value="grp_clay_champs_1">
+                        🏺 Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total})` : ''}
+                      </option>
+                    </optgroup>
+                    <optgroup label="🎨 Pre-Primary & Kindergarten">
+                      <option value="grp_complete_the_picture_ukg">
+                        🖼️ Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total})` : ''}
+                      </option>
+                      <option value="grp_join_the_dots_lkg">
+                        ✏️ Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total})` : ''}
+                      </option>
+                      <option value="grp_colour_by_number_nursery">
+                        🔢 Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total})` : ''}
+                      </option>
+                      <option value="grp_handmade_fancy_playgroup">
+                        🎭 Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total})` : ''}
+                      </option>
+                    </optgroup>
+                  </select>
+
                   {/* Competition Filter */}
                   <select
                     value={selectedCompetition}
                     onChange={(e) => {
                       setSelectedCompetition(e.target.value);
+                      setSelectedGroupId('');
                       setPage(1);
                     }}
                     className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
@@ -1832,6 +1938,7 @@ export default function WhatsAppPage() {
                     value={selectedClassCategory}
                     onChange={(e) => {
                       setSelectedClassCategory(e.target.value);
+                      setSelectedGroupId('');
                       setPage(1);
                     }}
                     className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16] font-medium"
@@ -1890,6 +1997,54 @@ export default function WhatsAppPage() {
                 </label>
               </div>
               </div>
+
+              {/* Active Group Filter Banner */}
+              {selectedGroupId && (() => {
+                const activeGrp = (groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS).find((g) => g.id === selectedGroupId);
+                const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === selectedGroupId);
+                if (!activeGrp) return null;
+                return (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-white border border-emerald-300 rounded-xl text-xs text-emerald-950 shadow-xs">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                      <span className="font-bold text-emerald-900">Filtered by Official Community:</span>
+                      <span className="px-2.5 py-1 bg-emerald-700 text-white font-extrabold rounded-lg shadow-xs">{activeGrp.groupName}</span>
+                      <span className="font-mono text-emerald-800 font-bold bg-white px-2 py-0.5 rounded border border-emerald-200">
+                        👥 {total} Candidates
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={activeGrp.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 hover:text-emerald-950 rounded-lg hover:bg-emerald-100 flex items-center space-x-1 font-bold transition-colors"
+                        title="Open WhatsApp Group"
+                      >
+                        <span>Open WhatsApp Group</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      {matchingTpl && (
+                        <span className="text-[11px] text-emerald-800 bg-white px-2.5 py-1 rounded border border-emerald-200">
+                          Active Template: <strong>{matchingTpl.title}</strong>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedGroupId('');
+                          setSelectedCompetition('');
+                          setSelectedClassCategory('');
+                          setPage(1);
+                        }}
+                        className="text-xs text-rose-700 hover:text-rose-900 font-bold px-2 py-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                      >
+                        ✕ Clear Group Filter
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Selection banner */}
               <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
@@ -2333,6 +2488,64 @@ export default function WhatsAppPage() {
                         </span>
                       )}
                     </div>
+
+                    {(() => {
+                      const compSubGroups = (groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS).filter(
+                        (g) => normalizeCompetitionCategory(g.competition) === normalizeCompetitionCategory(comp)
+                      );
+                      if (compSubGroups.length <= 1) return null;
+                      return (
+                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                            <span>Separate Class Communities ({compSubGroups.length}):</span>
+                            <span className="text-emerald-700 font-mono font-bold">Official Groups</span>
+                          </div>
+                          <div className="space-y-1">
+                            {compSubGroups.map((sg) => {
+                              const sgStat = groupStats[sg.id];
+                              return (
+                                <div key={sg.id} className="flex items-center justify-between p-1.5 bg-amber-50/70 border border-amber-200/70 rounded-lg text-xs">
+                                  <div className="truncate mr-1.5">
+                                    <span className="font-bold text-amber-950">{sg.classRange === 'All' ? 'All Classes' : sg.classRange}: </span>
+                                    <span className="text-[10px] text-slate-600 truncate">{sg.groupName.replace('Mind Spark ', '')}</span>
+                                    {sgStat && <span className="ml-1 text-[10px] font-mono font-bold text-emerald-800">({sgStat.total})</span>}
+                                  </div>
+                                  <div className="flex items-center space-x-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleSelectOfficialGroup(sg.id);
+                                        setActiveTab('bulk');
+                                      }}
+                                      className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-[10px] font-bold cursor-pointer"
+                                      title={`View & filter students in ${sg.groupName}`}
+                                    >
+                                      View
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setCampaignTargetGroup(sg.competition);
+                                        setCampaignTargetClass(sg.classRange || 'ALL');
+                                        setCampaignTargetOfficialGroup(sg.id);
+                                        const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === sg.id);
+                                        if (matchingTpl) setCampaignTargetTemplate(matchingTpl.id);
+                                        setCampaignNameInput(`${sg.groupName} Blast`);
+                                        setCampaignModalOpen(true);
+                                      }}
+                                      className="px-2 py-0.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded text-[10px] font-bold cursor-pointer"
+                                      title={`Blast messages directly to ${sg.groupName}`}
+                                    >
+                                      Blast
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Actions Bar */}
@@ -3418,8 +3631,7 @@ export default function WhatsAppPage() {
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedCompetition(grp.competition === 'All' ? '' : grp.competition);
-                              setSelectedClassCategory(grp.classRange === 'All' ? '' : grp.classRange);
+                              handleSelectOfficialGroup(grp.id);
                               setActiveTab('bulk');
                             }}
                             className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
@@ -4537,6 +4749,97 @@ export default function WhatsAppPage() {
                     />
                   </div>
 
+                  {/* Quick Select by Official WhatsApp Group */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      📱 Quick Target by Official WhatsApp Group (18 Groups)
+                    </label>
+                    <select
+                      value={campaignTargetOfficialGroup}
+                      onChange={(e) => {
+                        const grpId = e.target.value;
+                        setCampaignTargetOfficialGroup(grpId);
+                        if (!grpId) return;
+                        const configuredList = groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS;
+                        const g = configuredList.find((item) => item.id === grpId);
+                        if (g) {
+                          setCampaignTargetGroup(g.competition || 'ALL');
+                          setCampaignTargetClass(g.classRange || 'ALL');
+                          setCampaignNameInput(`${g.groupName} Blast (${new Date().toLocaleDateString('en-IN')})`);
+                          const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === grpId);
+                          if (matchingTpl) {
+                            setCampaignTargetTemplate(matchingTpl.id);
+                          }
+                        }
+                      }}
+                      className="w-full p-2.5 border border-emerald-400 rounded-xl text-xs bg-emerald-50/50 font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    >
+                      <option value="">-- Choose Official Group to Auto-Target (All 18) --</option>
+                      <optgroup label="🎓 Online Quiz Communities (Separate Tiers)">
+                        <option value="grp_online_quiz_grad">
+                          🎓 Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_online_quiz_9_10">
+                          📚 Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_online_quiz_11_12">
+                          🎓 Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total} Students)` : ''}
+                        </option>
+                      </optgroup>
+                      <optgroup label="🏆 Senior Competitions">
+                        <option value="grp_essay_writing">
+                          📝 Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_writing_quest_11_12">
+                          ✍️ Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_young_innovators_9_10">
+                          💡 Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total} Students)` : ''}
+                        </option>
+                      </optgroup>
+                      <optgroup label="🔬 Middle & Primary School">
+                        <option value="grp_fireless_cooking_6_8">
+                          🍳 Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_junior_scientist_6_8">
+                          🔬 Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_battle_of_brains_4_5">
+                          🧠 Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_poster_artist_4_5">
+                          🎨 Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_paint_your_imagination_2_3">
+                          🖌️ Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_writing_stars_2_3">
+                          ⭐ Writing Stars (Classes 2–3) {groupStats['grp_writing_stars_2_3'] ? `(${groupStats['grp_writing_stars_2_3'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_dress_to_impress_1">
+                          👗 Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_clay_champs_1">
+                          🏺 Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total} Students)` : ''}
+                        </option>
+                      </optgroup>
+                      <optgroup label="🎨 Pre-Primary & Kindergarten">
+                        <option value="grp_complete_the_picture_ukg">
+                          🖼️ Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_join_the_dots_lkg">
+                          ✏️ Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_colour_by_number_nursery">
+                          🔢 Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total} Students)` : ''}
+                        </option>
+                        <option value="grp_handmade_fancy_playgroup">
+                          🎭 Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total} Students)` : ''}
+                        </option>
+                      </optgroup>
+                    </select>
+                  </div>
+
                   {/* Target Competition & Class Rows */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -4545,7 +4848,10 @@ export default function WhatsAppPage() {
                       </label>
                       <select
                         value={campaignTargetGroup}
-                        onChange={(e) => setCampaignTargetGroup(e.target.value)}
+                        onChange={(e) => {
+                          setCampaignTargetGroup(e.target.value);
+                          setCampaignTargetOfficialGroup('');
+                        }}
                         className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       >
                         <option value="ALL">
@@ -4568,7 +4874,10 @@ export default function WhatsAppPage() {
                       </label>
                       <select
                         value={campaignTargetClass}
-                        onChange={(e) => setCampaignTargetClass(e.target.value)}
+                        onChange={(e) => {
+                          setCampaignTargetClass(e.target.value);
+                          setCampaignTargetOfficialGroup('');
+                        }}
                         className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       >
                         <option value="ALL">All Class Tiers</option>
