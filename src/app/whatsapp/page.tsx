@@ -713,9 +713,9 @@ export default function WhatsAppPage() {
     try {
       const params = new URLSearchParams({
         all: 'true',
-        competition: campaignTargetGroup === 'ALL' ? '' : campaignTargetGroup,
-        classCategory: campaignTargetClass === 'ALL' ? '' : campaignTargetClass,
-        groupId: campaignTargetOfficialGroup,
+        competition: (!campaignTargetGroup || campaignTargetGroup.toUpperCase() === 'ALL') ? '' : campaignTargetGroup,
+        classCategory: (!campaignTargetClass || campaignTargetClass.toUpperCase() === 'ALL') ? '' : campaignTargetClass,
+        groupId: (!campaignTargetOfficialGroup || campaignTargetOfficialGroup.toUpperCase() === 'ALL') ? '' : campaignTargetOfficialGroup,
         whatsappStatus: campaignOnlyUnsent ? 'NOT_SENT' : '',
       });
       const studentRes = await fetch(`/api/whatsapp/students?${params.toString()}`);
@@ -1003,9 +1003,9 @@ export default function WhatsAppPage() {
     try {
       const params = new URLSearchParams({
         all: 'true',
-        competition: comp === 'All' ? '' : comp,
-        classCategory: classRange === 'All' ? '' : classRange,
-        groupId: grpId,
+        competition: (!comp || comp.toUpperCase() === 'ALL') ? '' : comp,
+        classCategory: (!classRange || classRange.toUpperCase() === 'ALL') ? '' : classRange,
+        groupId: (!grpId || grpId.toUpperCase() === 'ALL') ? '' : grpId,
         whatsappStatus: 'NOT_SENT',
       });
       const res = await fetch(`/api/whatsapp/students?${params.toString()}`);
@@ -1033,13 +1033,33 @@ export default function WhatsAppPage() {
     }
   };
 
+  // Helper to get all candidates matching current filters when no specific checkboxes are ticked
+  const fetchAllMatchingFilteredCandidates = async (): Promise<Student[]> => {
+    try {
+      const params = new URLSearchParams({
+        all: 'true',
+        search: debouncedSearch,
+        competition: (!selectedCompetition || selectedCompetition.toUpperCase() === 'ALL') ? '' : selectedCompetition,
+        classCategory: (!selectedClassCategory || selectedClassCategory.toUpperCase() === 'ALL') ? '' : selectedClassCategory,
+        groupId: (!selectedGroupId || selectedGroupId.toUpperCase() === 'ALL') ? '' : selectedGroupId,
+        whatsappStatus: statusFilter === 'ALL' ? 'NOT_SENT' : statusFilter,
+      });
+      const res = await fetch(`/api/whatsapp/students?${params.toString()}`);
+      const data = await res.json();
+      return data.students || [];
+    } catch (e) {
+      console.error('Failed to fetch filtered candidates:', e);
+      return students;
+    }
+  };
+
   // 8. Queue Runner Engine
-  const startBulkQueue = () => {
+  const startBulkQueue = async () => {
     const selected = getSelectedStudentsList();
-    let targetList = selected.length > 0 ? selected : students;
+    let targetList = selected.length > 0 ? selected : await fetchAllMatchingFilteredCandidates();
     if (!usePreviousTemplateForResend) {
       targetList = targetList.filter(
-        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ' && s.whatsappStatus !== 'OPENED'
       );
     }
     if (targetList.length === 0) {
@@ -1120,10 +1140,10 @@ export default function WhatsAppPage() {
   // 9. Meta Cloud API Bulk Dispatch
   const handleCloudApiBulkSend = async () => {
     const list = getSelectedStudentsList();
-    let target = list.length > 0 ? list : students;
+    let target = list.length > 0 ? list : await fetchAllMatchingFilteredCandidates();
     if (!usePreviousTemplateForResend) {
       target = target.filter(
-        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ' && s.whatsappStatus !== 'OPENED'
       );
     }
     if (target.length === 0) {
@@ -1181,10 +1201,10 @@ export default function WhatsAppPage() {
 
   const handleIcpaasBulkSend = async () => {
     const list = getSelectedStudentsList();
-    let target = list.length > 0 ? list : students;
+    let target = list.length > 0 ? list : await fetchAllMatchingFilteredCandidates();
     if (!usePreviousTemplateForResend) {
       target = target.filter(
-        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ'
+        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ' && s.whatsappStatus !== 'OPENED'
       );
     }
     if (target.length === 0) {
@@ -1882,7 +1902,7 @@ export default function WhatsAppPage() {
                     <span>
                       {isIcpaasSending
                         ? `Sending Batch ${icpaasProgress?.currentBatch || 1}/${icpaasProgress?.totalBatches || 1}...`
-                        : `Send ICPaaS (100 Bulk)`}
+                        : `⚡ Send ICPaaS (${selectedCount > 0 ? selectedCount : total} Candidates)`}
                     </span>
                   </button>
 
@@ -1890,7 +1910,7 @@ export default function WhatsAppPage() {
                     type="button"
                     onClick={startBulkQueue}
                     disabled={total === 0}
-                    className="px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5 text-amber-300" />
                     <span>Start Queue ({selectedCount > 0 ? selectedCount : total})</span>
@@ -1900,10 +1920,10 @@ export default function WhatsAppPage() {
                     type="button"
                     onClick={handleCloudApiBulkSend}
                     disabled={isCloudSending || isIcpaasSending || total === 0}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{isCloudSending ? 'Sending Cloud...' : 'Send via Cloud API'}</span>
+                    <span>{isCloudSending ? 'Sending Cloud...' : `Cloud API (${selectedCount > 0 ? selectedCount : total})`}</span>
                   </button>
 
                   <a
@@ -3138,6 +3158,8 @@ export default function WhatsAppPage() {
                         type="button"
                         onClick={() => {
                           setCampaignTargetGroup(comp);
+                          setCampaignTargetClass('ALL');
+                          setCampaignTargetOfficialGroup('');
                           setCampaignTargetTemplate(activeTemplate);
                           setCampaignNameInput(`${comp} Blast`);
                           setCampaignModalOpen(true);

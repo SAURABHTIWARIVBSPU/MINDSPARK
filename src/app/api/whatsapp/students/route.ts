@@ -129,21 +129,23 @@ export async function GET(req: NextRequest) {
     // Filter pipeline
     let filtered = [...allActive];
 
-    if (competition && competition !== 'ALL') {
+    if (competition && competition.toUpperCase() !== 'ALL') {
       const nCompFilter = normalizeCompetitionCategory(competition);
       filtered = filtered.filter((s) => normalizeCompetitionCategory(s.competitionName) === nCompFilter);
     }
 
-    if (classCategory && classCategory !== 'ALL') {
+    if (classCategory && classCategory.toUpperCase() !== 'ALL') {
       const nClsFilter = normalizeClassCategory(classCategory);
-      filtered = filtered.filter((s) => normalizeClassCategory(s.className) === nClsFilter);
+      if (nClsFilter !== 'All') {
+        filtered = filtered.filter((s) => normalizeClassCategory(s.className) === nClsFilter);
+      }
     }
 
     if (schoolOrCollege) {
       filtered = filtered.filter((s) => s.schoolOrCollege.toLowerCase().includes(schoolOrCollege.toLowerCase()));
     }
 
-    if (whatsappStatus && whatsappStatus !== 'ALL') {
+    if (whatsappStatus && whatsappStatus.toUpperCase() !== 'ALL') {
       if (whatsappStatus === 'SENT') {
         filtered = filtered.filter((s) => s.whatsappStatus === 'SENT' || s.whatsappStatus === 'DELIVERED' || s.whatsappStatus === 'READ' || s.whatsappStatus === 'OPENED');
       } else if (whatsappStatus === 'NOT_SENT') {
@@ -153,28 +155,37 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (campaignId && campaignId !== 'ALL') {
+    if (campaignId && campaignId.toUpperCase() !== 'ALL') {
       filtered = filtered.filter((s) => {
         return Array.isArray(s.messageHistory) && s.messageHistory.some((m) => m.campaignId === campaignId);
       });
     }
 
-    if (templateId && templateId !== 'ALL') {
+    if (templateId && templateId.toUpperCase() !== 'ALL') {
       filtered = filtered.filter((s) => {
         return s.lastTemplateId === templateId || (Array.isArray(s.messageHistory) && s.messageHistory.some((m) => m.templateId === templateId));
       });
     }
 
-    if (groupId && groupId !== 'ALL') {
+    if (groupId && groupId.toUpperCase() !== 'ALL') {
       const targetGroup = configuredGroups.find((g) => g.id === groupId);
       if (targetGroup) {
         const cleanTarget = targetGroup.url.split('?')[0].trim().toLowerCase();
+        const nTargetComp = normalizeCompetitionCategory(targetGroup.competition);
+        const nTargetCls = normalizeClassCategory(targetGroup.classRange);
+
         filtered = filtered.filter((s) => {
           const res = studentGroupMap.get(s.studentId);
-          if (!res) return false;
-          if (res.groupLink.trim() === targetGroup.url.trim()) return true;
-          const cleanRes = res.groupLink.split('?')[0].trim().toLowerCase();
-          return cleanRes === cleanTarget;
+          if (res) {
+            if (res.groupLink.trim() === targetGroup.url.trim()) return true;
+            if (res.groupLink.split('?')[0].trim().toLowerCase() === cleanTarget) return true;
+          }
+          const sComp = normalizeCompetitionCategory(s.competitionName);
+          const sCls = normalizeClassCategory(s.className);
+          if (sComp === nTargetComp) {
+            if (nTargetCls === 'All' || sCls === nTargetCls) return true;
+          }
+          return false;
         });
       }
     }
