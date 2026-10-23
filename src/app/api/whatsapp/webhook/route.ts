@@ -26,68 +26,107 @@ export async function GET(req: NextRequest) {
 // 2. POST: Ingest incoming delivery receipts (SENT, DELIVERED, READ, FAILED)
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const db = getDb();
     const allStudents = await db.getAllActiveStudents();
     const phoneMap = new Map(allStudents.map((s) => [normalizePhone(s.phone), s]));
 
-    const entries = body.entry || [];
-    let updatedCount = 0;
+    interface NormalizedReceipt {
+      phone: string;
+      status: string;
+      messageId?: string;
+      error?: string;
+    }
 
-    for (const entry of entries) {
-      const changes = entry.changes || [];
-      for (const change of changes) {
-        const statuses = change.value?.statuses || [];
-        for (const st of statuses) {
-          const rawRecipient = String(st.recipient_id || '');
-          const cleanPhone = normalizePhone(rawRecipient);
-          const metaStatus = (st.status || '').toLowerCase();
-          const messageId = st.id;
-          const errors = st.errors;
+    const receipts: NormalizedReceipt[] = [];
 
-          let targetStatus: WhatsAppStatus = 'SENT';
-          if (metaStatus === 'delivered') targetStatus = 'DELIVERED';
-          else if (metaStatus === 'read') targetStatus = 'READ';
-          else if (metaStatus === 'failed') targetStatus = 'FAILED';
-          else if (metaStatus === 'sent') targetStatus = 'SENT';
-
-          const matchedStudent = phoneMap.get(cleanPhone);
-          if (matchedStudent) {
-            const updates: any = {
-              whatsappStatus: targetStatus,
-              updatedAt: new Date().toISOString(),
-            };
-
-            if (targetStatus === 'FAILED' && errors && errors.length > 0) {
-              const errDesc = errors[0].title || errors[0].message || `Error ${errors[0].code}`;
-              updates.whatsappError = errDesc;
-            }
-
-            await db.updateStudent(matchedStudent.studentId, updates);
-            updatedCount++;
-
-            // Real-time Excel log sync
-            try {
-              await logWhatsAppDispatchRealTime([
-                {
-                  timestamp: new Date().toISOString(),
-                  studentId: matchedStudent.studentId,
-                  registrationNumber: matchedStudent.registrationNumber,
-                  studentName: matchedStudent.name,
-                  phone: matchedStudent.phone,
-                  className: matchedStudent.className,
-                  competitionName: matchedStudent.competitionName,
-                  schoolOrCollege: matchedStudent.schoolOrCollege,
-                  status: targetStatus,
-                  provider: 'Webhook DLR Callback',
-                  details: `Real-time receipt: ${metaStatus.toUpperCase()} (Message ID: ${messageId || 'N/A'})${
-                    updates.whatsappError ? ` [Error: ${updates.whatsappError}]` : ''
-                  }`,
-                },
-              ]);
-            } catch {}
+    // Format A: Standard Meta WhatsApp Cloud API (body.entry[].changes[].value.statuses[])
+    if (Array.isArray(body?.entry)) {
+      for (const entry of body.entry) {
+        for (const change of entry.changes || []) {
+          for (const st of change.value?.statuses || []) {
+            receipts.push({
+              phone: String(st.recipient_id || ''),
+              status: String(st.status || ''),
+              messageId: st.id,
+              error: st.errors?.[0]?.message || st.errors?.[0]?.title,
+            });
           }
         }
+      }
+    }
+
+    // Format B: Direct JSON or Array payload from ICPaaS / Omni / Gateway DLR Webhooks
+    const candidateList = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.data)
+      ? body.data
+      : Array.isArray(body?.statuses)
+      ? body.statuses
+      : Array.isArray(body?.results)
+      ? body.results
+      : [body];
+
+    for (const item of candidateList) {
+      if (!item || typeof item !== 'object') continue;
+      const rawPhone = item.recipient_id || item.recipient || item.phone || item.mobile || item.destination || item.to;
+      const rawStatus = item.status || item.delivery_status || item.dlr_status || item.event;
+      if (rawPhone && rawStatus) {
+        receipts.push({
+          phone: String(rawPhone),
+          status: String(rawStatus),
+          messageId: item.message_id || item.id || item.msgId || item.wamid,
+          error: item.error || item.reason || item.description,
+        });
+      }
+    }
+
+    let updatedCount = 0;
+
+    for (const r of receipts) {
+      const cleanPhone = normalizePhone(r.phone);
+      const sLower = (r.status || '').toLowerCase().trim();
+
+      let targetStatus: WhatsAppStatus = 'SENT';
+      if (sLower.includes('deliver')) targetStatus = 'DELIVERED';
+      else if (sLower.includes('read') || sLower.includes('view')) targetStatus = 'READ';
+      else if (sLower.includes('fail') || sLower.includes('undeliv') || sLower.includes('reject')) targetStatus = 'FAILED';
+      else if (sLower.includes('sent') || sLower.includes('accept') || sLower.includes('submit')) targetStatus = 'SENT';
+
+      const matchedStudent = phoneMap.get(cleanPhone);
+      if (matchedStudent) {
+        const updates: any = {
+          whatsappStatus: targetStatus,
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (targetStatus === 'FAILED' && r.error) {
+          updates.whatsappError = r.error;
+        }
+
+        await db.updateStudent(matchedStudent.studentId, updates);
+        updatedCount++;
+
+        // Real-time Excel log sync
+        try {
+          await logWhatsAppDispatchRealTime([
+            {
+              timestamp: new Date().toISOString(),
+              studentId: matchedStudent.studentId,
+              registrationNumber: matchedStudent.registrationNumber,
+              studentName: matchedStudent.name,
+              phone: matchedStudent.phone,
+              className: matchedStudent.className,
+              competitionName: matchedStudent.competitionName,
+              schoolOrCollege: matchedStudent.schoolOrCollege,
+              status: targetStatus,
+              provider: 'Webhook DLR Callback',
+              details: `Real-time receipt: ${targetStatus} (Raw: ${r.status}) [Message ID: ${r.messageId || 'N/A'}]${
+                updates.whatsappError ? ` [Error: ${updates.whatsappError}]` : ''
+              }`,
+            },
+          ]);
+        } catch {}
       }
     }
 
