@@ -123,24 +123,24 @@ export async function POST(req: NextRequest) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'WhatsApp_Dispatch');
 
-    // Sheet 2: Dispatched / Sent Students
-    const sentStudents = targetStudents.filter((s) => ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(s.whatsappStatus || ''));
-    const sentRows = sentStudents.map(mapStudentToRow);
+    // Sheet 2: Dispatched / Sent Students (Full Authoritative Registry)
+    const allSentStudents = allActive.filter((s) => ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(s.whatsappStatus || ''));
+    const sentRows = allSentStudents.map(mapStudentToRow);
     const sentWorksheet = XLSX.utils.aoa_to_sheet([headers, ...sentRows]);
     sentWorksheet['!cols'] = colWidths;
     XLSX.utils.book_append_sheet(workbook, sentWorksheet, 'Dispatched_Sent');
 
-    // Sheet 3: Pending Queue Students (Unsent)
-    const pendingStudents = targetStudents.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
-    const pendingRows = pendingStudents.map(mapStudentToRow);
+    // Sheet 3: Pending Queue Students (Full Authoritative Registry)
+    const allPendingStudents = allActive.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+    const pendingRows = allPendingStudents.map(mapStudentToRow);
     const pendingWorksheet = XLSX.utils.aoa_to_sheet([headers, ...pendingRows]);
     pendingWorksheet['!cols'] = colWidths;
     XLSX.utils.book_append_sheet(workbook, pendingWorksheet, 'Pending_Queue');
 
-    // Sheet 4: Summary Metrics
-    const failedStudents = targetStudents.filter((s) => s.whatsappStatus === 'FAILED');
+    // Sheet 4: Summary Metrics (Full Authoritative Breakdown)
+    const allFailedStudents = allActive.filter((s) => s.whatsappStatus === 'FAILED');
     const compCounts: Record<string, { total: number; sent: number; pending: number; failed: number }> = {};
-    for (const s of targetStudents) {
+    for (const s of allActive) {
       const c = s.competitionName || 'OTHER';
       if (!compCounts[c]) compCounts[c] = { total: 0, sent: 0, pending: 0, failed: 0 };
       compCounts[c].total++;
@@ -151,14 +151,14 @@ export async function POST(req: NextRequest) {
 
     const summaryHeaders = ['Metric / Category', 'Count / Details'];
     const summaryRows: any[][] = [
-      ['Total Target Candidates', targetStudents.length],
       ['Total Active Database Registry', allActive.length],
-      ['Dispatched (Sent / Delivered)', sentStudents.length],
-      ['Pending Queue (Awaiting Send)', pendingStudents.length],
-      ['Delivery Failed', failedStudents.length],
+      ['Total Dispatched (Sent / Delivered)', allSentStudents.length],
+      ['Total Pending Queue (Awaiting Send)', allPendingStudents.length],
+      ['Total Delivery Failed', allFailedStudents.length],
+      ['Filter Applied on Sheet 1 (Target Candidates)', targetStudents.length],
       ['Report Generated At', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })],
       [],
-      ['Competition Breakdown:', ''],
+      ['Competition Breakdown (Full Registry):', ''],
       ['Competition Name', 'Total', 'Sent', 'Pending', 'Failed'],
       ...Object.entries(compCounts).map(([name, counts]) => [name, counts.total, counts.sent, counts.pending, counts.failed]),
     ];
