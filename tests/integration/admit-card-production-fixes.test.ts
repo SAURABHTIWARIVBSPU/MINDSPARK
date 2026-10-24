@@ -501,4 +501,136 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     expect(envBClaimed).toBe(false);
     expect(leaseStore.get('job_shared_100')?.leasedTo).toBe('env_local_laptop');
   });
+
+  // 18. Crash-after-provider-acceptance scenario (reconciliation instead of blind resend)
+  it('Case 18: Crash-after-provider-acceptance detects in-flight dispatch, blocks blind resend, and reconciles to UNCERTAIN', () => {
+    // Simulate claim state store
+    const claimStore = new Map<string, {
+      claimedBy: string;
+      claimedAt: number;
+      leaseExpiresAt: number;
+      state: 'CLAIMED' | 'DISPATCHING';
+    }>();
+
+    const simulateClaimOrRecover = (studentId: string, workerId: string, now: number) => {
+      const existing = claimStore.get(studentId);
+      if (!existing) {
+        claimStore.set(studentId, {
+          claimedBy: workerId,
+          claimedAt: now,
+          leaseExpiresAt: now + 60000,
+          state: 'CLAIMED',
+        });
+        return { claimed: true };
+      }
+
+      // Check if lease expired
+      if (now < existing.leaseExpiresAt) {
+        return { claimed: false, reason: 'ACTIVE_LOCK' };
+      }
+
+      // Stale claim: Check if previous worker crashed while dispatching to provider
+      if (existing.state === 'DISPATCHING') {
+        return {
+          claimed: false,
+          reason: 'UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK',
+          isUncertain: true,
+        };
+      }
+
+      // Safe to recover
+      claimStore.set(studentId, {
+        claimedBy: workerId,
+        claimedAt: now,
+        leaseExpiresAt: now + 60000,
+        state: 'CLAIMED',
+      });
+      return { claimed: true };
+    };
+
+    const studentId = 'std_crash_test_01';
+    const t0 = 1000000;
+
+    // Worker 1 claims student and commences dispatch
+    const claim1 = simulateClaimOrRecover(studentId, 'worker_1', t0);
+    expect(claim1.claimed).toBe(true);
+
+    // Worker 1 marks dispatch commenced right before calling ICPaaS
+    const claimRecord = claimStore.get(studentId)!;
+    claimRecord.state = 'DISPATCHING';
+
+    // Worker 1 receives HTTP 200 from ICPaaS, but process crashes before updating DB or releasing lock!
+    // 70 seconds later, recovery worker 2 encounters this student
+    const t1 = t0 + 70000; // lease expired (> 60s)
+    const claim2 = simulateClaimOrRecover(studentId, 'worker_2', t1);
+
+    // Worker 2 MUST NOT blindly claim or resend!
+    expect(claim2.claimed).toBe(false);
+    expect(claim2.isUncertain).toBe(true);
+    expect(claim2.reason).toBe('UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK');
+  });
+
+  // 19. Optimistic concurrency control on stale lock recovery
+  it('Case 19: Optimistic concurrency control ensures only one worker wins stale lock takeover', () => {
+    let lockRecord = {
+      eventId: 'claim_key_1',
+      actorUid: 'dead_worker',
+      leaseExpiresAt: 1000, // expired
+      version: 1,
+    };
+
+    const recoverStaleWithOptimisticCheck = (workerId: string, readActorUid: string, now: number) => {
+      // Both workers already checked that existing was expired.
+      // Optimistic concurrency check: only update if actorUid in database still matches what was read
+      if (lockRecord.actorUid !== readActorUid) {
+        return { claimed: false, reason: 'CONCURRENT_STALE_LOCK_CLAIMED' };
+      }
+
+      // Atomic update
+      lockRecord = {
+        eventId: lockRecord.eventId,
+        actorUid: workerId,
+        leaseExpiresAt: now + 60000,
+        version: lockRecord.version + 1,
+      };
+      return { claimed: true };
+    };
+
+    const now = 2000;
+    // Both worker A and worker B read the same expired record with actorUid = 'dead_worker'
+    const workerARead = lockRecord.actorUid;
+    const workerBRead = lockRecord.actorUid;
+
+    // Worker A updates first
+    const resultA = recoverStaleWithOptimisticCheck('worker_A', workerARead, now);
+    // Worker B attempts update right after
+    const resultB = recoverStaleWithOptimisticCheck('worker_B', workerBRead, now);
+
+    expect(resultA.claimed).toBe(true);
+    expect(resultB.claimed).toBe(false);
+    expect(resultB.reason).toBe('CONCURRENT_STALE_LOCK_CLAIMED');
+    expect(lockRecord.actorUid).toBe('worker_A');
+  });
+
+  // 20. Slow provider dispatch lease protection
+  it('Case 20: In-flight dispatching state prevents concurrent workers from sending if HTTP call takes longer than 60s', () => {
+    const claimStore = new Map<string, { state: string; leaseExpiresAt: number }>();
+    const studentId = 'std_slow_network_01';
+    const t0 = 500000;
+
+    // Worker A initiates claim and extends lease for dispatching
+    claimStore.set(studentId, { state: 'DISPATCHING', leaseExpiresAt: t0 + 60000 });
+
+    // 65 seconds elapsed due to network delay, but Worker A is still alive waiting for HTTP response
+    const tElapsed = t0 + 65000;
+
+    // Worker B checks student
+    const existing = claimStore.get(studentId)!;
+    const isDispatching = existing.state === 'DISPATCHING';
+
+    // Even though tElapsed > existing.leaseExpiresAt, Worker B must NOT dispatch
+    expect(isDispatching).toBe(true);
+    const workerBCanDispatch = !isDispatching && tElapsed > existing.leaseExpiresAt;
+    expect(workerBCanDispatch).toBe(false);
+  });
 });

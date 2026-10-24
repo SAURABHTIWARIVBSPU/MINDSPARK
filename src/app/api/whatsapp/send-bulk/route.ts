@@ -436,10 +436,27 @@ export async function POST(req: NextRequest) {
           sessionYear: settings.regNoYear || '2026',
         });
         if (!claimResult.claimed) {
-          failedDetails.push({
-            studentId: item.studentId,
-            error: `Conflict: Candidate is actively being processed (${claimResult.reason || 'cross-instance lock'})`,
-          });
+          if (claimResult.isUncertain) {
+            // CRASH-AFTER-PROVIDER-ACCEPTANCE RECONCILIATION:
+            // The previous worker was in the middle of dispatch when the process terminated.
+            // Do NOT blindly resend to avoid duplicate messages. Transition to UNCERTAIN and await webhook receipt.
+            try {
+              await db.updateStudent(item.studentId, {
+                whatsappStatus: 'UNCERTAIN',
+                updatedAt: new Date().toISOString(),
+              });
+            } catch {}
+            failedDetails.push({
+              studentId: item.studentId,
+              error: `Uncertain Crash Recovery: Candidate was in-flight when previous process crashed. Awaiting webhook delivery receipt to prevent duplicate sending.`,
+              isUncertain: true,
+            });
+          } else {
+            failedDetails.push({
+              studentId: item.studentId,
+              error: `Conflict: Candidate is actively being processed (${claimResult.reason || 'cross-instance lock'})`,
+            });
+          }
           continue;
         }
 
@@ -450,6 +467,13 @@ export async function POST(req: NextRequest) {
             skippedAlreadySent.push(item.studentId);
             continue;
           }
+
+          // Mark that HTTP dispatch has commenced (locks state to 'DISPATCHING')
+          await DeduplicationGuard.markDispatchCommencedDurable(item.studentId, user.uid || 'admin', {
+            notificationType: templateType,
+            templateId: templateType,
+            sessionYear: settings.regNoYear || '2026',
+          });
 
           const sendResult = await adapter.sendMessage(item.phone, item.message, {
             templateName: item.templateName,

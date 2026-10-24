@@ -90,13 +90,14 @@ export class DeduplicationGuard {
   /**
    * Durable cross-instance atomic claim backed by PostgreSQL primary-key uniqueness constraint.
    * Guaranteed to work across multiple serverless functions, multi-container clusters, or distinct processes.
+   * Includes optimistic concurrency control on stale recovery and crash-after-acceptance detection.
    */
   static async claimRecipientDurable(
     studentId: string,
     claimantId: string,
     options: DeduplicationOptions = {},
     lockTimeoutMs: number = 60000
-  ): Promise<{ claimed: boolean; reason?: string }> {
+  ): Promise<{ claimed: boolean; reason?: string; isUncertain?: boolean }> {
     const dedupKey = this.getDeduplicationKey(studentId, options);
     const now = Date.now();
 
@@ -135,29 +136,51 @@ export class DeduplicationGuard {
             leaseExpiresAt,
             claimedBy: claimantId,
             dedupKey,
+            state: 'CLAIMED',
           },
         });
 
         if (insertError) {
           // If unique constraint violation, inspect existing claim lease
-          if (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('unique constraint')) {
+          if (
+            insertError.code === '23505' ||
+            insertError.message?.includes('duplicate key') ||
+            insertError.message?.includes('unique constraint')
+          ) {
             const { data: existingClaim } = await supabase
               .from('audit_logs')
-              .select('timestamp, details')
+              .select('actor_uid, timestamp, details')
               .eq('event_id', claimEventId)
               .maybeSingle();
 
-            const existingExpiry = existingClaim?.details?.leaseExpiresAt || (new Date(existingClaim?.timestamp || 0).getTime() + lockTimeoutMs);
+            const existingExpiry =
+              existingClaim?.details?.leaseExpiresAt ||
+              (new Date(existingClaim?.timestamp || 0).getTime() + lockTimeoutMs);
 
+            // Active lock lease still held by another worker
             if (now < existingExpiry) {
               return { claimed: false, reason: 'CROSS_INSTANCE_DATABASE_LOCK' };
             }
 
-            // Stale Lock Recovery: Lease expired, update lease ownership
-            await supabase
+            // CRASH-AFTER-PROVIDER-ACCEPTANCE SAFETY:
+            // If the previous abandoned worker had already commenced dispatch to ICPaaS (state: 'DISPATCHING'),
+            // the message may have been accepted by Meta before the process died.
+            // Blindly resending will cause a duplicate! Transition to UNCERTAIN and await webhook receipt.
+            if (existingClaim?.details?.state === 'DISPATCHING') {
+              return {
+                claimed: false,
+                reason: 'UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK',
+                isUncertain: true,
+              };
+            }
+
+            // Stale Lock Recovery with OPTIMISTIC CONCURRENCY CONTROL:
+            // Ensure only one concurrent worker successfully takes over the expired lock
+            const { data: updatedRows, error: updateErr } = await supabase
               .from('audit_logs')
               .update({
                 actor_uid: claimantId,
+                actor_email: `${claimantId}@system.local`,
                 timestamp: new Date().toISOString(),
                 details: {
                   claimedAt: now,
@@ -165,9 +188,16 @@ export class DeduplicationGuard {
                   claimedBy: claimantId,
                   recoveredFromStale: true,
                   dedupKey,
+                  state: 'CLAIMED',
                 },
               })
-              .eq('event_id', claimEventId);
+              .eq('event_id', claimEventId)
+              .eq('actor_uid', existingClaim?.actor_uid || '')
+              .select();
+
+            if (updateErr || !updatedRows || updatedRows.length === 0) {
+              return { claimed: false, reason: 'CONCURRENT_STALE_LOCK_CLAIMED' };
+            }
           } else {
             console.warn('Durable claim warning (non-fatal):', insertError.message);
           }
@@ -180,6 +210,52 @@ export class DeduplicationGuard {
     // Set L1 memory cache
     this.activeClaims.set(studentId, { claimedAt: now, claimedBy: claimantId });
     return { claimed: true };
+  }
+
+  /**
+   * Marks that HTTP dispatch to the messaging gateway has commenced.
+   * Extends lease and transitions state to 'DISPATCHING' so that crashes during or immediately
+   * after provider acceptance cannot be blindly resent by recovery workers.
+   */
+  static async markDispatchCommencedDurable(
+    studentId: string,
+    claimantId: string,
+    options: DeduplicationOptions = {},
+    extendedTimeoutMs: number = 120000
+  ): Promise<void> {
+    const dedupKey = this.getDeduplicationKey(studentId, options);
+    const now = Date.now();
+
+    const isSupabaseConfigured =
+      Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const claimEventId = `claim_${dedupKey}`;
+        await supabase
+          .from('audit_logs')
+          .update({
+            timestamp: new Date().toISOString(),
+            details: {
+              claimedAt: now,
+              leaseExpiresAt: now + extendedTimeoutMs,
+              claimedBy: claimantId,
+              dedupKey,
+              state: 'DISPATCHING',
+              dispatchCommencedAt: now,
+            },
+          })
+          .eq('event_id', claimEventId);
+      } catch (e) {
+        console.warn('Failed to mark dispatch commenced in durable claim:', e);
+      }
+    }
   }
 
   /**
