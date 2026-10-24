@@ -372,13 +372,14 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
       if (idSet.has(this.data.students[i].studentId)) {
         const student = this.data.students[i];
 
-        // Safe Delivery Policy: Successful deliveries must NEVER be reset to NOT_SENT if preserveSuccessful is requested
-        const isAlreadySuccessful =
+        // Safe Delivery Policy: Successful deliveries and UNCERTAIN notifications must NEVER be reset to NOT_SENT if preserveSuccessful is requested
+        const isProtected =
           student.whatsappStatus === 'SENT' ||
           student.whatsappStatus === 'DELIVERED' ||
           student.whatsappStatus === 'READ' ||
-          student.whatsappStatus === 'OPENED';
-        if (status === 'NOT_SENT' && isAlreadySuccessful && metadata?.preserveSuccessful) {
+          student.whatsappStatus === 'OPENED' ||
+          student.whatsappStatus === 'UNCERTAIN';
+        if (status === 'NOT_SENT' && isProtected && metadata?.preserveSuccessful) {
           continue;
         }
 

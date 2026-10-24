@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { normalizePhone } from '@/lib/excel/normalizer';
 import { Student, WhatsAppStatus } from '@/types';
 import { logWhatsAppDispatchRealTime } from '@/lib/whatsapp/excel-logger';
+import { DeduplicationGuard } from '@/lib/whatsapp/deduplication-guard';
 
 // 1. GET: Verification for Meta / ICPaaS Webhook configuration
 export async function GET(req: NextRequest) {
@@ -156,6 +157,24 @@ export async function POST(req: NextRequest) {
       }
 
       if (matchedStudent) {
+        // Guard against stale failure callbacks from older superseded retry attempts:
+        // If the candidate has multiple attempts in messageHistory and incoming messageId corresponds
+        // to an older attempt, do not let an older attempt failure downgrade the candidate's active attempt!
+        if (r.messageId && Array.isArray(matchedStudent.messageHistory) && matchedStudent.messageHistory.length > 1) {
+          const latestAttempt = matchedStudent.messageHistory[matchedStudent.messageHistory.length - 1];
+          const isSupersededAttempt =
+            latestAttempt.messageId &&
+            latestAttempt.messageId !== r.messageId &&
+            matchedStudent.messageHistory.slice(0, -1).some((h) => h.messageId === r.messageId);
+
+          if (isSupersededAttempt && targetStatus === 'FAILED') {
+            console.log(
+              `Discarding stale failure for superseded attempt ${r.messageId}; candidate ${matchedStudent.studentId} has newer attempt ${latestAttempt.messageId}.`
+            );
+            continue;
+          }
+        }
+
         // Formal Webhook State Machine Transition Matrix per Meta Cloud API / ICPaaS semantics
         const isValidWebhookTransition = (curr: string, incoming: string): boolean => {
           if (curr === incoming) return false; // Idempotent no-op
@@ -168,8 +187,8 @@ export async function POST(req: NextRequest) {
           }
 
           if (curr === 'SENT') {
-            // SENT can only advance forward to DELIVERED, READ, or OPENED
-            return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+            // SENT can advance forward to confirmed delivery (DELIVERED, READ, OPENED) OR definitive carrier delivery failure (FAILED)
+            return ['DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
           }
 
           if (curr === 'UNCERTAIN') {
@@ -206,6 +225,38 @@ export async function POST(req: NextRequest) {
 
         await db.updateStudent(matchedStudent.studentId, updates);
         updatedCount++;
+
+        // Clean up any in-flight / uncertain claim lock once authoritative webhook delivery arrives
+        try {
+          await DeduplicationGuard.releaseRecipientDurable(matchedStudent.studentId, {
+            templateId: 'admit_card_new',
+            sessionYear: '2026',
+          });
+        } catch {}
+
+        // Durably record or update provider message ID association in audit_logs
+        if (r.messageId) {
+          try {
+            let attemptId = `att_dlr_${Date.now()}`;
+            if (r.bizOpaqueData) {
+              const parsed = typeof r.bizOpaqueData === 'string' ? JSON.parse(r.bizOpaqueData) : r.bizOpaqueData;
+              if (parsed?.attId) attemptId = parsed.attId;
+            }
+            await DeduplicationGuard.recordDurableDispatchSubmission({
+              studentId: matchedStudent.studentId,
+              registrationNumber: matchedStudent.registrationNumber,
+              phone: matchedStudent.phone,
+              logicalNotificationId: `admit_card_new_2026_${matchedStudent.studentId}`,
+              providerMessageId: r.messageId,
+              attemptId,
+              initiatedAt: matchedStudent.updatedAt || new Date().toISOString(),
+              providerAcceptedAt: new Date().toISOString(),
+              status: targetStatus,
+              provider: 'Webhook DLR Callback',
+              error: updates.whatsappError,
+            });
+          } catch {}
+        }
 
         // Real-time Excel log sync
         try {

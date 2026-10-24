@@ -86,12 +86,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    // DUPLICATE PREVENTION INVARIANT:
-    // Administrative resolution CANNOT reset a confirmed delivered candidate to NOT_SENT
+    // DUPLICATE PREVENTION INVARIANTS:
+    // 1. Administrative resolution CANNOT reset a confirmed delivered candidate to NOT_SENT
     if (status === 'NOT_SENT' && ['DELIVERED', 'READ', 'OPENED', 'SENT'].includes(existingStudent.whatsappStatus || '')) {
       return NextResponse.json(
         {
           error: `Duplicate Prevention Policy: Cannot reset a confirmed sent/delivered candidate (Current Status: ${existingStudent.whatsappStatus}) to NOT_SENT.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 2. Safe Resolution Policy: Administrators CANNOT reset an UNCERTAIN notification directly to NOT_SENT
+    // merely by entering a justification, as that risks duplicate bulk dispatch.
+    // Must require authoritative provider reconciliation: resolve to DELIVERED (if confirmed received)
+    // or FAILED (if confirmed rejected/undelivered by provider, authorizing safe controlled retry).
+    if (existingStudent.whatsappStatus === 'UNCERTAIN' && status === 'NOT_SENT') {
+      return NextResponse.json(
+        {
+          error:
+            'Safe Resolution Policy: Cannot reset an UNCERTAIN notification to NOT_SENT. Authoritative provider reconciliation is required. Resolve to DELIVERED (if confirmed received) or FAILED (if confirmed undelivered/rejected by provider).',
         },
         { status: 409 }
       );
@@ -123,6 +137,15 @@ export async function POST(req: NextRequest) {
           timestamp: now,
         },
       });
+
+      // Clean up durable claim lock on safe reconciliation
+      try {
+        const { DeduplicationGuard } = await import('@/lib/whatsapp/deduplication-guard');
+        await DeduplicationGuard.releaseRecipientDurable(studentId, {
+          templateId: 'admit_card_new',
+          sessionYear: '2026',
+        });
+      } catch {}
     }
 
     const updates: any = {

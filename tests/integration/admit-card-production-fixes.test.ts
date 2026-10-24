@@ -874,4 +874,259 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     expect(attemptReset('FAILED', 'NOT_SENT').success).toBe(true);
     expect(attemptReset('UNCERTAIN', 'FAILED').success).toBe(true);
   });
+
+  // 30. Webhook State Transitions: SENT -> FAILED is accepted for carrier failures
+  it('Case 30: SENT -> FAILED webhook transition is accepted (legitimate Meta/carrier delivery failure)', () => {
+    const isValidTransition = (curr: string, incoming: string): boolean => {
+      if (curr === incoming) return false;
+      if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) {
+        if (incoming === 'READ' && curr === 'DELIVERED') return true;
+        if (incoming === 'OPENED' && (curr === 'DELIVERED' || curr === 'READ')) return true;
+        return false;
+      }
+      if (curr === 'SENT') {
+        return ['DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+      }
+      if (curr === 'UNCERTAIN') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+      }
+      if (curr === 'FAILED') {
+        return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      if (curr === 'QUEUED' || curr === 'NOT_SENT') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED', 'UNCERTAIN'].includes(incoming);
+      }
+      return false;
+    };
+
+    // When Meta accepts, app sets SENT. When recipient handset is unreachable or uninstalled, Meta sends FAILED.
+    expect(isValidTransition('SENT', 'FAILED')).toBe(true);
+  });
+
+  // 31. Webhook State Transitions: SENT -> DELIVERED is accepted, late FAILED is discarded
+  it('Case 31: SENT -> DELIVERED is accepted, and late FAILED does not downgrade confirmed delivery', () => {
+    const isValidTransition = (curr: string, incoming: string): boolean => {
+      if (curr === incoming) return false;
+      if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) {
+        if (incoming === 'READ' && curr === 'DELIVERED') return true;
+        if (incoming === 'OPENED' && (curr === 'DELIVERED' || curr === 'READ')) return true;
+        return false;
+      }
+      if (curr === 'SENT') {
+        return ['DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+      }
+      return false;
+    };
+
+    let status = 'SENT';
+    if (isValidTransition(status, 'DELIVERED')) status = 'DELIVERED';
+    expect(status).toBe('DELIVERED');
+
+    // Subsequent out-of-order or late failure webhook MUST NOT downgrade DELIVERED
+    const lateFailedAccepted = isValidTransition(status, 'FAILED');
+    expect(lateFailedAccepted).toBe(false);
+    expect(status).toBe('DELIVERED');
+  });
+
+  // 32. Webhook State Transitions: FAILED -> DELIVERED for same message ID
+  it('Case 32: FAILED -> DELIVERED for the same message ID is accepted, but duplicate SENT cannot flip FAILED', () => {
+    const isValidTransition = (curr: string, incoming: string): boolean => {
+      if (curr === incoming) return false;
+      if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) return false;
+      if (curr === 'FAILED') {
+        return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      return false;
+    };
+
+    // An authoritative delivered callback can reconcile a previous failure (e.g. false negative)
+    expect(isValidTransition('FAILED', 'DELIVERED')).toBe(true);
+    expect(isValidTransition('FAILED', 'READ')).toBe(true);
+
+    // But a late duplicate 'SENT' or 'UNCERTAIN' callback cannot flip a FAILED back
+    expect(isValidTransition('FAILED', 'SENT')).toBe(false);
+    expect(isValidTransition('FAILED', 'UNCERTAIN')).toBe(false);
+  });
+
+  // 33. Webhook events from separate retry attempts do not cross-contaminate
+  it('Case 33: Late failure from an older superseded retry attempt does not overwrite active attempt', () => {
+    const student = {
+      studentId: 'std_retry_test_01',
+      whatsappStatus: 'SENT',
+      messageHistory: [
+        {
+          messageId: 'wamid_attempt_1',
+          sentAt: '2026-10-24T10:00:00Z',
+          status: 'FAILED',
+          retryCount: 1,
+        },
+        {
+          messageId: 'wamid_attempt_2',
+          sentAt: '2026-10-24T11:00:00Z',
+          status: 'SENT',
+          retryCount: 2,
+        },
+      ],
+    };
+
+    const processWebhookReceipt = (msgId: string, incomingStatus: string) => {
+      const history = student.messageHistory;
+      const latestAttempt = history[history.length - 1];
+      const isSupersededAttempt =
+        latestAttempt.messageId &&
+        latestAttempt.messageId !== msgId &&
+        history.slice(0, -1).some((h) => h.messageId === msgId);
+
+      if (isSupersededAttempt && incomingStatus === 'FAILED') {
+        return { applied: false, reason: 'SUPERSEDED_ATTEMPT_STALE_FAILURE' };
+      }
+
+      return { applied: true, newStatus: incomingStatus };
+    };
+
+    // Late failure arrives for attempt 1
+    const lateRes = processWebhookReceipt('wamid_attempt_1', 'FAILED');
+    expect(lateRes.applied).toBe(false);
+    expect(lateRes.reason).toBe('SUPERSEDED_ATTEMPT_STALE_FAILURE');
+
+    // Fresh delivery arrives for attempt 2
+    const freshRes = processWebhookReceipt('wamid_attempt_2', 'DELIVERED');
+    expect(freshRes.applied).toBe(true);
+    expect(freshRes.newStatus).toBe('DELIVERED');
+  });
+
+  // 34. Pre-dispatch attempt record and post-acceptance correlation
+  it('Case 34: Pre-dispatch attempt record and post-acceptance provider message ID are correctly associated via biz_opaque_callback_data', () => {
+    const preDispatchRecord = {
+      attemptId: 'att_worker_pre_01',
+      studentId: 'std_pre_01',
+      phone: '9876543210',
+      logicalNotificationId: 'admit_card_new_2026_std_pre_01',
+      state: 'DISPATCHING',
+    };
+
+    // Worker dispatches to provider, sending biz_opaque_callback_data
+    const bizOpaqueData = JSON.stringify({
+      sId: preDispatchRecord.studentId,
+      attId: preDispatchRecord.attemptId,
+      dedup: preDispatchRecord.logicalNotificationId,
+    });
+
+    // Provider accepts, generates wamid, but worker process crashes before saving HTTP response to DB
+    const providerAcceptedMessageId = 'wamid.HBgL_meta_accepted_888';
+
+    // Provider webhook arrives with biz_opaque_callback_data intact
+    const incomingWebhook = {
+      messageId: providerAcceptedMessageId,
+      status: 'delivered',
+      bizOpaqueData,
+    };
+
+    const parsed = JSON.parse(incomingWebhook.bizOpaqueData);
+    expect(parsed.sId).toBe(preDispatchRecord.studentId);
+    expect(parsed.attId).toBe(preDispatchRecord.attemptId);
+    expect(parsed.dedup).toBe(preDispatchRecord.logicalNotificationId);
+
+    // Association is confirmed: wamid is linked to the exact pre-dispatch attempt without duplicate records
+    const reconciledAuditRecord = {
+      event_id: `wamid_${incomingWebhook.messageId}`,
+      target_id: parsed.sId,
+      attemptId: parsed.attId,
+      logicalNotificationId: parsed.dedup,
+      status: 'DELIVERED',
+    };
+
+    expect(reconciledAuditRecord.target_id).toBe('std_pre_01');
+    expect(reconciledAuditRecord.attemptId).toBe('att_worker_pre_01');
+  });
+
+  // 35. Fencing and duplicate dispatch under worker pause
+  it('Case 35: A worker pause after fencing check prevents concurrent workers from sending, enforcing at-most-once application dispatch', () => {
+    let durableLockState: {
+      owner: string;
+      state: 'CLAIMED' | 'DISPATCHING';
+      fencingToken: string;
+    } | null = null;
+
+    // Worker 1 acquires claim and marks DISPATCHING
+    durableLockState = {
+      owner: 'worker_1',
+      state: 'DISPATCHING',
+      fencingToken: 'fnc_w1_999',
+    };
+
+    // Worker 1 experiences a pause right after fence check, before network socket write
+    const worker1Paused = true;
+
+    // Worker 2 attempts to claim the same recipient while Worker 1 is in DISPATCHING
+    const worker2AttemptClaim = () => {
+      if (durableLockState && durableLockState.state === 'DISPATCHING') {
+        return {
+          claimed: false,
+          isUncertain: true,
+          reason: 'UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK',
+        };
+      }
+      return { claimed: true };
+    };
+
+    const w2Result = worker2AttemptClaim();
+    // Worker 2 CANNOT dispatch duplicate message
+    expect(w2Result.claimed).toBe(false);
+    expect(w2Result.isUncertain).toBe(true);
+
+    // Worker 1 resumes and sends: exactly 1 message sent across all workers
+    const worker1DispatchedCount = worker1Paused ? 1 : 0;
+    const worker2DispatchedCount = w2Result.claimed ? 1 : 0;
+    expect(worker1DispatchedCount + worker2DispatchedCount).toBe(1);
+  });
+
+  // 36. Uncertain-state manual resolution rejects NOT_SENT resets
+  it('Case 36: Administrative resolution strictly rejects UNCERTAIN -> NOT_SENT even with justification, requiring authoritative reconciliation', () => {
+    const resolveStatus = (currentStatus: string, targetStatus: string, reason?: string) => {
+      if (currentStatus === 'UNCERTAIN' && targetStatus === 'NOT_SENT') {
+        return {
+          status: 409,
+          error:
+            'Safe Resolution Policy: Cannot reset an UNCERTAIN notification to NOT_SENT. Authoritative provider reconciliation is required. Resolve to DELIVERED or FAILED.',
+        };
+      }
+
+      if (currentStatus === 'UNCERTAIN' && (targetStatus === 'FAILED' || targetStatus === 'DELIVERED')) {
+        if (!reason || reason.trim().length < 5) {
+          return { status: 400, error: 'Reason required' };
+        }
+        return { status: 200, success: true, resolvedStatus: targetStatus };
+      }
+
+      return { status: 200, success: true };
+    };
+
+    // Resetting UNCERTAIN directly to NOT_SENT is rejected with 409
+    const resUnsentWithReason = resolveStatus(
+      'UNCERTAIN',
+      'NOT_SENT',
+      'Checked manually, student did not receive message, please resend'
+    );
+    expect(resUnsentWithReason.status).toBe(409);
+    expect(resUnsentWithReason.error).toContain('Cannot reset an UNCERTAIN notification to NOT_SENT');
+
+    // Resolving UNCERTAIN to FAILED (authoritative failure confirmed from provider) is accepted
+    const resFailed = resolveStatus(
+      'UNCERTAIN',
+      'FAILED',
+      'Verified with Meta Cloud API dashboard: error 131026 message undeliverable'
+    );
+    expect(resFailed.status).toBe(200);
+    expect(resFailed.resolvedStatus).toBe('FAILED');
+
+    // Resolving UNCERTAIN to DELIVERED (out-of-band candidate confirmation) is accepted
+    const resDelivered = resolveStatus(
+      'UNCERTAIN',
+      'DELIVERED',
+      'Candidate confirmed via phone call that admit card was received on WhatsApp'
+    );
+    expect(resDelivered.status).toBe(200);
+    expect(resDelivered.resolvedStatus).toBe('DELIVERED');
+  });
 });

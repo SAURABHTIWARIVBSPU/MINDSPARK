@@ -116,9 +116,12 @@ export class ICPaaSAdapter {
                     },
                   ],
                 },
+                ...(templateConfig?.bizOpaqueCallbackData ? { biz_opaque_callback_data: templateConfig.bizOpaqueCallbackData } : {}),
               },
             },
+            ...(templateConfig?.bizOpaqueCallbackData ? { tracking_id: templateConfig.bizOpaqueCallbackData } : {}),
           },
+          ...(templateConfig?.bizOpaqueCallbackData ? { biz_opaque_callback_data: templateConfig.bizOpaqueCallbackData, tracking_id: templateConfig.bizOpaqueCallbackData } : {}),
         };
 
     try {

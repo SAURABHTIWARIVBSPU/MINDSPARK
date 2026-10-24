@@ -333,9 +333,9 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       })
       .in('student_id', studentIds);
 
-    // Safe Delivery Policy: Successful deliveries must NEVER be reset to NOT_SENT if preserveSuccessful is requested
+    // Safe Delivery Policy: Successful deliveries and UNCERTAIN notifications must NEVER be reset to NOT_SENT if preserveSuccessful is requested
     if (status === 'NOT_SENT' && metadata?.preserveSuccessful) {
-      query = query.not('whatsapp_status', 'in', '("SENT","DELIVERED","READ","OPENED")');
+      query = query.not('whatsapp_status', 'in', '("SENT","DELIVERED","READ","OPENED","UNCERTAIN")');
     }
 
     const { error, count } = await query;
