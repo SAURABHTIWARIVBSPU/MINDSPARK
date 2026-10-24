@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { normalizePhone } from '@/lib/excel/normalizer';
-import { WhatsAppStatus } from '@/types';
+import { Student, WhatsAppStatus } from '@/types';
 import { logWhatsAppDispatchRealTime } from '@/lib/whatsapp/excel-logger';
 
 // 1. GET: Verification for Meta / ICPaaS Webhook configuration
@@ -93,9 +93,47 @@ export async function POST(req: NextRequest) {
       else if (sLower.includes('fail') || sLower.includes('undeliv') || sLower.includes('reject')) targetStatus = 'FAILED';
       else if (sLower.includes('sent') || sLower.includes('accept') || sLower.includes('submit')) targetStatus = 'SENT';
 
-      const matchedStudent = (r.messageId
-        ? allStudents.find((s) => s.messageHistory?.some((h) => h.messageId === r.messageId))
-        : null) || phoneMap.get(cleanPhone);
+      let matchedStudent: Student | null = null;
+
+      // 1. Precise Provider Message ID (wamid) matching via durable PostgreSQL audit_logs
+      if (r.messageId) {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: wamidRecord } = await supabase
+            .from('audit_logs')
+            .select('target_id')
+            .eq('event_id', `wamid_${r.messageId}`)
+            .maybeSingle();
+
+          if (wamidRecord?.target_id) {
+            matchedStudent = allStudents.find((s) => s.studentId === wamidRecord.target_id) || null;
+          }
+        } catch {}
+
+        if (!matchedStudent) {
+          matchedStudent = allStudents.find((s) => s.messageHistory?.some((h) => h.messageId === r.messageId)) || null;
+        }
+      }
+
+      // 2. Strict Phone Matching: Guard against sibling/family phone ambiguity
+      if (!matchedStudent && cleanPhone) {
+        const matchingStudents = allStudents.filter((s) => normalizePhone(s.phone) === cleanPhone);
+        if (matchingStudents.length === 1) {
+          // Unambiguous phone match (single candidate registered with this number)
+          matchedStudent = matchingStudents[0];
+        } else if (matchingStudents.length > 1) {
+          // Ambiguous shared phone number across family members / siblings!
+          // Dropping phone-only fallback to prevent cross-contaminating sibling records!
+          console.warn(
+            `Ambiguous webhook callback: ${matchingStudents.length} candidates share phone ${cleanPhone} without message ID. Dropping receipt to prevent record corruption.`
+          );
+          continue;
+        }
+      }
 
       if (matchedStudent) {
         // Formal Webhook State Machine Transition Matrix per Meta Cloud API / ICPaaS semantics
@@ -120,8 +158,9 @@ export async function POST(req: NextRequest) {
           }
 
           if (curr === 'FAILED') {
-            // Reconcile false-negative failure if authoritative delivery receipt arrives
-            return ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(incoming);
+            // Only authoritative delivery evidence (DELIVERED, READ, OPENED) can reconcile a failure.
+            // A late or duplicate 'SENT' webhook must NOT be allowed to flip FAILED!
+            return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
           }
 
           if (curr === 'QUEUED' || curr === 'NOT_SENT') {

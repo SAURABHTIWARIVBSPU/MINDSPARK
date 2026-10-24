@@ -97,9 +97,10 @@ export class DeduplicationGuard {
     claimantId: string,
     options: DeduplicationOptions = {},
     lockTimeoutMs: number = 60000
-  ): Promise<{ claimed: boolean; reason?: string; isUncertain?: boolean }> {
+  ): Promise<{ claimed: boolean; reason?: string; isUncertain?: boolean; fencingToken?: string }> {
     const dedupKey = this.getDeduplicationKey(studentId, options);
     const now = Date.now();
+    const fencingToken = `fnc_${now}_${Math.random().toString(36).slice(2, 8)}`;
 
     // 1. Fast L1 Process Memory Check
     const localExisting = this.activeClaims.get(studentId);
@@ -137,6 +138,7 @@ export class DeduplicationGuard {
             claimedBy: claimantId,
             dedupKey,
             state: 'CLAIMED',
+            fencingToken,
           },
         });
 
@@ -153,6 +155,18 @@ export class DeduplicationGuard {
               .eq('event_id', claimEventId)
               .maybeSingle();
 
+            // CRASH-AFTER-PROVIDER-ACCEPTANCE IMMUTABILITY:
+            // A claim in 'DISPATCHING' state represents a payload that was submitted or is actively in flight.
+            // It can NEVER be reclaimed for sending, regardless of whether 120s or any duration has elapsed.
+            // It can only be resolved via webhook receipt or auditable reconciliation.
+            if (existingClaim?.details?.state === 'DISPATCHING') {
+              return {
+                claimed: false,
+                reason: 'UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK',
+                isUncertain: true,
+              };
+            }
+
             const existingExpiry =
               existingClaim?.details?.leaseExpiresAt ||
               (new Date(existingClaim?.timestamp || 0).getTime() + lockTimeoutMs);
@@ -160,18 +174,6 @@ export class DeduplicationGuard {
             // Active lock lease still held by another worker
             if (now < existingExpiry) {
               return { claimed: false, reason: 'CROSS_INSTANCE_DATABASE_LOCK' };
-            }
-
-            // CRASH-AFTER-PROVIDER-ACCEPTANCE SAFETY:
-            // If the previous abandoned worker had already commenced dispatch to ICPaaS (state: 'DISPATCHING'),
-            // the message may have been accepted by Meta before the process died.
-            // Blindly resending will cause a duplicate! Transition to UNCERTAIN and await webhook receipt.
-            if (existingClaim?.details?.state === 'DISPATCHING') {
-              return {
-                claimed: false,
-                reason: 'UNCERTAIN_CRASH_RECOVERY_AWAITING_WEBHOOK',
-                isUncertain: true,
-              };
             }
 
             // Stale Lock Recovery with OPTIMISTIC CONCURRENCY CONTROL:
@@ -189,6 +191,7 @@ export class DeduplicationGuard {
                   recoveredFromStale: true,
                   dedupKey,
                   state: 'CLAIMED',
+                  fencingToken,
                 },
               })
               .eq('event_id', claimEventId)
@@ -209,20 +212,22 @@ export class DeduplicationGuard {
 
     // Set L1 memory cache
     this.activeClaims.set(studentId, { claimedAt: now, claimedBy: claimantId });
-    return { claimed: true };
+    return { claimed: true, fencingToken };
   }
 
   /**
    * Marks that HTTP dispatch to the messaging gateway has commenced.
-   * Extends lease and transitions state to 'DISPATCHING' so that crashes during or immediately
-   * after provider acceptance cannot be blindly resent by recovery workers.
+   * Enforces fencing token verification: if the claim was superseded by another worker,
+   * dispatch is aborted to prevent stale workers from firing duplicate messages.
+   * Extends lease to 120s and sets state to 'DISPATCHING'.
    */
   static async markDispatchCommencedDurable(
     studentId: string,
     claimantId: string,
+    fencingToken: string,
     options: DeduplicationOptions = {},
     extendedTimeoutMs: number = 120000
-  ): Promise<void> {
+  ): Promise<{ success: boolean; reason?: string }> {
     const dedupKey = this.getDeduplicationKey(studentId, options);
     const now = Date.now();
 
@@ -238,22 +243,105 @@ export class DeduplicationGuard {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const claimEventId = `claim_${dedupKey}`;
+        
+        // Fencing check: verify that this claimant still holds the lock with this exact fencing token
+        const { data: currentClaim } = await supabase
+          .from('audit_logs')
+          .select('actor_uid, details')
+          .eq('event_id', claimEventId)
+          .maybeSingle();
+
+        if (!currentClaim || currentClaim.actor_uid !== claimantId || currentClaim.details?.fencingToken !== fencingToken) {
+          return { success: false, reason: 'FENCING_TOKEN_SUPERSEDED' };
+        }
+
         await supabase
           .from('audit_logs')
           .update({
             timestamp: new Date().toISOString(),
             details: {
+              ...currentClaim.details,
               claimedAt: now,
               leaseExpiresAt: now + extendedTimeoutMs,
               claimedBy: claimantId,
               dedupKey,
               state: 'DISPATCHING',
               dispatchCommencedAt: now,
+              fencingToken,
             },
           })
-          .eq('event_id', claimEventId);
-      } catch (e) {
+          .eq('event_id', claimEventId)
+          .eq('actor_uid', claimantId);
+
+        return { success: true };
+      } catch (e: any) {
         console.warn('Failed to mark dispatch commenced in durable claim:', e);
+        return { success: false, reason: e.message };
+      }
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Durably records an individual provider submission into PostgreSQL audit_logs.
+   * Indexed by wamid primary key for instant, unambiguous webhook delivery reconciliation.
+   */
+  static async recordDurableDispatchSubmission(data: {
+    studentId: string;
+    registrationNumber: string;
+    phone: string;
+    logicalNotificationId: string;
+    providerMessageId: string;
+    attemptId: string;
+    initiatedAt: string;
+    providerAcceptedAt: string;
+    status: WhatsAppStatus;
+    provider: string;
+    templateId?: string;
+    error?: string;
+    actorUid?: string;
+    actorEmail?: string;
+  }): Promise<void> {
+    const isSupabaseConfigured =
+      Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const wamidEventId = `wamid_${data.providerMessageId || data.attemptId}`;
+        await supabase.from('audit_logs').upsert({
+          event_id: wamidEventId,
+          actor_uid: data.actorUid || 'system',
+          actor_email: data.actorEmail || 'dispatch@mindspark.local',
+          action: 'WHATSAPP_DISPATCH_RECORD',
+          target_type: 'STUDENT',
+          target_id: data.studentId,
+          timestamp: data.providerAcceptedAt,
+          details: {
+            logicalNotificationId: data.logicalNotificationId,
+            candidateId: data.studentId,
+            registrationNumber: data.registrationNumber,
+            providerMessageId: data.providerMessageId,
+            attemptId: data.attemptId,
+            timestamps: {
+              initiatedAt: data.initiatedAt,
+              providerAcceptedAt: data.providerAcceptedAt,
+            },
+            phone: data.phone,
+            status: data.status,
+            provider: data.provider,
+            templateId: data.templateId,
+            error: data.error,
+          },
+        });
+      } catch (e) {
+        console.warn('Failed to record durable dispatch submission in audit_logs:', e);
       }
     }
   }

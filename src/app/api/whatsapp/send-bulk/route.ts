@@ -468,12 +468,29 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // Mark that HTTP dispatch has commenced (locks state to 'DISPATCHING')
-          await DeduplicationGuard.markDispatchCommencedDurable(item.studentId, user.uid || 'admin', {
-            notificationType: templateType,
-            templateId: templateType,
-            sessionYear: settings.regNoYear || '2026',
-          });
+          // Fencing Check & Dispatch Commenced Mark:
+          // If this worker was stalled and superseded by another worker, abort dispatch!
+          const fenceResult = await DeduplicationGuard.markDispatchCommencedDurable(
+            item.studentId,
+            user.uid || 'admin',
+            claimResult.fencingToken || '',
+            {
+              notificationType: templateType,
+              templateId: templateType,
+              sessionYear: settings.regNoYear || '2026',
+            }
+          );
+
+          if (!fenceResult.success) {
+            failedDetails.push({
+              studentId: item.studentId,
+              error: `Fencing violation: Claim was superseded before dispatch commenced. Aborted stale worker dispatch.`,
+            });
+            continue;
+          }
+
+          const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          const initiatedAt = new Date().toISOString();
 
           const sendResult = await adapter.sendMessage(item.phone, item.message, {
             templateName: item.templateName,
@@ -481,8 +498,28 @@ export async function POST(req: NextRequest) {
             bodyParams: item.templateParams,
           });
 
+          const providerAcceptedAt = new Date().toISOString();
+
+          // Durably record individual provider submission in PostgreSQL audit_logs
+          await DeduplicationGuard.recordDurableDispatchSubmission({
+            studentId: item.studentId,
+            registrationNumber: studentLive.registrationNumber,
+            phone: item.phone,
+            logicalNotificationId: item.dedupKey,
+            providerMessageId: sendResult.messageId || attemptId,
+            attemptId,
+            initiatedAt,
+            providerAcceptedAt,
+            status: sendResult.success ? 'SENT' : (sendResult.isUncertain ? 'UNCERTAIN' : 'FAILED'),
+            provider: 'ICPaaS Gateway (v23.0)',
+            templateId: templateType,
+            error: sendResult.error,
+            actorUid: user.uid,
+            actorEmail: user.email,
+          });
+
           const tInfo = studentTemplateMap.get(item.studentId);
-          const nowIso = new Date().toISOString();
+          const nowIso = providerAcceptedAt;
 
           if (sendResult.success) {
             succeededIds.push(item.studentId);

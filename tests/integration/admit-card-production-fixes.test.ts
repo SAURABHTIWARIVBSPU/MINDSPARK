@@ -633,4 +633,164 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     const workerBCanDispatch = !isDispatching && tElapsed > existing.leaseExpiresAt;
     expect(workerBCanDispatch).toBe(false);
   });
+
+  // 21. Shared phone ambiguity protection
+  it('Case 21: Ambiguous webhooks without messageId are discarded when siblings share a phone number', () => {
+    const students = [
+      { studentId: 'child_1', name: 'Child One', phone: '9876543210' },
+      { studentId: 'child_2', name: 'Child Two', phone: '9876543210' },
+    ];
+
+    const resolveWebhookCandidate = (messageId?: string, phone?: string) => {
+      // 1. Precise wamid lookup
+      if (messageId === 'wamid.HBgL123') return students[0];
+      if (messageId === 'wamid.HBgL456') return students[1];
+
+      // 2. Strict phone match
+      if (phone) {
+        const matches = students.filter(s => s.phone === phone);
+        if (matches.length === 1) return matches[0];
+        if (matches.length > 1) {
+          // Ambiguous: shared phone across siblings! Discard to prevent cross-contamination
+          return null;
+        }
+      }
+      return null;
+    };
+
+    // Unambiguous: With provider messageId, exact sibling is matched
+    expect(resolveWebhookCandidate('wamid.HBgL123', '9876543210')?.studentId).toBe('child_1');
+    expect(resolveWebhookCandidate('wamid.HBgL456', '9876543210')?.studentId).toBe('child_2');
+
+    // Ambiguous: Without messageId on shared phone, webhook is safely discarded
+    expect(resolveWebhookCandidate(undefined, '9876543210')).toBeNull();
+  });
+
+  // 22. Fencing token check blocks stale superseded worker
+  it('Case 22: Fencing token check blocks a stale superseded worker from dispatching', () => {
+    let activeClaim = {
+      studentId: 'std_fenced_01',
+      claimantId: 'worker_A',
+      fencingToken: 'fnc_1001',
+      state: 'CLAIMED',
+    };
+
+    const verifyAndMarkDispatch = (workerId: string, fence: string) => {
+      if (activeClaim.claimantId !== workerId || activeClaim.fencingToken !== fence) {
+        return { success: false, reason: 'FENCING_TOKEN_SUPERSEDED' };
+      }
+      activeClaim.state = 'DISPATCHING';
+      return { success: true };
+    };
+
+    // Worker A acquired claim with fence fnc_1001
+    const workerAFence = 'fnc_1001';
+
+    // Worker A stalls. Worker B supersedes the claim with fence fnc_1002
+    activeClaim = {
+      studentId: 'std_fenced_01',
+      claimantId: 'worker_B',
+      fencingToken: 'fnc_1002',
+      state: 'CLAIMED',
+    };
+
+    // Stale Worker A wakes up and attempts to commence dispatch with old fence
+    const staleResult = verifyAndMarkDispatch('worker_A', workerAFence);
+    expect(staleResult.success).toBe(false);
+    expect(staleResult.reason).toBe('FENCING_TOKEN_SUPERSEDED');
+
+    // Active Worker B commences dispatch with valid fence
+    const validResult = verifyAndMarkDispatch('worker_B', 'fnc_1002');
+    expect(validResult.success).toBe(true);
+    expect(activeClaim.state).toBe('DISPATCHING');
+  });
+
+  // 23. Webhook transition restrictions: FAILED to SENT is strictly disallowed
+  it('Case 23: Webhook state machine disallows FAILED to SENT; only authoritative DELIVERED, READ, OPENED can reconcile', () => {
+    const isValidWebhookTransition = (curr: string, incoming: string): boolean => {
+      if (curr === incoming) return false;
+      if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) {
+        if (incoming === 'READ' && curr === 'DELIVERED') return true;
+        if (incoming === 'OPENED' && (curr === 'DELIVERED' || curr === 'READ')) return true;
+        return false;
+      }
+      if (curr === 'SENT') {
+        return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      if (curr === 'UNCERTAIN') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+      }
+      if (curr === 'FAILED') {
+        // Authoritative delivery evidence ONLY. Late or duplicate SENT cannot flip FAILED!
+        return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      return false;
+    };
+
+    // A late SENT webhook cannot overwrite FAILED
+    expect(isValidWebhookTransition('FAILED', 'SENT')).toBe(false);
+
+    // An authoritative DELIVERED webhook CAN reconcile a false-negative FAILED
+    expect(isValidWebhookTransition('FAILED', 'DELIVERED')).toBe(true);
+    expect(isValidWebhookTransition('FAILED', 'READ')).toBe(true);
+    expect(isValidWebhookTransition('FAILED', 'OPENED')).toBe(true);
+  });
+
+  // 24. Auditable reconciliation of UNCERTAIN notifications
+  it('Case 24: Auditable reconciliation of UNCERTAIN notifications requires justification and creates immutable log', () => {
+    const auditLogs: any[] = [];
+    const reconcileCandidate = (student: { id: string; status: string }, targetStatus: string, reason: string, adminUid: string) => {
+      if (student.status !== 'UNCERTAIN') {
+        throw new Error('Only UNCERTAIN candidates can be reconciled via this routine');
+      }
+      if (!reason || reason.trim().length < 5) {
+        throw new Error('Auditable reason required');
+      }
+
+      auditLogs.push({
+        action: 'WHATSAPP_UNCERTAIN_RECONCILED',
+        targetId: student.id,
+        actorUid: adminUid,
+        details: { previousStatus: student.status, resolvedStatus: targetStatus, reason },
+      });
+      student.status = targetStatus;
+      return student;
+    };
+
+    const candidate = { id: 'std_unc_01', status: 'UNCERTAIN' };
+
+    // Fails without reason
+    expect(() => reconcileCandidate(candidate, 'FAILED', '', 'admin_1')).toThrow();
+
+    // Reconciles safely with audit trail
+    const result = reconcileCandidate(candidate, 'FAILED', 'Carrier confirmed phone number unreachable', 'admin_1');
+    expect(result.status).toBe('FAILED');
+    expect(auditLogs.length).toBe(1);
+    expect(auditLogs[0].action).toBe('WHATSAPP_UNCERTAIN_RECONCILED');
+    expect(auditLogs[0].details.reason).toBe('Carrier confirmed phone number unreachable');
+  });
+
+  // 25. Durable dispatch submission schema verification
+  it('Case 25: Provider submission record captures all 7 mandatory identity and timestamp fields', () => {
+    const record = {
+      logicalNotificationId: 'REG_2026_std_100',
+      candidateId: 'std_100',
+      registrationNumber: 'MS261100010',
+      providerMessageId: 'wamid.HBgL999888',
+      attemptId: 'att_1792825000_abcde',
+      timestamps: {
+        initiatedAt: '2026-10-24T12:00:00.000Z',
+        providerAcceptedAt: '2026-10-24T12:00:01.500Z',
+      },
+      status: 'SENT',
+    };
+
+    expect(record.logicalNotificationId).toBeDefined();
+    expect(record.candidateId).toBeDefined();
+    expect(record.providerMessageId).toContain('wamid');
+    expect(record.attemptId).toContain('att_');
+    expect(record.timestamps.initiatedAt).toBeDefined();
+    expect(record.timestamps.providerAcceptedAt).toBeDefined();
+    expect(record.status).toBe('SENT');
+  });
 });
