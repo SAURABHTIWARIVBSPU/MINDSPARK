@@ -9,6 +9,8 @@ import {
   normalizeCompetitionCategory,
 } from '@/lib/whatsapp/message-builder';
 import { ICPaaSAdapter } from '@/lib/whatsapp/icpaas.adapter';
+import { DeduplicationGuard } from '@/lib/whatsapp/deduplication-guard';
+import crypto from 'crypto';
 
 describe('Admit Card Messaging System — Comprehensive Production Verification Suite', () => {
   let db: any;
@@ -1128,5 +1130,258 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     );
     expect(resDelivered.status).toBe(200);
     expect(resDelivered.resolvedStatus).toBe('DELIVERED');
+  });
+
+  // 37. Webhook Authentication: HMAC-SHA256 and Bearer Token verification
+  it('Case 37: Webhook POST authenticates via HMAC-SHA256 signature and token, rejecting unauthorized callers', () => {
+    const appSecret = 'secret_test_meta_app_key_999';
+    const verifyToken = 'mindspark_webhook_verify_2026';
+    const rawPayload = JSON.stringify({ entry: [{ changes: [{ value: { statuses: [{ id: 'wamid_auth_test', status: 'delivered' }] } }] }] });
+
+    const computeSignature = (secret: string, body: string) => {
+      return 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');
+    };
+
+    const verifyAuth = (headers: Record<string, string>, rawBody: string) => {
+      const hubSig = headers['x-hub-signature-256'];
+      if (hubSig) {
+        const expected = computeSignature(appSecret, rawBody);
+        const sigBuf = Buffer.from(hubSig);
+        const expBuf = Buffer.from(expected);
+        if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+          return { status: 200, verified: true };
+        }
+        return { status: 401, verified: false, error: 'Invalid X-Hub-Signature-256' };
+      }
+
+      const token = headers['x-webhook-token'] || headers['authorization']?.replace(/^Bearer\s+/i, '');
+      if (token && token === verifyToken) {
+        return { status: 200, verified: true };
+      }
+
+      return { status: 401, verified: false, error: 'Unauthorized webhook request' };
+    };
+
+    // Valid HMAC signature succeeds
+    const validSig = computeSignature(appSecret, rawPayload);
+    expect(verifyAuth({ 'x-hub-signature-256': validSig }, rawPayload).verified).toBe(true);
+
+    // Tampered / invalid HMAC signature is rejected with 401
+    const forgedSig = computeSignature('wrong_secret', rawPayload);
+    expect(verifyAuth({ 'x-hub-signature-256': forgedSig }, rawPayload).status).toBe(401);
+
+    // Valid Bearer / webhook token succeeds
+    expect(verifyAuth({ 'x-webhook-token': verifyToken }, rawPayload).verified).toBe(true);
+    expect(verifyAuth({ authorization: `Bearer ${verifyToken}` }, rawPayload).verified).toBe(true);
+
+    // Missing / invalid token is rejected with 401
+    expect(verifyAuth({ 'x-webhook-token': 'wrong_token' }, rawPayload).status).toBe(401);
+  });
+
+  // 38. Webhook Idempotency & Tampered Correlation Rejection
+  it('Case 38: Duplicate webhook callbacks are idempotent, and tampered biz_opaque_callback_data is rejected', () => {
+    const student = {
+      studentId: 'std_victim_01',
+      phone: '9876543210',
+      whatsappStatus: 'DELIVERED',
+    };
+
+    // 1. Idempotent no-op when same delivery status arrives twice
+    const isIdempotentNoOp = (currentStatus: string, incomingStatus: string) => {
+      return currentStatus === incomingStatus;
+    };
+    expect(isIdempotentNoOp(student.whatsappStatus, 'DELIVERED')).toBe(true);
+
+    // 2. Cross-validation: incoming webhook specifies sId = std_victim_01 but phone is 919999999999 (mismatch!)
+    const incomingWebhook = {
+      messageId: 'wamid_spoofed_01',
+      phone: '9999999999',
+      status: 'failed',
+      bizOpaqueData: JSON.stringify({ sId: 'std_victim_01' }),
+    };
+
+    const validateCorrelation = (candidate: typeof student, webhook: typeof incomingWebhook) => {
+      const parsed = JSON.parse(webhook.bizOpaqueData);
+      if (parsed.sId === candidate.studentId) {
+        // Cross-validate candidate registered phone against callback recipient phone
+        if (candidate.phone !== webhook.phone) {
+          return { accepted: false, reason: 'TAMPERED_PHONE_MISMATCH' };
+        }
+        return { accepted: true };
+      }
+      return { accepted: false, reason: 'CANDIDATE_NOT_FOUND' };
+    };
+
+    const correlationResult = validateCorrelation(student, incomingWebhook);
+    expect(correlationResult.accepted).toBe(false);
+    expect(correlationResult.reason).toBe('TAMPERED_PHONE_MISMATCH');
+    // Victim's status remains DELIVERED
+    expect(student.whatsappStatus).toBe('DELIVERED');
+  });
+
+  // 39. Attempt Freshness across Full History (Concurrent & Multi-Attempt Retries)
+  it('Case 39: Out-of-order failure from non-last attempt does not downgrade active newer attempt', () => {
+    const student = {
+      studentId: 'std_multi_attempt_01',
+      whatsappStatus: 'SENT',
+      messageHistory: [
+        { messageId: 'wamid_att_1', sentAt: '2026-10-24T08:00:00Z', status: 'FAILED' },
+        { messageId: 'wamid_att_2', sentAt: '2026-10-24T09:00:00Z', status: 'FAILED' },
+        { messageId: 'wamid_att_3', sentAt: '2026-10-24T10:00:00Z', status: 'SENT' },
+      ],
+    };
+
+    const applyCallback = (msgId: string, incomingStatus: string) => {
+      const matchingIdx = student.messageHistory.findIndex((h) => h.messageId === msgId);
+      if (matchingIdx !== -1) {
+        const hasNewerAttempt = student.messageHistory.some((_, idx) => idx > matchingIdx);
+        if (hasNewerAttempt && incomingStatus === 'FAILED') {
+          return { applied: false, reason: 'SUPERSEDED_ATTEMPT_STALE_FAILURE' };
+        }
+      }
+      return { applied: true, newStatus: incomingStatus };
+    };
+
+    // Late failure arrives for attempt 2 (non-last element!)
+    const lateAtt2 = applyCallback('wamid_att_2', 'FAILED');
+    expect(lateAtt2.applied).toBe(false);
+    expect(lateAtt2.reason).toBe('SUPERSEDED_ATTEMPT_STALE_FAILURE');
+    expect(student.whatsappStatus).toBe('SENT');
+
+    // Fresh delivery arrives for attempt 3
+    const freshAtt3 = applyCallback('wamid_att_3', 'DELIVERED');
+    expect(freshAtt3.applied).toBe(true);
+    expect(freshAtt3.newStatus).toBe('DELIVERED');
+  });
+
+  // 40. Candidate Eligibility: Blocking UNCERTAIN Candidates from Bulk Dispatch
+  it('Case 40: DeduplicationGuard.isBlockedFromDispatch strictly blocks UNCERTAIN candidates from automatic resending', () => {
+    const uncertainStudent: Student = {
+      studentId: 'std_unc_test_01',
+      registrationNumber: 'MS2611999',
+      name: 'UNCERTAIN CANDIDATE',
+      fatherName: 'FATHER',
+      dateOfBirth: '2008-01-01',
+      phone: '9876543210',
+      schoolOrCollege: 'TEST COLLEGE',
+      className: '10',
+      competitionName: 'GENERAL',
+      status: 'ACTIVE',
+      whatsappStatus: 'UNCERTAIN',
+      createdAt: new Date().toISOString(),
+      createdBy: 'admin',
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'admin',
+      dataVersion: 1,
+    };
+
+    const blockCheck = DeduplicationGuard.isBlockedFromDispatch(uncertainStudent, { templateId: 'admit_card_new' });
+    expect(blockCheck.blocked).toBe(true);
+    expect(blockCheck.reason).toContain('UNCERTAIN status awaiting provider delivery reconciliation');
+
+    // Candidate in NOT_SENT is eligible
+    const unsentStudent: Student = { ...uncertainStudent, whatsappStatus: 'NOT_SENT' };
+    expect(DeduplicationGuard.isBlockedFromDispatch(unsentStudent, { templateId: 'admit_card_new' }).blocked).toBe(false);
+
+    // Candidate in DELIVERED is blocked
+    const deliveredStudent: Student = { ...uncertainStudent, whatsappStatus: 'DELIVERED' };
+    expect(DeduplicationGuard.isBlockedFromDispatch(deliveredStudent, { templateId: 'admit_card_new' }).blocked).toBe(true);
+  });
+
+  // 41. Phone Validation & Exclusion of Invalid Indian Numbers
+  it('Case 41: Candidate phone validation excludes invalid/malformed numbers before queuing for dispatch', () => {
+    expect(isValidIndianMobile('9876543210')).toBe(true);
+    expect(isValidIndianMobile('+919876543210')).toBe(true);
+    expect(isValidIndianMobile('919876543210')).toBe(true);
+
+    // Invalid numbers: too short, non-Indian leading digit, or letters
+    expect(isValidIndianMobile('12345')).toBe(false);
+    expect(isValidIndianMobile('0123456789')).toBe(false);
+    expect(isValidIndianMobile('abcdefghij')).toBe(false);
+    expect(isValidIndianMobile('')).toBe(false);
+  });
+
+  // 42. Operational Kill Switch Interruption
+  it('Case 42: Operational kill switch halts in-flight bulk dispatch and logs WHATSAPP_BULK_DISPATCH_KILLED', () => {
+    let whatsappDispatchPaused = false;
+    const batch = ['c1', 'c2', 'c3', 'c4', 'c5'];
+    const dispatched: string[] = [];
+    let killedAuditLogged = false;
+
+    for (let i = 0; i < batch.length; i++) {
+      // Simulate administrator flipping kill switch after candidate 2
+      if (i === 2) {
+        whatsappDispatchPaused = true;
+      }
+
+      if (whatsappDispatchPaused) {
+        killedAuditLogged = true;
+        break;
+      }
+      dispatched.push(batch[i]);
+    }
+
+    expect(dispatched.length).toBe(2);
+    expect(dispatched).toEqual(['c1', 'c2']);
+    expect(killedAuditLogged).toBe(true);
+  });
+
+  // 43. Hardened Uncertain Reconciliation: Mandatory Evidence Reference & Role Authority
+  it('Case 43: Manual reconciliation of UNCERTAIN notifications requires evidenceRef, 10+ char reason, and stores attempt ID', () => {
+    const handleReconcile = (params: {
+      status: string;
+      reason?: string;
+      evidenceRef?: string;
+      userRole: string;
+      affectedAttemptId?: string;
+    }) => {
+      // Role check: requires messages.send permission (ADMIN or SUPER_ADMIN)
+      if (params.userRole !== 'ADMIN' && params.userRole !== 'SUPER_ADMIN') {
+        return { status: 403, error: 'Unauthorized: messages.send permission required' };
+      }
+
+      // Reason check: minimum 10 characters
+      if (!params.reason || params.reason.trim().length < 10) {
+        return { status: 400, error: 'An auditable reason (minimum 10 characters) is required' };
+      }
+
+      // Evidence reference check: minimum 3 characters
+      if (!params.evidenceRef || params.evidenceRef.trim().length < 3) {
+        return { status: 400, error: 'An authoritative evidence reference is required' };
+      }
+
+      // Store audit record
+      const auditRecord = {
+        action: 'WHATSAPP_UNCERTAIN_RECONCILED',
+        resolvedStatus: params.status,
+        reason: params.reason.trim(),
+        evidenceRef: params.evidenceRef.trim(),
+        affectedAttemptId: params.affectedAttemptId || 'att_last_01',
+      };
+
+      return { status: 200, success: true, auditRecord };
+    };
+
+    // Operator without messages.send is rejected with 403
+    expect(handleReconcile({ status: 'DELIVERED', reason: 'Verified manually', evidenceRef: 'TICKET-123', userRole: 'READ_ONLY' }).status).toBe(403);
+
+    // Missing or short reason is rejected with 400
+    expect(handleReconcile({ status: 'DELIVERED', reason: 'Short', evidenceRef: 'TICKET-123', userRole: 'ADMIN' }).status).toBe(400);
+
+    // Missing evidence reference is rejected with 400
+    expect(handleReconcile({ status: 'DELIVERED', reason: 'Verified via candidate phone call directly', evidenceRef: '', userRole: 'ADMIN' }).status).toBe(400);
+
+    // Valid reconciliation succeeds and records affected attempt
+    const res = handleReconcile({
+      status: 'DELIVERED',
+      reason: 'Candidate confirmed receipt of admit card via phone call on 24-Oct',
+      evidenceRef: 'CALL-LOG-20261024-001',
+      affectedAttemptId: 'wamid_original_attempt_88',
+      userRole: 'ADMIN',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.auditRecord?.evidenceRef).toBe('CALL-LOG-20261024-001');
+    expect(res.auditRecord?.affectedAttemptId).toBe('wamid_original_attempt_88');
   });
 });

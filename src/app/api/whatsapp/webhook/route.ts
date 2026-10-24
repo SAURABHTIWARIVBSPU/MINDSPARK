@@ -1,9 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { getDb } from '@/lib/db';
 import { normalizePhone } from '@/lib/excel/normalizer';
 import { Student, WhatsAppStatus } from '@/types';
 import { logWhatsAppDispatchRealTime } from '@/lib/whatsapp/excel-logger';
 import { DeduplicationGuard } from '@/lib/whatsapp/deduplication-guard';
+
+function verifyWebhookAuthentication(req: NextRequest, rawBody: string): { verified: boolean; reason?: string } {
+  const appSecret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || '').trim();
+  const verifyToken = (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.ICPAAS_WEBHOOK_TOKEN || '').trim();
+
+  // If no secret or token is configured in the environment, log a security warning and allow for development
+  if (!appSecret && !verifyToken) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('CRITICAL SECURITY WARNING: Webhook secrets (WHATSAPP_APP_SECRET / WHATSAPP_WEBHOOK_VERIFY_TOKEN) are not configured.');
+    }
+    return { verified: true };
+  }
+
+  // 1. Meta WhatsApp Cloud API: X-Hub-Signature-256 HMAC verification
+  const hubSig = req.headers.get('x-hub-signature-256');
+  if (hubSig && appSecret) {
+    const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+    const sigBuf = Buffer.from(hubSig);
+    const expBuf = Buffer.from(expected);
+    if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return { verified: true };
+    }
+    return { verified: false, reason: 'Invalid X-Hub-Signature-256' };
+  }
+
+  // 2. Token / Bearer header verification for ICPaaS or gateway callbacks
+  const tokenHeader = req.headers.get('x-webhook-token') || req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  const tokenParam = new URL(req.url).searchParams.get('token');
+  const incomingToken = (tokenHeader || tokenParam || '').trim();
+
+  if (verifyToken) {
+    if (incomingToken && incomingToken === verifyToken) {
+      return { verified: true };
+    }
+    if (!hubSig && !incomingToken) {
+      return { verified: false, reason: 'Missing webhook verification signature or token' };
+    }
+  }
+
+  if (appSecret && !hubSig) {
+    return { verified: false, reason: 'Missing X-Hub-Signature-256 header' };
+  }
+
+  return { verified: false, reason: 'Webhook authentication failed' };
+}
 
 // 1. GET: Verification for Meta / ICPaaS Webhook configuration
 export async function GET(req: NextRequest) {
@@ -27,17 +73,18 @@ export async function GET(req: NextRequest) {
 // 2. POST: Ingest incoming delivery receipts (SENT, DELIVERED, READ, FAILED)
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const rawBody = await req.text();
+    const authResult = verifyWebhookAuthentication(req, rawBody);
+    if (!authResult.verified) {
+      return NextResponse.json(
+        { error: `Unauthorized: ${authResult.reason || 'Invalid webhook authentication'}` },
+        { status: 401 }
+      );
+    }
+
+    const body = rawBody ? JSON.parse(rawBody) : {};
     const db = getDb();
     const allStudents = await db.getAllActiveStudents();
-    const phoneMap = new Map(allStudents.map((s) => [normalizePhone(s.phone), s]));
-
-    interface NormalizedReceipt {
-      phone: string;
-      status: string;
-      messageId?: string;
-      error?: string;
-    }
 
     interface NormalizedReceipt {
       phone: string;
@@ -106,12 +153,24 @@ export async function POST(req: NextRequest) {
 
       let matchedStudent: Student | null = null;
 
-      // 0. Instant Unambiguous Match via biz_opaque_callback_data (echoed directly by Meta!)
+      // 0. Match via biz_opaque_callback_data (echoed directly by Meta!)
+      // Must be cross-validated against student phone to reject tampered correlation data
       if (r.bizOpaqueData) {
         try {
           const parsed = typeof r.bizOpaqueData === 'string' ? JSON.parse(r.bizOpaqueData) : r.bizOpaqueData;
-          if (parsed?.sId) {
-            matchedStudent = allStudents.find((s) => s.studentId === parsed.sId) || null;
+          if (parsed && typeof parsed === 'object' && parsed.sId && typeof parsed.sId === 'string') {
+            const candidate = allStudents.find((s) => s.studentId === parsed.sId);
+            if (candidate) {
+              const candidatePhone = normalizePhone(candidate.phone);
+              // Reject if cleanPhone is provided and does not match candidate's phone
+              if (!cleanPhone || candidatePhone === cleanPhone) {
+                matchedStudent = candidate;
+              } else {
+                console.warn(
+                  `Rejected tampered/mismatched biz_opaque_callback_data: student ${parsed.sId} phone (${candidatePhone}) does not match webhook phone (${cleanPhone}).`
+                );
+              }
+            }
           }
         } catch {}
       }
@@ -157,21 +216,19 @@ export async function POST(req: NextRequest) {
       }
 
       if (matchedStudent) {
-        // Guard against stale failure callbacks from older superseded retry attempts:
-        // If the candidate has multiple attempts in messageHistory and incoming messageId corresponds
-        // to an older attempt, do not let an older attempt failure downgrade the candidate's active attempt!
+        // Robust Attempt-Specific Freshness Check:
+        // A delayed failure callback for an earlier attempt must NOT overwrite a newer active attempt.
+        // We evaluate attempts across full history, not just the last array index.
         if (r.messageId && Array.isArray(matchedStudent.messageHistory) && matchedStudent.messageHistory.length > 1) {
-          const latestAttempt = matchedStudent.messageHistory[matchedStudent.messageHistory.length - 1];
-          const isSupersededAttempt =
-            latestAttempt.messageId &&
-            latestAttempt.messageId !== r.messageId &&
-            matchedStudent.messageHistory.slice(0, -1).some((h) => h.messageId === r.messageId);
-
-          if (isSupersededAttempt && targetStatus === 'FAILED') {
-            console.log(
-              `Discarding stale failure for superseded attempt ${r.messageId}; candidate ${matchedStudent.studentId} has newer attempt ${latestAttempt.messageId}.`
-            );
-            continue;
+          const matchingIndex = matchedStudent.messageHistory.findIndex((h) => h.messageId === r.messageId);
+          if (matchingIndex !== -1) {
+            const hasNewerAttempt = matchedStudent.messageHistory.some((_, idx) => idx > matchingIndex);
+            if (hasNewerAttempt && targetStatus === 'FAILED') {
+              console.log(
+                `Discarding stale failure for superseded attempt ${r.messageId}; candidate ${matchedStudent.studentId} has newer attempts.`
+              );
+              continue;
+            }
           }
         }
 
@@ -225,6 +282,25 @@ export async function POST(req: NextRequest) {
 
         await db.updateStudent(matchedStudent.studentId, updates);
         updatedCount++;
+
+        // Durably record audit log for webhook-driven status update
+        try {
+          await db.addAuditLog({
+            actorUid: 'webhook_system',
+            actorEmail: 'webhook@gateway.mindspark',
+            action: 'WHATSAPP_STATUS_WEBHOOK_UPDATED',
+            targetType: 'STUDENT',
+            targetId: matchedStudent.studentId,
+            details: {
+              previousStatus: currentStatus,
+              newStatus: targetStatus,
+              messageId: r.messageId || 'N/A',
+              providerRawStatus: r.status,
+              error: updates.whatsappError || null,
+              matchedBy: r.bizOpaqueData ? 'biz_opaque_callback_data' : (r.messageId ? 'provider_message_id' : 'phone'),
+            },
+          });
+        } catch {}
 
         // Clean up any in-flight / uncertain claim lock once authoritative webhook delivery arrives
         try {

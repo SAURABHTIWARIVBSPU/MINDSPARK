@@ -11,6 +11,7 @@ import {
   getCategoryGroupLink,
   getAllAvailableTemplates,
   resolveStudentWhatsAppGroup,
+  isValidIndianMobile,
 } from '@/lib/whatsapp/message-builder';
 import { WhatsAppStatus, WhatsAppCampaign } from '@/types';
 import { logWhatsAppDispatchRealTime, DispatchLogEntry } from '@/lib/whatsapp/excel-logger';
@@ -272,38 +273,55 @@ export async function POST(req: NextRequest) {
 
       const batchItems = [];
       const skippedAlreadySent: string[] = [];
+      const skippedUncertain: string[] = [];
+      const skippedInvalidPhone: string[] = [];
 
       // If individual personal send, verify candidate eligibility first and block duplicate
       if (studentIds.length === 1) {
         const targetStudent = studentMap.get(studentIds[0]);
-        if (targetStudent && DeduplicationGuard.isAlreadyDelivered(targetStudent, { templateId: templateType })) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: `Deduplication Policy Enforced: Candidate "${targetStudent.name}" has already received their Admit Card notification (Status: ${targetStudent.whatsappStatus}). Duplicate messages cannot be sent.`,
-              skippedCount: 1,
-              succeededCount: 0,
-              failedCount: 0,
-            },
-            { status: 409 }
-          );
+        if (targetStudent) {
+          const blockCheck = DeduplicationGuard.isBlockedFromDispatch(targetStudent, { templateId: templateType });
+          if (blockCheck.blocked) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Dispatch Policy Enforced: ${blockCheck.reason}`,
+                skippedCount: 1,
+                succeededCount: 0,
+                failedCount: 0,
+              },
+              { status: 409 }
+            );
+          }
         }
       }
 
       for (const id of studentIds) {
         const student = studentMap.get(id);
         if (student) {
-          // MANDATORY SERVER-SIDE DUPLICATE PREVENTION:
-          // A recipient who has already successfully received a message must never receive that same message again.
+          // Exclude invalid or unverified phone numbers
+          if (!isValidIndianMobile(student.phone)) {
+            skippedInvalidPhone.push(student.studentId);
+            continue;
+          }
+
+          // MANDATORY SERVER-SIDE DUPLICATE & UNCERTAIN PREVENTION:
+          // A recipient who has already successfully received a message or is currently in UNCERTAIN status
+          // must never be queued for bulk dispatch.
+          const blockCheck = DeduplicationGuard.isBlockedFromDispatch(student, { templateId: templateType });
+          if (blockCheck.blocked) {
+            if (student.whatsappStatus === 'UNCERTAIN') {
+              skippedUncertain.push(student.studentId);
+            } else {
+              skippedAlreadySent.push(student.studentId);
+            }
+            continue;
+          }
+
           const dedupKey = DeduplicationGuard.getDeduplicationKey(student.studentId, {
             notificationType: templateType,
             sessionYear: settings.regNoYear || '2026',
           });
-
-          if (DeduplicationGuard.isAlreadyDelivered(student, { templateId: templateType })) {
-            skippedAlreadySent.push(student.studentId);
-            continue;
-          }
 
           let studentMessage = '';
           let studentGrpLink = '';
@@ -429,6 +447,25 @@ export async function POST(req: NextRequest) {
       > = {};
 
       for (const item of batchItems) {
+        // Operational Kill Switch Check: Allow administrators to immediately abort in-flight bulk blasts
+        const currentSettings = await db.getSettings();
+        if (currentSettings.whatsappDispatchPaused) {
+          console.warn('EMERGENCY ABORT: Bulk dispatch interrupted by administrative kill switch (whatsappDispatchPaused=true).');
+          await db.addAuditLog({
+            actorUid: user.uid,
+            actorEmail: user.email,
+            action: 'WHATSAPP_BULK_DISPATCH_KILLED',
+            targetType: 'WHATSAPP',
+            targetId: campaignId,
+            details: {
+              campaignId,
+              processedSoFar: succeededIds.length,
+              remainingCancelled: batchItems.length - (succeededIds.length + failedDetails.length),
+            },
+          });
+          break;
+        }
+
         // Atomic Job Claim to prevent race conditions across serverless instances, concurrent workers, or admin sessions
         const claimResult = await DeduplicationGuard.claimRecipientDurable(item.studentId, user.uid || 'admin', {
           notificationType: templateType,
@@ -463,7 +500,7 @@ export async function POST(req: NextRequest) {
         try {
           // Re-verify against authoritative database right before dispatch
           const studentLive = await db.getStudentById(item.studentId);
-          if (!studentLive || DeduplicationGuard.isAlreadyDelivered(studentLive, { templateId: templateType })) {
+          if (!studentLive || DeduplicationGuard.isBlockedFromDispatch(studentLive, { templateId: templateType }).blocked) {
             skippedAlreadySent.push(item.studentId);
             continue;
           }
@@ -710,6 +747,8 @@ export async function POST(req: NextRequest) {
           succeeded: succeededIds.length,
           failed: failedDetails.length,
           skippedDuplicates: skippedAlreadySent.length,
+          skippedUncertain: skippedUncertain.length,
+          skippedInvalidPhone: skippedInvalidPhone.length,
           provider: 'icpaas.in',
           competitionGroup,
           classGroup,
@@ -723,7 +762,10 @@ export async function POST(req: NextRequest) {
         total: batchItems.length,
         succeededCount: succeededIds.length,
         failedCount: failedDetails.length,
-        skippedCount: skippedAlreadySent.length,
+        skippedCount: skippedAlreadySent.length + skippedUncertain.length + skippedInvalidPhone.length,
+        skippedAlreadySentCount: skippedAlreadySent.length,
+        skippedUncertainCount: skippedUncertain.length,
+        skippedInvalidPhoneCount: skippedInvalidPhone.length,
         failedDetails,
       });
     }

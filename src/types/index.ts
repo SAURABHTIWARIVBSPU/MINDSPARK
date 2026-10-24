@@ -224,4 +224,5 @@ export interface SystemSettings {
   whatsappGroupLinks?: WhatsAppGroupLinkItem[];
   customTemplates?: CustomWhatsAppTemplate[];
   whatsappCampaigns?: WhatsAppCampaign[];
+  whatsappDispatchPaused?: boolean;
 }

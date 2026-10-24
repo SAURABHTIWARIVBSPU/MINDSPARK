@@ -60,6 +60,32 @@ export class DeduplicationGuard {
   }
 
   /**
+   * Evaluates comprehensive candidate eligibility for dispatch.
+   * Blocks candidates who have already received the notification OR whose delivery status
+   * is currently UNCERTAIN (preventing automatic duplicate resending).
+   */
+  static isBlockedFromDispatch(student: Student, options: DeduplicationOptions = {}): { blocked: boolean; reason?: string } {
+    if (!student) return { blocked: true, reason: 'Invalid student record' };
+
+    if (this.isAlreadyDelivered(student, options)) {
+      return {
+        blocked: true,
+        reason: `Candidate has already received this notification (Status: ${student.whatsappStatus}). Duplicate dispatch forbidden.`,
+      };
+    }
+
+    if (student.whatsappStatus === 'UNCERTAIN') {
+      return {
+        blocked: true,
+        reason:
+          'Candidate notification is in UNCERTAIN status awaiting provider delivery reconciliation. Automatic resend is strictly forbidden to prevent duplicate delivery.',
+      };
+    }
+
+    return { blocked: false };
+  }
+
+  /**
    * Atomically claims a student for processing to prevent race conditions
    * between concurrent workers, background tasks, or multiple admin browser sessions.
    * Lock automatically expires after lockTimeoutMs (default: 60s) in case of unexpected worker crash.

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     assertPermission(user, 'messages.prepare');
 
     const body = await req.json();
-    const { studentId, status = 'OPENED', reason, reconcileUncertain } = body;
+    const { studentId, status = 'OPENED', reason, evidenceRef, affectedAttemptId, reconcileUncertain } = body;
 
     if (!studentId) {
       return NextResponse.json({ error: 'Missing studentId' }, { status: 400 });
@@ -115,12 +115,24 @@ export async function POST(req: NextRequest) {
 
     // Durable Auditable Reconciliation for UNCERTAIN Notifications
     if (existingStudent.whatsappStatus === 'UNCERTAIN' || reconcileUncertain) {
-      if (!reason || reason.trim().length < 5) {
+      // Reconciling uncertain dispatch state requires elevated messages.send authority
+      assertPermission(user, 'messages.send');
+
+      if (!reason || reason.trim().length < 10) {
         return NextResponse.json(
-          { error: 'An auditable reason (minimum 5 characters) is required to reconcile an UNCERTAIN notification.' },
+          { error: 'An auditable reason (minimum 10 characters) is required to reconcile an UNCERTAIN notification.' },
           { status: 400 }
         );
       }
+
+      if (!evidenceRef || evidenceRef.trim().length < 3) {
+        return NextResponse.json(
+          { error: 'An authoritative evidence reference (e.g., provider message ID, support ticket, or call log) is required.' },
+          { status: 400 }
+        );
+      }
+
+      const targetAttempt = affectedAttemptId || existingStudent.messageHistory?.[existingStudent.messageHistory.length - 1]?.messageId || 'UNKNOWN_ATTEMPT';
 
       await db.addAuditLog({
         actorUid: user!.uid,
@@ -132,6 +144,8 @@ export async function POST(req: NextRequest) {
           previousStatus: existingStudent.whatsappStatus,
           resolvedStatus: status,
           reason: reason.trim(),
+          evidenceRef: evidenceRef.trim(),
+          affectedAttemptId: targetAttempt,
           resolvedByUid: user!.uid,
           resolvedByEmail: user!.email,
           timestamp: now,

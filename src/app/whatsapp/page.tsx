@@ -1948,6 +1948,15 @@ export default function WhatsAppPage() {
                       );
                     }
 
+                    if (previewCandidate.whatsappStatus === 'UNCERTAIN') {
+                      return (
+                        <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-center text-xs text-amber-800 font-semibold flex items-center justify-center space-x-1.5 shadow-xs">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>Uncertain (In-Flight) &bull; Re-send Blocked &bull; Reconcile First</span>
+                        </div>
+                      );
+                    }
+
                     return (
                       <button
                         type="button"
