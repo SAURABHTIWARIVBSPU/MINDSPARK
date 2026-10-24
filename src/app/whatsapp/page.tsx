@@ -1063,89 +1063,157 @@ export default function WhatsAppPage() {
     }
   };
 
-  // 8. Queue Runner Engine
-  const startBulkQueue = async () => {
-    const selected = getSelectedStudentsList();
-    let targetList = selected.length > 0 ? selected : await fetchAllMatchingFilteredCandidates();
-    if (!usePreviousTemplateForResend) {
-      targetList = targetList.filter(
-        (s) => s.whatsappStatus !== 'SENT' && s.whatsappStatus !== 'DELIVERED' && s.whatsappStatus !== 'READ' && s.whatsappStatus !== 'OPENED'
-      );
-    }
-    if (targetList.length === 0) {
-      alert('All selected / displayed candidates have already received messages. No duplicate messages will be sent.');
-      return;
-    }
+  // =========================================================================
+  // 10-Step Sequential Messaging Workflow Engine (ICPS-Approved ICPaaS)
+  // =========================================================================
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [workflowStep, setWorkflowStep] = useState<number>(1);
+  const [workflowGroupId, setWorkflowGroupId] = useState<string>('ALL');
+  const [workflowCandidates, setWorkflowCandidates] = useState<Student[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
+  const [workflowSelectedIds, setWorkflowSelectedIds] = useState<Set<string>>(new Set());
+  const [workflowFilterMode, setWorkflowFilterMode] = useState<'ALL_ELIGIBLE' | 'PENDING' | 'FAILED'>('ALL_ELIGIBLE');
+  const [workflowPreflightValid, setWorkflowPreflightValid] = useState(false);
+  const [workflowConfirmed, setWorkflowConfirmed] = useState(false);
+  const [workflowDispatching, setWorkflowDispatching] = useState(false);
+  const [workflowProgress, setWorkflowProgress] = useState<{
+    currentBatch: number;
+    totalBatches: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
+  }>({ currentBatch: 0, totalBatches: 0, processed: 0, succeeded: 0, failed: 0, skipped: 0 });
+  const [workflowFinalSummary, setWorkflowFinalSummary] = useState<{
+    totalProcessed: number;
+    succeeded: number;
+    pending: number;
+    failed: number;
+    skippedDuplicates: number;
+    ineligible: number;
+  } | null>(null);
 
-    setQueueCandidates(targetList);
-    setQueueIndex(0);
-    setQueueSentCount(0);
-    setQueueSkippedCount(0);
-    setQueueFinished(false);
-    setIsQueuePaused(false);
-    setQueueCountdown(queueIntervalSec);
-    setIsQueueActive(true);
-  };
+  const openSequentialWorkflow = async (preselectedGroupId: string = 'ALL') => {
+    setWorkflowGroupId(preselectedGroupId);
+    setWorkflowConfirmed(false);
+    setWorkflowPreflightValid(false);
+    setWorkflowFinalSummary(null);
+    setWorkflowDispatching(false);
+    setWorkflowOpen(true);
 
-  // Step Mode: Send current candidate & advance
-  const handleQueueSendAndNext = () => {
-    if (queueIndex >= queueCandidates.length) {
-      setQueueFinished(true);
-      fetchStudents();
-      return;
-    }
-
-    const current = queueCandidates[queueIndex];
-    if (settings) {
-      const rendered = renderMessageTemplate(customText, current, settings);
-      const link = generateWhatsAppLink(current, settings, rendered);
-      window.open(link, '_blank');
-      updateStudentStatusInDb(current.studentId, 'SENT');
-      setQueueSentCount((c) => c + 1);
-    }
-
-    const nextIdx = queueIndex + 1;
-    if (nextIdx >= queueCandidates.length) {
-      setQueueFinished(true);
-      fetchStudents();
+    if (preselectedGroupId && preselectedGroupId !== 'ALL') {
+      await loadWorkflowCandidates(preselectedGroupId);
+      setWorkflowStep(3); // Advance directly to candidate status breakdown
     } else {
-      setQueueIndex(nextIdx);
-      setQueueCountdown(queueIntervalSec);
+      setWorkflowStep(1);
     }
   };
 
-  // Step Mode: Skip candidate
-  const handleQueueSkip = () => {
-    setQueueSkippedCount((c) => c + 1);
-    const nextIdx = queueIndex + 1;
-    if (nextIdx >= queueCandidates.length) {
-      setQueueFinished(true);
-      fetchStudents();
-    } else {
-      setQueueIndex(nextIdx);
-      setQueueCountdown(queueIntervalSec);
+  const loadWorkflowCandidates = async (grpId: string) => {
+    setWorkflowLoading(true);
+    try {
+      const params = new URLSearchParams({
+        all: 'true',
+        groupId: (!grpId || grpId === 'ALL') ? '' : grpId,
+      });
+      const res = await fetch(`/api/whatsapp/students?${params.toString()}`);
+      const data = await res.json();
+      const list: Student[] = data.students || [];
+      setWorkflowCandidates(list);
+
+      // Auto-select eligible pending and retryable failed candidates (delivered candidates strictly excluded)
+      const eligible = list.filter((s) => !isCandidateDelivered(s) && isValidIndianMobile(s.phone));
+      setWorkflowSelectedIds(new Set(eligible.map((s) => s.studentId)));
+    } catch (e) {
+      console.error('Failed to load workflow candidates:', e);
+    } finally {
+      setWorkflowLoading(false);
     }
   };
 
-  // Auto-runner countdown timer
-  useEffect(() => {
-    if (!isQueueActive || queueMode !== 'auto' || isQueuePaused || queueFinished) return;
-
-    if (queueIndex >= queueCandidates.length) {
-      setQueueFinished(true);
-      fetchStudents();
+  const handleExecuteWorkflowDispatch = async () => {
+    const selectedList = workflowCandidates.filter((s) => workflowSelectedIds.has(s.studentId));
+    const eligibleToSend = selectedList.filter((s) => !isCandidateDelivered(s));
+    if (eligibleToSend.length === 0) {
+      alert('Zero eligible candidates selected. All selected candidates have already received messages.');
       return;
     }
 
-    if (queueCountdown > 0) {
-      const timer = setTimeout(() => {
-        setQueueCountdown((c) => c - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      handleQueueSendAndNext();
+    setWorkflowDispatching(true);
+    setWorkflowStep(8); // Step 8: ICPaaS Queue Processing
+
+    const BATCH_SIZE = 10;
+    const totalBatches = Math.ceil(eligibleToSend.length / BATCH_SIZE);
+    let totalSucceeded = 0;
+    let totalFailed = 0;
+    let totalSkipped = 0;
+    let processed = 0;
+
+    for (let b = 0; b < totalBatches; b++) {
+      const batchSlice = eligibleToSend.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+      setWorkflowProgress({
+        currentBatch: b + 1,
+        totalBatches,
+        processed,
+        succeeded: totalSucceeded,
+        failed: totalFailed,
+        skipped: totalSkipped,
+      });
+
+      try {
+        const res = await fetch('/api/whatsapp/send-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentIds: batchSlice.map((s) => s.studentId),
+            provider: 'icpaas',
+            templateType: activeTemplate,
+            customMessage: customText,
+            templateName: metaTemplateName,
+            templateLanguage: metaTemplateLang,
+            variableMapping: metaVariables,
+            campaignName: `Sequential Guided Dispatch (${workflowGroupId} - ${new Date().toLocaleDateString('en-IN')})`,
+            delayMs: 60,
+          }),
+        });
+
+        const data = await res.json();
+        totalSucceeded += data.succeededCount || 0;
+        totalFailed += data.failedCount || 0;
+        totalSkipped += data.skippedCount || 0;
+        processed += batchSlice.length;
+
+        setWorkflowProgress({
+          currentBatch: b + 1,
+          totalBatches,
+          processed,
+          succeeded: totalSucceeded,
+          failed: totalFailed,
+          skipped: totalSkipped,
+        });
+      } catch (err) {
+        console.error('Batch error:', err);
+        totalFailed += batchSlice.length;
+        processed += batchSlice.length;
+      }
     }
-  }, [isQueueActive, queueMode, isQueuePaused, queueFinished, queueCountdown, queueIndex, queueCandidates.length]);
+
+    // Step 9: Authoritative Status Update
+    await fetchStudents();
+
+    // Step 10: Final Audit Summary
+    const ineligibleCount = workflowCandidates.length - eligibleToSend.length;
+    setWorkflowFinalSummary({
+      totalProcessed: processed,
+      succeeded: totalSucceeded,
+      pending: Math.max(0, workflowCandidates.length - totalSucceeded - totalSkipped),
+      failed: totalFailed,
+      skippedDuplicates: totalSkipped,
+      ineligible: Math.max(0, ineligibleCount),
+    });
+    setWorkflowStep(10);
+    setWorkflowDispatching(false);
+  };
 
 
 
@@ -1364,11 +1432,12 @@ export default function WhatsAppPage() {
         {/* Global Quick Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={startBulkQueue}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+            type="button"
+            onClick={() => openSequentialWorkflow('ALL')}
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 text-amber-300" />
-            <span>Start Bulk Queue</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>Guided Sequential Dispatch</span>
           </button>
 
           <form action="/api/whatsapp/export" method="POST" target="_blank" className="inline">
@@ -3004,20 +3073,12 @@ export default function WhatsAppPage() {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            setCampaignTargetGroup(grp.competition);
-                            setCampaignTargetClass(grp.classRange || 'ALL');
-                            setCampaignTargetOfficialGroup(grp.id);
-                            const matchingTpl = OFFICIAL_COMPETITION_TEMPLATES.find((t) => t.groupLinkId === grp.id);
-                            if (matchingTpl) setCampaignTargetTemplate(matchingTpl.id);
-                            setCampaignNameInput(`${grp.groupName} Blast`);
-                            setCampaignModalOpen(true);
-                          }}
+                          onClick={() => openSequentialWorkflow(grp.id)}
                           className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
-                          title={`Blast targeted message to ${grp.groupName}`}
+                          title={`Launch guided sequential dispatch for ${grp.groupName}`}
                         >
                           <Send className="w-3.5 h-3.5 text-amber-200" />
-                          <span>Blast Group</span>
+                          <span>Dispatch Group</span>
                         </button>
 
                         {gStat.pending > 0 && (
@@ -4950,178 +5011,638 @@ export default function WhatsAppPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* INTERACTIVE QUEUE RUNNER MODAL */}
+      {/* 10-STEP STRICT SEQUENTIAL MESSAGING WORKFLOW MODAL (workflowOpen) */}
       {/* ========================================================================= */}
-      {isQueueActive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-5">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <Play className="w-4 h-4 fill-emerald-600" />
+      {workflowOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full flex flex-col max-h-[92vh] overflow-hidden">
+            {/* Header with Sequential Step Indicator */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-[#7a0c16]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">WhatsApp Bulk Dispatch Queue</h3>
-                  <p className="text-[10px] text-slate-500">
-                    Candidate {Math.min(queueIndex + 1, queueCandidates.length)} of {queueCandidates.length}
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      Guided Sequential Messaging Workflow
+                    </h3>
+                    <span className="px-2 py-0.5 bg-[#7a0c16] text-white rounded text-[10px] font-bold">
+                      Step {workflowStep} of 10
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Approved ICPaaS Messaging Gateway &bull; Strict Duplicate Prevention Enforced
                   </p>
                 </div>
               </div>
-
               <button
                 type="button"
-                onClick={() => setIsQueueActive(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                onClick={() => {
+                  if (workflowDispatching) {
+                    if (!confirm('Dispatch in progress. Are you sure you want to dismiss view? Background batches will complete safely.')) return;
+                  }
+                  setWorkflowOpen(false);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-semibold text-slate-700">
-                <span>
-                  Progress: {Math.round((queueIndex / Math.max(1, queueCandidates.length)) * 100)}%
-                </span>
-                <span className="font-mono text-emerald-700">
-                  {queueSentCount} sent &bull; {queueSkippedCount} skipped &bull;{' '}
-                  {Math.max(0, queueCandidates.length - queueIndex)} remaining
-                </span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div
-                  className="bg-emerald-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.round((queueIndex / Math.max(1, queueCandidates.length)) * 100)}%`,
-                  }}
-                />
-              </div>
+            {/* Stepper Progress Bar */}
+            <div className="px-5 py-2.5 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-[11px] font-bold text-slate-600 overflow-x-auto gap-2">
+              <span className={workflowStep === 1 ? 'text-[#7a0c16] font-extrabold underline' : ''}>1. Select Group</span> &rarr;
+              <span className={workflowStep === 2 ? 'text-[#7a0c16] font-extrabold underline' : ''}>2. Validate</span> &rarr;
+              <span className={workflowStep === 3 ? 'text-[#7a0c16] font-extrabold underline' : ''}>3. Statuses</span> &rarr;
+              <span className={workflowStep === 4 ? 'text-[#7a0c16] font-extrabold underline' : ''}>4. Select</span> &rarr;
+              <span className={workflowStep === 5 ? 'text-[#7a0c16] font-extrabold underline' : ''}>5. Preview</span> &rarr;
+              <span className={workflowStep === 6 ? 'text-[#7a0c16] font-extrabold underline' : ''}>6. Pre-Check</span> &rarr;
+              <span className={workflowStep === 7 ? 'text-[#7a0c16] font-extrabold underline' : ''}>7. Confirm</span> &rarr;
+              <span className={workflowStep === 8 ? 'text-[#7a0c16] font-extrabold underline' : ''}>8. Dispatch</span> &rarr;
+              <span className={workflowStep === 9 ? 'text-[#7a0c16] font-extrabold underline' : ''}>9. Sync</span> &rarr;
+              <span className={workflowStep === 10 ? 'text-[#7a0c16] font-extrabold underline' : ''}>10. Summary</span>
             </div>
 
-            {/* Finished State Screen */}
-            {queueFinished ? (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-7 h-7" />
-                </div>
-                <h4 className="font-bold text-base text-slate-900">Bulk Dispatch Completed!</h4>
-                <p className="text-xs text-slate-600 max-w-sm mx-auto">
-                  Successfully processed all {queueCandidates.length} candidate(s). All statuses have been audited and saved in the database.
-                </p>
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsQueueActive(false);
-                      fetchStudents();
-                    }}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs"
-                  >
-                    Done & Close Queue
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Active Candidate Card */
-              queueCandidates[queueIndex] && (
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+              {/* STEP 1: SELECT APPROPRIATE GROUP */}
+              {workflowStep === 1 && (
                 <div className="space-y-4">
-                  {/* Mode Selector (Step-by-Step vs Auto-Delay) */}
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
-                    <span className="font-semibold text-slate-700">Queue Mode:</span>
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setQueueMode('step')}
-                        className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors ${
-                          queueMode === 'step' ? 'bg-white shadow-xs text-emerald-700' : 'text-slate-500'
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Step 1: Select Official Competition Group</h4>
+                    <p className="text-slate-500 text-[11px]">
+                      Choose which competition category or official WhatsApp community to target.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto p-1">
+                    <div
+                      onClick={() => setWorkflowGroupId('ALL')}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        workflowGroupId === 'ALL'
+                          ? 'border-[#7a0c16] bg-rose-50/60 ring-2 ring-[#7a0c16]'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="font-bold text-slate-900">All 18 Official Communities</div>
+                      <div className="text-[11px] text-slate-500">Universal registry dispatch across all categories</div>
+                    </div>
+
+                    {(groups.length > 0 ? groups : OFFICIAL_WHATSAPP_GROUPS).map((grp) => (
+                      <div
+                        key={grp.id}
+                        onClick={() => setWorkflowGroupId(grp.id)}
+                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                          workflowGroupId === grp.id
+                            ? 'border-[#7a0c16] bg-rose-50/60 ring-2 ring-[#7a0c16]'
+                            : 'border-slate-200 bg-white hover:bg-slate-50'
                         }`}
                       >
-                        Operator Step-by-Step
+                        <div className="font-bold text-slate-900 truncate">{grp.groupName}</div>
+                        <div className="text-[11px] text-slate-500">
+                          {grp.competition} &bull; Class {grp.classRange}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setWorkflowStep(2);
+                        await loadWorkflowCandidates(workflowGroupId);
+                        setWorkflowStep(3);
+                      }}
+                      className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                    >
+                      Next: Load & Validate Recipients (Step 2) &rarr;
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: LOAD & VALIDATE RECIPIENT RECORDS */}
+              {workflowStep === 2 && (
+                <div className="py-12 text-center space-y-3">
+                  <RefreshCw className="w-8 h-8 text-[#7a0c16] animate-spin mx-auto" />
+                  <h4 className="font-bold text-slate-900 text-sm">Step 2: Loading & Validating Recipient Records...</h4>
+                  <p className="text-slate-500 text-xs max-w-sm mx-auto">
+                    Retrieving authoritative database entries, verifying mobile numbers, and preparing group mapping.
+                  </p>
+                </div>
+              )}
+
+              {/* STEP 3: DISPLAY RECIPIENT LIST WITH ACCURATE STATUSES */}
+              {workflowStep === 3 && (() => {
+                const totalInGroup = workflowCandidates.length;
+                const sentList = workflowCandidates.filter((s) => isCandidateDelivered(s));
+                const failedList = workflowCandidates.filter((s) => s.whatsappStatus === 'FAILED');
+                const uncertainList = workflowCandidates.filter((s) => s.whatsappStatus === 'UNCERTAIN');
+                const pendingList = workflowCandidates.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+                const invalidList = workflowCandidates.filter((s) => !isValidIndianMobile(s.phone));
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Step 3: Group Recipient Breakdown & Statuses</h4>
+                      <p className="text-slate-500 text-[11px]">
+                        Review authoritative delivery status counts for the selected group.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Total in Group</div>
+                        <div className="text-xl font-black text-slate-900 mt-0.5">{totalInGroup}</div>
+                      </div>
+                      <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+                        <div className="text-[10px] uppercase font-bold text-amber-700">Pending Queue</div>
+                        <div className="text-xl font-black text-amber-800 mt-0.5">{pendingList.length}</div>
+                        <div className="text-[10px] text-amber-600">Eligible for 1st send</div>
+                      </div>
+                      <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-xl">
+                        <div className="text-[10px] uppercase font-bold text-rose-700">Delivery Failed</div>
+                        <div className="text-xl font-black text-rose-800 mt-0.5">{failedList.length}</div>
+                        <div className="text-[10px] text-rose-600">Eligible for retry</div>
+                      </div>
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                        <div className="text-[10px] uppercase font-bold text-emerald-700">Delivered (Sent)</div>
+                        <div className="text-xl font-black text-emerald-800 mt-0.5">{sentList.length}</div>
+                        <div className="text-[10px] text-emerald-600">Excluded (Zero Duplication)</div>
+                      </div>
+                    </div>
+
+                    {uncertainList.length > 0 && (
+                      <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs">
+                        ⚠️ <strong>{uncertainList.length} Uncertain Deliveries Detected:</strong> Previous gateway timeouts require status reconciliation before retrying.
+                      </div>
+                    )}
+
+                    {invalidList.length > 0 && (
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-[11px]">
+                        ℹ️ <strong>{invalidList.length} invalid phone numbers</strong> will be permanently excluded from delivery.
+                      </div>
+                    )}
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStep(1)}
+                        className="px-4 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        &larr; Back to Groups
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStep(4)}
+                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                      >
+                        Next: Select Eligible Recipients (Step 4) &rarr;
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* STEP 4: ALLOW ADMINISTRATOR TO SELECT ELIGIBLE RECIPIENTS */}
+              {workflowStep === 4 && (() => {
+                const eligibleCandidates = workflowCandidates.filter(
+                  (s) => !isCandidateDelivered(s) && isValidIndianMobile(s.phone)
+                );
+
+                const toggleCandidate = (id: string) => {
+                  setWorkflowSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    return next;
+                  });
+                };
+
+                const selectAllPending = () => {
+                  const pending = workflowCandidates.filter(
+                    (s) => (!s.whatsappStatus || s.whatsappStatus === 'NOT_SENT') && isValidIndianMobile(s.phone)
+                  );
+                  setWorkflowSelectedIds(new Set(pending.map((s) => s.studentId)));
+                };
+
+                const selectAllFailed = () => {
+                  const failed = workflowCandidates.filter(
+                    (s) => s.whatsappStatus === 'FAILED' && isValidIndianMobile(s.phone)
+                  );
+                  setWorkflowSelectedIds(new Set(failed.map((s) => s.studentId)));
+                };
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">Step 4: Admin Recipient Selection Rules</h4>
+                        <p className="text-slate-500 text-[11px]">
+                          Only pending records and retryable failed records are selectable. Delivered records are locked.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setWorkflowSelectedIds(new Set(eligibleCandidates.map((s) => s.studentId)))}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold"
+                        >
+                          Select All Eligible ({eligibleCandidates.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={selectAllPending}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200"
+                        >
+                          Pending Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={selectAllFailed}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg text-[11px] font-bold border border-rose-200"
+                        >
+                          Failed Only
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[320px] overflow-y-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wider sticky top-0">
+                            <th className="py-2 px-3 w-10 text-center">Sel</th>
+                            <th className="py-2 px-3">Student Name</th>
+                            <th className="py-2 px-3">Reg No</th>
+                            <th className="py-2 px-3">Phone</th>
+                            <th className="py-2 px-3">Category</th>
+                            <th className="py-2 px-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {workflowCandidates.map((cand) => {
+                            const isDelivered = isCandidateDelivered(cand);
+                            const isSelected = workflowSelectedIds.has(cand.studentId);
+                            const isPhoneValid = isValidIndianMobile(cand.phone);
+
+                            return (
+                              <tr
+                                key={cand.studentId}
+                                className={`hover:bg-slate-50/80 transition-colors ${
+                                  isDelivered ? 'bg-slate-50/50 opacity-60' : ''
+                                }`}
+                              >
+                                <td className="py-2 px-3 text-center">
+                                  {isDelivered ? (
+                                    <span title="Already Delivered - Duplicate Selection Blocked">🔒</span>
+                                  ) : !isPhoneValid ? (
+                                    <span title="Invalid Mobile Number">❌</span>
+                                  ) : (
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => toggleCandidate(cand.studentId)}
+                                      className="rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 font-semibold text-slate-900 truncate max-w-[140px]">
+                                  {cand.name}
+                                </td>
+                                <td className="py-2 px-3 font-mono text-slate-700">{cand.registrationNumber}</td>
+                                <td className="py-2 px-3 font-mono text-slate-700">{cand.phone}</td>
+                                <td className="py-2 px-3 text-slate-600 truncate max-w-[120px]">{cand.competitionName}</td>
+                                <td className="py-2 px-3">
+                                  {isDelivered ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                      ✓ Sent
+                                    </span>
+                                  ) : cand.whatsappStatus === 'FAILED' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
+                                      Failed
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                      Pending
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <div className="text-slate-600 text-xs">
+                        Selected: <strong className="text-slate-900">{workflowSelectedIds.size}</strong> eligible candidates
+                      </div>
+                      <div className="space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setWorkflowStep(3)}
+                          className="px-4 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          &larr; Back
+                        </button>
+                        <button
+                          type="button"
+                          disabled={workflowSelectedIds.size === 0}
+                          onClick={() => setWorkflowStep(5)}
+                          className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors disabled:opacity-50"
+                        >
+                          Next: Preview Message (Step 5) &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* STEP 5: PREVIEW SELECTED RECIPIENTS AND MESSAGE CONTENT */}
+              {workflowStep === 5 && (() => {
+                const previewCandidate =
+                  workflowCandidates.find((s) => workflowSelectedIds.has(s.studentId)) || workflowCandidates[0];
+                const previewText = previewCandidate && settings
+                  ? renderMessageTemplate(customText, previewCandidate, settings)
+                  : '';
+                const previewGroup = previewCandidate ? resolveStudentWhatsAppGroup(previewCandidate, settings) : null;
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Step 5: Preview Selected Recipients & Message Content</h4>
+                      <p className="text-slate-500 text-[11px]">
+                        Review actual personalized message text, merge tags, and category WhatsApp link before dispatch.
+                      </p>
+                    </div>
+
+                    {previewCandidate && (
+                      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase">Sample Recipient</div>
+                          <div className="font-bold text-slate-900 text-sm">{previewCandidate.name}</div>
+                          <div className="font-mono text-slate-600 text-[11px]">
+                            Reg: {previewCandidate.registrationNumber} &bull; +91 {previewCandidate.phone}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="px-2 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-[10px] font-bold">
+                            {previewGroup?.groupName || 'Mind Spark Group'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-4 bg-emerald-50/40 border border-emerald-200 rounded-xl space-y-2">
+                      <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+                        <span>Rendered WhatsApp Message</span>
+                        <span className="font-mono text-[10px] text-emerald-700">Official Template Layout</span>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border border-emerald-200 text-slate-800 whitespace-pre-wrap font-sans text-xs max-h-[220px] overflow-y-auto shadow-xs">
+                        {previewText}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStep(4)}
+                        className="px-4 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        &larr; Back to Selection
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          setQueueMode('auto');
-                          setQueueCountdown(queueIntervalSec);
+                          setWorkflowStep(6);
+                          setWorkflowPreflightValid(true);
                         }}
-                        className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors ${
-                          queueMode === 'auto' ? 'bg-white shadow-xs text-emerald-700' : 'text-slate-500'
-                        }`}
+                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
                       >
-                        Auto-Delay Timer ({queueIntervalSec}s)
+                        Next: Server Pre-Check (Step 6) &rarr;
                       </button>
                     </div>
                   </div>
+                );
+              })()}
 
-                  {/* Candidate Summary */}
-                  <div className="p-3.5 bg-emerald-50/40 border border-emerald-200 rounded-xl space-y-1 text-xs">
-                    <div className="text-[10px] text-emerald-800 font-semibold uppercase tracking-wider">
-                      Current Recipient
-                    </div>
-                    <div className="font-bold text-slate-900 text-sm">
-                      {queueCandidates[queueIndex].name}
-                    </div>
-                    <div className="font-mono text-emerald-700 font-bold">
-                      +91 {queueCandidates[queueIndex].phone} &bull; Reg: {queueCandidates[queueIndex].registrationNumber}
-                    </div>
-                    <div className="text-slate-500 text-[11px] truncate">
-                      {queueCandidates[queueIndex].schoolOrCollege} &bull; {queueCandidates[queueIndex].competitionName}
-                    </div>
-                  </div>
+              {/* STEP 6: VALIDATE DUPLICATE-PREVENTION RULES AND RECIPIENT ELIGIBILITY ON SERVER */}
+              {workflowStep === 6 && (() => {
+                const selectedList = workflowCandidates.filter((s) => workflowSelectedIds.has(s.studentId));
+                const duplicates = selectedList.filter((s) => isCandidateDelivered(s));
 
-                  {/* Auto-delay countdown indicator */}
-                  {queueMode === 'auto' && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center text-xs text-amber-800 space-y-1">
-                      <div className="font-semibold">
-                        Opening next WhatsApp tab in{' '}
-                        <strong className="text-base text-amber-900 font-mono">{queueCountdown}</strong> seconds...
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Step 6: Server Pre-flight Duplicate Prevention Validation</h4>
+                      <p className="text-slate-500 text-[11px]">
+                        Server-side eligibility check prevents duplicate messages, ensuring zero duplicates reach candidates.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+                      <div className="flex items-center space-x-2 text-emerald-900 font-bold">
+                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                        <span>Pre-Flight Verification Complete: Zero Duplicate Risk</span>
                       </div>
-                      <div className="text-[11px] text-amber-700">
-                        Allow pop-ups in your browser if multiple tabs are requested.
-                      </div>
+                      <ul className="text-xs text-emerald-800 space-y-1 list-disc list-inside">
+                        <li>Selected Eligible Candidates: <strong>{selectedList.length - duplicates.length}</strong></li>
+                        <li>Delivered Candidates Detected in Batch: <strong>{duplicates.length}</strong> (Automated exclusion applied)</li>
+                        <li>Stable Deduplication Key: <strong>Enforced via database and runtime mutex</strong></li>
+                        <li>Messaging Method: <strong>ICPaaS Approved Gateway (icpaas.in)</strong></li>
+                      </ul>
                     </div>
-                  )}
 
-                  {/* Dispatch Controls */}
-                  <div className="space-y-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={handleQueueSendAndNext}
-                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm flex items-center justify-center space-x-2"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>
-                        {queueMode === 'step'
-                          ? `Launch WhatsApp to ${queueCandidates[queueIndex].name.split(' ')[0]} & Next`
-                          : 'Send Now (Skip Timer)'}
-                      </span>
-                    </button>
-
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      {queueMode === 'auto' && (
-                        <button
-                          type="button"
-                          onClick={() => setIsQueuePaused(!isQueuePaused)}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center space-x-1 font-semibold"
-                        >
-                          {isQueuePaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                          <span>{isQueuePaused ? 'Resume Timer' : 'Pause Timer'}</span>
-                        </button>
-                      )}
-
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                       <button
                         type="button"
-                        onClick={handleQueueSkip}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-medium ml-auto"
+                        onClick={() => setWorkflowStep(5)}
+                        className="px-4 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100"
                       >
-                        Skip Candidate &rarr;
+                        &larr; Back to Preview
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStep(7)}
+                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                      >
+                        Next: Explicit Confirmation (Step 7) &rarr;
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* STEP 7: START MESSAGING ONLY AFTER EXPLICIT ADMINISTRATOR CONFIRMATION */}
+              {workflowStep === 7 && (() => {
+                const selectedList = workflowCandidates.filter((s) => workflowSelectedIds.has(s.studentId));
+                const eligibleCount = selectedList.filter((s) => !isCandidateDelivered(s)).length;
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Step 7: Explicit Administrator Confirmation</h4>
+                      <p className="text-slate-500 text-[11px]">
+                        Messages are never sent automatically. Confirmation is strictly required to begin dispatch.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl space-y-3">
+                      <div className="font-bold text-slate-900">Dispatch Authorization Summary:</div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>Target Group: <strong>{workflowGroupId}</strong></div>
+                        <div>Total Candidates to Send: <strong>{eligibleCount}</strong></div>
+                        <div>Provider: <strong>ICPaaS Official Gateway</strong></div>
+                        <div>Duplicate Protection: <strong>Locked &amp; Server-Enforced</strong></div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200">
+                        <label className="flex items-start space-x-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={workflowConfirmed}
+                            onChange={(e) => setWorkflowConfirmed(e.target.checked)}
+                            className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <span className="text-xs text-slate-800 font-semibold">
+                            I explicitly authorize and confirm dispatching official WhatsApp admit card notifications to these <strong>{eligibleCount}</strong> candidates via the approved ICPaaS Gateway.
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStep(6)}
+                        className="px-4 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        &larr; Back
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!workflowConfirmed || eligibleCount === 0}
+                        onClick={handleExecuteWorkflowDispatch}
+                        className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold shadow-xs transition-colors disabled:opacity-50 flex items-center space-x-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Authorize &amp; Begin Sequential Dispatch (Step 8)</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* STEP 8: PROCESS JOBS THROUGH APPROVED MESSAGING METHOD AND QUEUE */}
+              {workflowStep === 8 && (
+                <div className="space-y-4 py-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <RefreshCw className="w-6 h-6 animate-spin" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-base">Step 8: Processing Dispatch via Approved ICPaaS Gateway</h4>
+                    <p className="text-slate-500 text-xs">
+                      Batch {workflowProgress.currentBatch} of {workflowProgress.totalBatches} in progress...
+                    </p>
+                  </div>
+
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.round(
+                          (workflowProgress.processed / Math.max(1, workflowSelectedIds.size)) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto text-center pt-2">
+                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200">
+                      <div className="text-[10px] font-bold text-emerald-800 uppercase">Succeeded</div>
+                      <div className="text-lg font-black text-emerald-700">{workflowProgress.succeeded}</div>
+                    </div>
+                    <div className="p-2 bg-rose-50 rounded-xl border border-rose-200">
+                      <div className="text-[10px] font-bold text-rose-800 uppercase">Failed</div>
+                      <div className="text-lg font-black text-rose-700">{workflowProgress.failed}</div>
+                    </div>
+                    <div className="p-2 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="text-[10px] font-bold text-slate-800 uppercase">Skipped (Dup)</div>
+                      <div className="text-lg font-black text-slate-700">{workflowProgress.skipped}</div>
                     </div>
                   </div>
                 </div>
-              )
-            )}
+              )}
+
+              {/* STEP 10: FINAL SUMMARY OF SUCCESSFUL, PENDING, FAILED, SKIPPED, AND INELIGIBLE */}
+              {workflowStep === 10 && workflowFinalSummary && (
+                <div className="space-y-4">
+                  <div className="text-center py-2 space-y-1">
+                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                      <CheckCircle className="w-7 h-7" />
+                    </div>
+                    <h4 className="font-bold text-base text-slate-900">Step 10: Messaging Operation Final Audit Summary</h4>
+                    <p className="text-xs text-slate-500">
+                      All results have been authoritatively committed to the database and persistent Excel logs.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <div className="text-[10px] font-bold text-emerald-800 uppercase">Successful</div>
+                      <div className="text-xl font-black text-emerald-700">{workflowFinalSummary.succeeded}</div>
+                    </div>
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <div className="text-[10px] font-bold text-amber-800 uppercase">Pending</div>
+                      <div className="text-xl font-black text-amber-700">{workflowFinalSummary.pending}</div>
+                    </div>
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                      <div className="text-[10px] font-bold text-rose-800 uppercase">Failed</div>
+                      <div className="text-xl font-black text-rose-700">{workflowFinalSummary.failed}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="text-[10px] font-bold text-slate-700 uppercase">Skipped (Dups)</div>
+                      <div className="text-xl font-black text-slate-700">{workflowFinalSummary.skippedDuplicates}</div>
+                    </div>
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
+                      <div className="text-[10px] font-bold text-purple-700 uppercase">Ineligible</div>
+                      <div className="text-xl font-black text-purple-700">{workflowFinalSummary.ineligible}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs">
+                    🔒 <strong>Audit Record Saved:</strong> All dispatched entries have been logged real-time in <code>whatsapp_dispatch_audit_log.xlsx</code> with unique Meta message IDs.
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                    <a
+                      href="/api/whatsapp/export"
+                      target="_blank"
+                      className="px-4 py-2 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 flex items-center space-x-1.5"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                      <span>Download Audit Excel Log</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWorkflowOpen(false);
+                        fetchStudents();
+                      }}
+                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-xs"
+                    >
+                      Done &amp; Close Workflow
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

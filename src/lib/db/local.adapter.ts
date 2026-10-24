@@ -346,6 +346,7 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
       groupLink?: string;
       campaignId?: string;
       campaignName?: string;
+      preserveSuccessful?: boolean;
       perStudentMetadata?: Record<
         string,
         {
@@ -370,6 +371,17 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     for (let i = 0; i < this.data.students.length; i++) {
       if (idSet.has(this.data.students[i].studentId)) {
         const student = this.data.students[i];
+
+        // Safe Delivery Policy: Successful deliveries must NEVER be reset to NOT_SENT if preserveSuccessful is requested
+        const isAlreadySuccessful =
+          student.whatsappStatus === 'SENT' ||
+          student.whatsappStatus === 'DELIVERED' ||
+          student.whatsappStatus === 'READ' ||
+          student.whatsappStatus === 'OPENED';
+        if (status === 'NOT_SENT' && isAlreadySuccessful && metadata?.preserveSuccessful) {
+          continue;
+        }
+
         const history = Array.isArray(student.messageHistory) ? [...student.messageHistory] : [];
         const studentMeta = metadata?.perStudentMetadata?.[student.studentId];
 

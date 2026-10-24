@@ -49,6 +49,7 @@ export interface IDatabaseAdapter {
       groupLink?: string;
       campaignId?: string;
       campaignName?: string;
+      preserveSuccessful?: boolean;
       perStudentMetadata?: Record<
         string,
         {

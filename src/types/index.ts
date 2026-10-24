@@ -37,7 +37,7 @@ export interface User {
 
 export type StudentStatus = 'ACTIVE' | 'ARCHIVED' | 'VOID';
 
-export type WhatsAppStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'OPENED';
+export type WhatsAppStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'OPENED' | 'UNCERTAIN';
 
 export interface WhatsAppGroupLinkItem {
   id: string;
@@ -66,6 +66,8 @@ export interface StudentMessageRecord {
   error?: string;
   provider?: string;
   retryCount?: number;
+  dedupKey?: string;
+  isUncertain?: boolean;
 }
 
 export interface CustomWhatsAppTemplate {

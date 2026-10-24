@@ -151,9 +151,13 @@ export class ICPaaSAdapter {
           responseData?.response?.[0]?.message ||
           responseText ||
           `HTTP ${response.status} ${response.statusText}`;
+
+        const isUncertain = response.status === 504 || response.status === 408 || response.status === 502 || response.status === 503;
         return {
           success: false,
-          error: `ICPaaS Error [HTTP ${response.status}]: ${errorMsg}`,
+          isUncertain,
+          httpStatus: response.status,
+          error: `ICPaaS Error [HTTP ${response.status}]: ${errorMsg}${isUncertain ? ' (Uncertain delivery state - reconcile status before retry)' : ''}`,
         };
       }
 
@@ -169,9 +173,12 @@ export class ICPaaSAdapter {
         messageId,
       };
     } catch (err: any) {
+      const isUncertain = /timeout|timed out|etimedout|econnreset|socket/i.test(err.message || '');
       return {
         success: false,
-        error: `Network dispatch error: ${err.message}`,
+        isUncertain,
+        httpStatus: isUncertain ? 504 : 0,
+        error: `Network dispatch error: ${err.message}${isUncertain ? ' (Uncertain delivery state - reconcile status before retry)' : ''}`,
       };
     }
   }

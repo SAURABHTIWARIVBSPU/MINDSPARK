@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
     let sentCount = 0;
     let pendingCount = 0;
     let failedCount = 0;
+    let uncertainCount = 0;
     let invalidPhoneCount = 0;
 
     for (const s of allActive) {
@@ -51,6 +52,8 @@ export async function GET(req: NextRequest) {
         sentCount++;
       } else if (s.whatsappStatus === 'FAILED') {
         failedCount++;
+      } else if (s.whatsappStatus === 'UNCERTAIN') {
+        uncertainCount++;
       } else {
         pendingCount++;
       }
@@ -99,11 +102,14 @@ export async function GET(req: NextRequest) {
       }
       classCategoryStats[cNorm].total++;
 
-      const cleanResLink = resGroup.groupLink.split('?')[0].trim().toLowerCase();
-      const matchedGroup = configuredGroups.find((g) => {
-        if (g.url.trim() === resGroup.groupLink.trim()) return true;
-        return g.url.split('?')[0].trim().toLowerCase() === cleanResLink;
-      });
+      let matchedGroup = configuredGroups.find((g) => g.id === resGroup.groupId);
+      if (!matchedGroup) {
+        const cleanResLink = resGroup.groupLink.split('?')[0].trim().toLowerCase();
+        matchedGroup = configuredGroups.find((g) => {
+          if (g.url.trim() === resGroup.groupLink.trim()) return true;
+          return g.url.split('?')[0].trim().toLowerCase() === cleanResLink;
+        });
+      }
       if (matchedGroup && groupStats[matchedGroup.id]) {
         groupStats[matchedGroup.id].total++;
       }
@@ -154,6 +160,10 @@ export async function GET(req: NextRequest) {
         filtered = filtered.filter((s) => s.whatsappStatus === 'SENT' || s.whatsappStatus === 'DELIVERED' || s.whatsappStatus === 'READ' || s.whatsappStatus === 'OPENED');
       } else if (whatsappStatus === 'NOT_SENT') {
         filtered = filtered.filter((s) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+      } else if (whatsappStatus === 'FAILED') {
+        filtered = filtered.filter((s) => s.whatsappStatus === 'FAILED');
+      } else if (whatsappStatus === 'UNCERTAIN') {
+        filtered = filtered.filter((s) => s.whatsappStatus === 'UNCERTAIN');
       } else {
         filtered = filtered.filter((s) => (s.whatsappStatus || 'NOT_SENT') === whatsappStatus);
       }
@@ -181,6 +191,7 @@ export async function GET(req: NextRequest) {
         filtered = filtered.filter((s) => {
           const res = studentGroupMap.get(s.studentId);
           if (res) {
+            if (res.groupId === targetGroup.id) return true;
             if (res.groupLink.trim() === targetGroup.url.trim()) return true;
             if (res.groupLink.split('?')[0].trim().toLowerCase() === cleanTarget) return true;
           }
@@ -212,6 +223,7 @@ export async function GET(req: NextRequest) {
       const res = studentGroupMap.get(s.studentId) || resolveStudentWhatsAppGroup(s, settings);
       return {
         ...s,
+        resolvedGroupId: res.groupId,
         resolvedGroupLink: res.groupLink,
         resolvedGroupName: res.groupName,
         classCategory: res.classCategory,
@@ -228,6 +240,7 @@ export async function GET(req: NextRequest) {
           sentCount,
           pendingCount,
           failedCount,
+          uncertainCount,
           invalidPhoneCount,
         },
         competitions,
@@ -256,6 +269,7 @@ export async function GET(req: NextRequest) {
         sentCount,
         pendingCount,
         failedCount,
+        uncertainCount,
         invalidPhoneCount,
       },
       competitions,

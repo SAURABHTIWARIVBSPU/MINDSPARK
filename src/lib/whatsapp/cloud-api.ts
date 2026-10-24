@@ -8,6 +8,8 @@ export interface WhatsAppSendResult {
   success: boolean;
   messageId?: string;
   error?: string;
+  isUncertain?: boolean;
+  httpStatus?: number;
 }
 
 export interface WhatsAppBatchItem {
@@ -26,6 +28,10 @@ export interface WhatsAppBatchResult {
   results?: Array<{ studentId: string; success: boolean; messageId?: string; error?: string }>;
 }
 
+/**
+ * @deprecated Deprecated & Disabled per production policy.
+ * Only the single approved ICPS-recommended messaging method (ICPaaS Gateway) is active.
+ */
 export class WhatsAppCloudApiAdapter {
   private accessToken?: string;
   private phoneNumberId?: string;
@@ -36,66 +42,20 @@ export class WhatsAppCloudApiAdapter {
   }
 
   isConfigured(): boolean {
-    return !!(this.accessToken && this.phoneNumberId);
+    return false; // Permanently disabled in favor of approved ICPaaS Gateway
   }
 
   /**
-   * Send custom text or template message via WhatsApp Graph API
+   * @deprecated Disabled provider.
    */
   async sendMessage(toPhone: string, text: string): Promise<WhatsAppSendResult> {
-    const cleanPhone = normalizePhone(toPhone);
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      return {
-        success: false,
-        error: `Invalid recipient phone number: ${toPhone}`,
-      };
-    }
-
-    if (!this.isConfigured()) {
-      return {
-        success: false,
-        error: 'WhatsApp Cloud API is not configured. Please configure credentials in Settings or use Browser Queue.',
-      };
-    }
-
-    try {
-      const response = await fetch(
-        `https://graph.facebook.com/v19.0/${this.phoneNumberId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: `91${cleanPhone}`,
-            type: 'text',
-            text: {
-              preview_url: false,
-              body: text,
-            },
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Meta WhatsApp API dispatch error');
-      }
-
-      return {
-        success: true,
-        messageId: data.messages?.[0]?.id || `wamid_${Date.now()}`,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err.message,
-      };
-    }
+    return {
+      success: false,
+      error: 'WhatsApp Cloud API direct provider is deprecated and disabled. All messages must be dispatched through the ICPS-recommended ICPaaS Gateway.',
+    };
   }
+
+
 
   /**
    * Process a batch of messages with controlled sequential delay to respect rate limits.

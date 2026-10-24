@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
-import { WhatsAppCloudApiAdapter } from '@/lib/whatsapp/cloud-api';
 import { ICPaaSAdapter } from '@/lib/whatsapp/icpaas.adapter';
+import { DeduplicationGuard } from '@/lib/whatsapp/deduplication-guard';
 import {
   renderMessageTemplate,
   WHATSAPP_TEMPLATES,
@@ -39,6 +39,27 @@ export async function POST(req: NextRequest) {
       usePreviousTemplateForResend = true,
     } = body;
 
+    // Reject deprecated providers (Only ICPaaS approved)
+    if (provider === 'cloud_api' || provider === 'browser_queue_sync') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Provider "${provider}" is deprecated and disabled. All messages must be dispatched through the ICPS-recommended ICPaaS Gateway.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (provider !== 'icpaas' && provider !== 'mark_sent' && provider !== 'reset_unsent') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Unsupported messaging provider "${provider}". Only the ICPS-recommended ICPaaS Gateway is supported.`,
+        },
+        { status: 400 }
+      );
+    }
+
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json({ error: 'No candidate IDs provided for bulk action' }, { status: 400 });
     }
@@ -54,8 +75,8 @@ export async function POST(req: NextRequest) {
       campaignName?.trim() ||
       `${competitionGroup}${classGroup !== 'ALL' ? ' (' + classGroup + ')' : ''} Campaign (${new Date().toLocaleDateString('en-IN')})`;
 
-    // Action 1: Mark as Sent / Opened (from Browser Queue or Operator action)
-    if (provider === 'browser_queue_sync' || provider === 'mark_sent') {
+    // Action 1: Mark as Sent / Opened (Operator reconciliation action)
+    if (provider === 'mark_sent') {
       assertPermission(user, 'messages.prepare');
       const targetStatus: WhatsAppStatus = status === 'OPENED' ? 'OPENED' : 'SENT';
 
@@ -201,7 +222,7 @@ export async function POST(req: NextRequest) {
     // Action 2: Reset status to NOT_SENT for re-sending
     if (provider === 'reset_unsent') {
       assertPermission(user, 'messages.prepare');
-      const updatedCount = await db.batchUpdateStudentWhatsAppStatus(studentIds, 'NOT_SENT');
+      const updatedCount = await db.batchUpdateStudentWhatsAppStatus(studentIds, 'NOT_SENT', { preserveSuccessful: true });
 
       await db.addAuditLog({
         actorUid: user.uid,
@@ -220,16 +241,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Action 3: Disallow deprecated providers (Only ICPaaS approved)
-    if (provider === 'cloud_api' || provider === 'browser_queue_sync') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Provider "${provider}" is deprecated and disabled. All messages must be dispatched through the ICPS-recommended ICPaaS Gateway.`,
-        },
-        { status: 400 }
-      );
-    }
+
 
     // Action 4: ICPaaS (icpaas.in) Official Gateway Bulk Send
     if (provider === 'icpaas') {
@@ -261,18 +273,34 @@ export async function POST(req: NextRequest) {
       const batchItems = [];
       const skippedAlreadySent: string[] = [];
 
+      // If individual personal send, verify candidate eligibility first and block duplicate
+      if (studentIds.length === 1) {
+        const targetStudent = studentMap.get(studentIds[0]);
+        if (targetStudent && DeduplicationGuard.isAlreadyDelivered(targetStudent, { templateId: templateType })) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Deduplication Policy Enforced: Candidate "${targetStudent.name}" has already received their Admit Card notification (Status: ${targetStudent.whatsappStatus}). Duplicate messages cannot be sent.`,
+              skippedCount: 1,
+              succeededCount: 0,
+              failedCount: 0,
+            },
+            { status: 409 }
+          );
+        }
+      }
+
       for (const id of studentIds) {
         const student = studentMap.get(id);
         if (student) {
-          // STRICT DUPLICATE PREVENTION:
-          // Unless forceResend is explicitly requested, NEVER resend to students who already received a message!
-          const isAlreadySent =
-            student.whatsappStatus === 'SENT' ||
-            student.whatsappStatus === 'DELIVERED' ||
-            student.whatsappStatus === 'READ' ||
-            student.whatsappStatus === 'OPENED';
+          // MANDATORY SERVER-SIDE DUPLICATE PREVENTION:
+          // A recipient who has already successfully received a message must never receive that same message again.
+          const dedupKey = DeduplicationGuard.getDeduplicationKey(student.studentId, {
+            notificationType: templateType,
+            sessionYear: settings.regNoYear || '2026',
+          });
 
-          if (!body.forceResend && !body.allowDuplicates && isAlreadySent) {
+          if (DeduplicationGuard.isAlreadyDelivered(student, { templateId: templateType })) {
             skippedAlreadySent.push(student.studentId);
             continue;
           }
@@ -363,6 +391,7 @@ export async function POST(req: NextRequest) {
             templateName: targetTemplateName,
             language: targetLanguage,
             templateParams: bodyParams,
+            dedupKey,
           });
         }
       }
@@ -381,7 +410,7 @@ export async function POST(req: NextRequest) {
 
       // Sequential dispatch with IMMEDIATE per-student DB updates (Never lost on timeout!)
       const succeededIds: string[] = [];
-      const failedDetails: Array<{ studentId: string; error: string }> = [];
+      const failedDetails: Array<{ studentId: string; error: string; isUncertain?: boolean }> = [];
       const perStudentMeta: Record<
         string,
         {
@@ -394,80 +423,135 @@ export async function POST(req: NextRequest) {
           groupLink?: string;
           campaignId?: string;
           campaignName?: string;
+          isUncertain?: boolean;
+          dedupKey?: string;
         }
       > = {};
 
       for (const item of batchItems) {
-        // Enforce authoritative, real-time DB duplicate verification
-        if (!body.forceResend && !body.allowDuplicates) {
-          const studentLive = await db.getStudentById(item.studentId);
-          if (studentLive) {
-            const isSentLive =
-              studentLive.whatsappStatus === 'SENT' ||
-              studentLive.whatsappStatus === 'DELIVERED' ||
-              studentLive.whatsappStatus === 'READ' ||
-              studentLive.whatsappStatus === 'OPENED';
-            if (isSentLive) {
-              skippedAlreadySent.push(item.studentId);
-              continue;
-            }
-          }
+        // Atomic Job Claim to prevent race conditions between concurrent workers or admin sessions
+        const claimed = DeduplicationGuard.claimRecipient(item.studentId, user.uid || 'admin');
+        if (!claimed) {
+          failedDetails.push({
+            studentId: item.studentId,
+            error: 'Conflict: Candidate is actively being processed by another concurrent request',
+          });
+          continue;
         }
 
-        const sendResult = await adapter.sendMessage(item.phone, item.message, {
-          templateName: item.templateName,
-          language: item.language,
-          bodyParams: item.templateParams,
-        });
-
-        const tInfo = studentTemplateMap.get(item.studentId);
-        const nowIso = new Date().toISOString();
-
-        if (sendResult.success) {
-          succeededIds.push(item.studentId);
-          perStudentMeta[item.studentId] = {
-            messageId: sendResult.messageId,
-            templateId: tInfo?.id || templateType,
-            templateName: tInfo?.title || activeTemplateDef.title,
-            templateVersion: tInfo?.version || 1,
-            messageContent: tInfo?.message || '',
-            groupLink: tInfo?.groupLink || '',
-            campaignId,
-            campaignName: effectiveCampaignName,
-          };
-
-          // IMMEDIATE DB UPDATE: Never lose status if function times out!
-          try {
-            await db.updateStudent(item.studentId, {
-              whatsappStatus: 'SENT',
-              whatsappSentAt: nowIso,
-              lastTemplateName: tInfo?.title || activeTemplateDef.title,
-              lastTemplateVersion: tInfo?.version || 1,
-              lastMessageContent: tInfo?.message || '',
-              lastGroupLink: tInfo?.groupLink || '',
-            });
-          } catch (dbErr) {
-            console.error('Failed to update student status in DB:', dbErr);
+        try {
+          // Re-verify against authoritative database right before dispatch
+          const studentLive = await db.getStudentById(item.studentId);
+          if (!studentLive || DeduplicationGuard.isAlreadyDelivered(studentLive, { templateId: templateType })) {
+            skippedAlreadySent.push(item.studentId);
+            continue;
           }
-        } else {
-          failedDetails.push({ studentId: item.studentId, error: sendResult.error || 'Dispatch Failed' });
-          perStudentMeta[item.studentId] = {
-            error: sendResult.error,
-            templateId: tInfo?.id || templateType,
-            templateName: tInfo?.title || activeTemplateDef.title,
-            templateVersion: tInfo?.version || 1,
-            messageContent: tInfo?.message || '',
-            groupLink: tInfo?.groupLink || '',
-            campaignId,
-            campaignName: effectiveCampaignName,
-          };
 
-          try {
-            await db.updateStudent(item.studentId, {
-              whatsappStatus: 'FAILED',
-              updatedAt: nowIso,
+          const sendResult = await adapter.sendMessage(item.phone, item.message, {
+            templateName: item.templateName,
+            language: item.language,
+            bodyParams: item.templateParams,
+          });
+
+          const tInfo = studentTemplateMap.get(item.studentId);
+          const nowIso = new Date().toISOString();
+
+          if (sendResult.success) {
+            succeededIds.push(item.studentId);
+            perStudentMeta[item.studentId] = {
+              messageId: sendResult.messageId,
+              templateId: tInfo?.id || templateType,
+              templateName: tInfo?.title || activeTemplateDef.title,
+              templateVersion: tInfo?.version || 1,
+              messageContent: tInfo?.message || '',
+              groupLink: tInfo?.groupLink || '',
+              campaignId,
+              campaignName: effectiveCampaignName,
+              dedupKey: item.dedupKey,
+            };
+
+            // IMMEDIATE DB UPDATE: Never lose status if function times out!
+            try {
+              const currentHistory = Array.isArray(studentLive.messageHistory) ? [...studentLive.messageHistory] : [];
+              currentHistory.push({
+                templateId: tInfo?.id || templateType,
+                templateName: tInfo?.title || activeTemplateDef.title,
+                templateVersion: tInfo?.version || 1,
+                messageContent: tInfo?.message || '',
+                groupLink: tInfo?.groupLink || '',
+                campaignId,
+                campaignName: effectiveCampaignName,
+                sentAt: nowIso,
+                status: 'SENT',
+                messageId: sendResult.messageId,
+                provider: 'ICPaaS Gateway (v23.0)',
+                dedupKey: item.dedupKey,
+                retryCount: currentHistory.length + 1,
+              });
+
+              await db.updateStudent(item.studentId, {
+                whatsappStatus: 'SENT',
+                whatsappSentAt: nowIso,
+                lastTemplateName: tInfo?.title || activeTemplateDef.title,
+                lastTemplateVersion: tInfo?.version || 1,
+                lastMessageContent: tInfo?.message || '',
+                lastGroupLink: tInfo?.groupLink || '',
+                messageHistory: currentHistory,
+              });
+            } catch (dbErr) {
+              console.error('Failed to update student status in DB:', dbErr);
+            }
+          } else {
+            // UNCERTAIN vs DEFINITIVE FAILURE:
+            // A timeout or unknown provider response must be treated as an uncertain delivery, not automatically as confirmed failure.
+            const statusToRecord: WhatsAppStatus = sendResult.isUncertain ? 'UNCERTAIN' : 'FAILED';
+            failedDetails.push({
+              studentId: item.studentId,
+              error: sendResult.error || 'Dispatch Failed',
+              isUncertain: sendResult.isUncertain,
             });
-          } catch {}
+
+            perStudentMeta[item.studentId] = {
+              error: sendResult.error,
+              templateId: tInfo?.id || templateType,
+              templateName: tInfo?.title || activeTemplateDef.title,
+              templateVersion: tInfo?.version || 1,
+              messageContent: tInfo?.message || '',
+              groupLink: tInfo?.groupLink || '',
+              campaignId,
+              campaignName: effectiveCampaignName,
+              isUncertain: sendResult.isUncertain,
+              dedupKey: item.dedupKey,
+            };
+
+            try {
+              const currentHistory = Array.isArray(studentLive.messageHistory) ? [...studentLive.messageHistory] : [];
+              currentHistory.push({
+                templateId: tInfo?.id || templateType,
+                templateName: tInfo?.title || activeTemplateDef.title,
+                templateVersion: tInfo?.version || 1,
+                messageContent: tInfo?.message || '',
+                groupLink: tInfo?.groupLink || '',
+                campaignId,
+                campaignName: effectiveCampaignName,
+                sentAt: nowIso,
+                status: statusToRecord,
+                error: sendResult.error,
+                provider: 'ICPaaS Gateway (v23.0)',
+                dedupKey: item.dedupKey,
+                isUncertain: sendResult.isUncertain,
+                retryCount: currentHistory.length + 1,
+              });
+
+              await db.updateStudent(item.studentId, {
+                whatsappStatus: statusToRecord,
+                updatedAt: nowIso,
+                messageHistory: currentHistory,
+              });
+            } catch {}
+          }
+        } finally {
+          DeduplicationGuard.releaseRecipient(item.studentId);
         }
 
         if (batchItems.length > 1) {

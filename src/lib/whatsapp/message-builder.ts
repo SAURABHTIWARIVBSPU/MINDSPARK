@@ -749,6 +749,7 @@ export function resolveStudentWhatsAppGroup(
   student: Partial<Student>,
   settings?: SystemSettings | null
 ): {
+  groupId: string;
   groupLink: string;
   groupName: string;
   competitionCategory: string;
@@ -771,6 +772,7 @@ export function resolveStudentWhatsAppGroup(
   });
   if (exact) {
     return {
+      groupId: exact.id,
       groupLink: exact.url.trim(),
       groupName: exact.groupName,
       competitionCategory: nComp,
@@ -783,6 +785,7 @@ export function resolveStudentWhatsAppGroup(
   const broad = configuredGroups.find((g) => normalizeCompetitionCategory(g.competition) === nComp && Boolean(g.url?.trim()));
   if (broad) {
     return {
+      groupId: broad.id,
       groupLink: broad.url.trim(),
       groupName: broad.groupName,
       competitionCategory: nComp,
@@ -793,6 +796,7 @@ export function resolveStudentWhatsAppGroup(
 
   const fallbackLink = getCategoryGroupLink(comp, settings, cls);
   return {
+    groupId: 'grp_default',
     groupLink: fallbackLink,
     groupName: 'Mind Spark Community',
     competitionCategory: nComp,
