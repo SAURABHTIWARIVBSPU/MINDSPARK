@@ -424,35 +424,41 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
 
   // 16. Duplicate or out-of-order webhooks.
   it('Case 16: Out-of-order webhooks respect monotonic status hierarchy and cannot downgrade delivered status', () => {
-    const STATUS_RANK: Record<string, number> = {
-      NOT_SENT: 0,
-      QUEUED: 1,
-      UNCERTAIN: 1,
-      FAILED: 1,
-      SENT: 2,
-      DELIVERED: 3,
-      READ: 4,
-      OPENED: 4,
+    const isValidWebhookTransition = (curr: string, incoming: string): boolean => {
+      if (curr === incoming) return false;
+      if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) {
+        if (incoming === 'READ' && curr === 'DELIVERED') return true;
+        if (incoming === 'OPENED' && (curr === 'DELIVERED' || curr === 'READ')) return true;
+        return false; // Discard out-of-order SENT, FAILED, or UNCERTAIN
+      }
+      if (curr === 'SENT') {
+        return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      if (curr === 'UNCERTAIN') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+      }
+      if (curr === 'FAILED') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(incoming);
+      }
+      if (curr === 'QUEUED' || curr === 'NOT_SENT') {
+        return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED', 'UNCERTAIN'].includes(incoming);
+      }
+      return false;
     };
 
     const applyWebhook = (currentStatus: string, webhookStatus: string) => {
-      const currentRank = STATUS_RANK[currentStatus] ?? 0;
-      const incomingRank = STATUS_RANK[webhookStatus] ?? 0;
-      if (incomingRank < currentRank) {
-        return currentStatus; // Reject downgrade
-      }
-      return webhookStatus;
+      return isValidWebhookTransition(currentStatus, webhookStatus) ? webhookStatus : currentStatus;
     };
 
-    // 1. DELIVERED arrives first, then delayed SENT webhook arrives
+    // 1. DELIVERED arrives first, then delayed SENT webhook arrives -> Preserves DELIVERED
     let status = 'DELIVERED';
     status = applyWebhook(status, 'SENT');
-    expect(status).toBe('DELIVERED'); // Kept DELIVERED!
+    expect(status).toBe('DELIVERED');
 
-    // 2. READ arrives, then stale FAILED arrives
+    // 2. READ arrives, then stale FAILED arrives -> Preserves READ
     status = 'READ';
     status = applyWebhook(status, 'FAILED');
-    expect(status).toBe('READ'); // Kept READ!
+    expect(status).toBe('READ');
 
     // 3. Normal forward progression: SENT -> DELIVERED -> READ
     status = 'SENT';
@@ -460,6 +466,16 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     expect(status).toBe('DELIVERED');
     status = applyWebhook(status, 'READ');
     expect(status).toBe('READ');
+
+    // 4. UNCERTAIN timeout state reconciles to DELIVERED when receipt arrives
+    status = 'UNCERTAIN';
+    status = applyWebhook(status, 'DELIVERED');
+    expect(status).toBe('DELIVERED');
+
+    // 5. Confirmed FAILED cannot be overwritten by transient UNCERTAIN
+    status = 'FAILED';
+    status = applyWebhook(status, 'UNCERTAIN');
+    expect(status).toBe('FAILED');
   });
 
   // 17. Multiple local environments using the same centralized queue.

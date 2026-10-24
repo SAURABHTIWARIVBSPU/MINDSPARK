@@ -429,12 +429,16 @@ export async function POST(req: NextRequest) {
       > = {};
 
       for (const item of batchItems) {
-        // Atomic Job Claim to prevent race conditions between concurrent workers or admin sessions
-        const claimed = DeduplicationGuard.claimRecipient(item.studentId, user.uid || 'admin');
-        if (!claimed) {
+        // Atomic Job Claim to prevent race conditions across serverless instances, concurrent workers, or admin sessions
+        const claimResult = await DeduplicationGuard.claimRecipientDurable(item.studentId, user.uid || 'admin', {
+          notificationType: templateType,
+          templateId: templateType,
+          sessionYear: settings.regNoYear || '2026',
+        });
+        if (!claimResult.claimed) {
           failedDetails.push({
             studentId: item.studentId,
-            error: 'Conflict: Candidate is actively being processed by another concurrent request',
+            error: `Conflict: Candidate is actively being processed (${claimResult.reason || 'cross-instance lock'})`,
           });
           continue;
         }
@@ -551,7 +555,11 @@ export async function POST(req: NextRequest) {
             } catch {}
           }
         } finally {
-          DeduplicationGuard.releaseRecipient(item.studentId);
+          await DeduplicationGuard.releaseRecipientDurable(item.studentId, {
+            notificationType: templateType,
+            templateId: templateType,
+            sessionYear: settings.regNoYear || '2026',
+          });
         }
 
         if (batchItems.length > 1) {

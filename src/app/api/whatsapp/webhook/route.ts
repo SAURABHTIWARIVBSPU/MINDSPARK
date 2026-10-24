@@ -98,24 +98,42 @@ export async function POST(req: NextRequest) {
         : null) || phoneMap.get(cleanPhone);
 
       if (matchedStudent) {
-        // Monotonic Status Hierarchy: Never downgrade an already DELIVERED/READ status with an out-of-order webhook
-        const STATUS_RANK: Record<string, number> = {
-          NOT_SENT: 0,
-          QUEUED: 1,
-          UNCERTAIN: 1,
-          FAILED: 1,
-          SENT: 2,
-          DELIVERED: 3,
-          READ: 4,
-          OPENED: 4,
+        // Formal Webhook State Machine Transition Matrix per Meta Cloud API / ICPaaS semantics
+        const isValidWebhookTransition = (curr: string, incoming: string): boolean => {
+          if (curr === incoming) return false; // Idempotent no-op
+
+          // Once confirmed DELIVERED, READ, or OPENED, late webhooks cannot downgrade
+          if (['DELIVERED', 'READ', 'OPENED'].includes(curr)) {
+            if (incoming === 'READ' && curr === 'DELIVERED') return true;
+            if (incoming === 'OPENED' && (curr === 'DELIVERED' || curr === 'READ')) return true;
+            return false; // Discard out-of-order SENT, FAILED, or UNCERTAIN
+          }
+
+          if (curr === 'SENT') {
+            // SENT can only advance forward to DELIVERED, READ, or OPENED
+            return ['DELIVERED', 'READ', 'OPENED'].includes(incoming);
+          }
+
+          if (curr === 'UNCERTAIN') {
+            // UNCERTAIN timeout state reconciles to confirmed delivery or definitive failure
+            return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED'].includes(incoming);
+          }
+
+          if (curr === 'FAILED') {
+            // Reconcile false-negative failure if authoritative delivery receipt arrives
+            return ['SENT', 'DELIVERED', 'READ', 'OPENED'].includes(incoming);
+          }
+
+          if (curr === 'QUEUED' || curr === 'NOT_SENT') {
+            return ['SENT', 'DELIVERED', 'READ', 'OPENED', 'FAILED', 'UNCERTAIN'].includes(incoming);
+          }
+
+          return false;
         };
 
-        const currentRank = STATUS_RANK[matchedStudent.whatsappStatus || 'NOT_SENT'] ?? 0;
-        const newRank = STATUS_RANK[targetStatus] ?? 0;
-
-        // If target status is lower rank (e.g. out-of-order SENT or older FAILED arriving after DELIVERED), ignore status downgrade
-        if (newRank < currentRank) {
-          continue;
+        const currentStatus = matchedStudent.whatsappStatus || 'NOT_SENT';
+        if (!isValidWebhookTransition(currentStatus, targetStatus)) {
+          continue; // Discard invalid or out-of-order transition
         }
 
         const updates: any = {

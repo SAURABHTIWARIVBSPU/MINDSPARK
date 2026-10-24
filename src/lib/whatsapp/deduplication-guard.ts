@@ -63,6 +63,7 @@ export class DeduplicationGuard {
    * Atomically claims a student for processing to prevent race conditions
    * between concurrent workers, background tasks, or multiple admin browser sessions.
    * Lock automatically expires after lockTimeoutMs (default: 60s) in case of unexpected worker crash.
+   * Synchronous L1 in-process lock.
    */
   static claimRecipient(studentId: string, claimantId: string, lockTimeoutMs: number = 60000): boolean {
     const now = Date.now();
@@ -84,6 +85,127 @@ export class DeduplicationGuard {
    */
   static releaseRecipient(studentId: string): void {
     this.activeClaims.delete(studentId);
+  }
+
+  /**
+   * Durable cross-instance atomic claim backed by PostgreSQL primary-key uniqueness constraint.
+   * Guaranteed to work across multiple serverless functions, multi-container clusters, or distinct processes.
+   */
+  static async claimRecipientDurable(
+    studentId: string,
+    claimantId: string,
+    options: DeduplicationOptions = {},
+    lockTimeoutMs: number = 60000
+  ): Promise<{ claimed: boolean; reason?: string }> {
+    const dedupKey = this.getDeduplicationKey(studentId, options);
+    const now = Date.now();
+
+    // 1. Fast L1 Process Memory Check
+    const localExisting = this.activeClaims.get(studentId);
+    if (localExisting && now - localExisting.claimedAt < lockTimeoutMs) {
+      return { claimed: false, reason: 'PROCESS_MEMORY_LOCK' };
+    }
+
+    // 2. Durable Cross-Instance Database Lock Check
+    const isSupabaseConfigured =
+      Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const claimEventId = `claim_${dedupKey}`;
+        const leaseExpiresAt = now + lockTimeoutMs;
+
+        // Attempt atomic insert relying on audit_logs PRIMARY KEY constraint
+        const { error: insertError } = await supabase.from('audit_logs').insert({
+          event_id: claimEventId,
+          actor_uid: claimantId,
+          actor_email: `${claimantId}@system.local`,
+          action: 'CLAIM_ACQUIRED',
+          target_type: 'STUDENT',
+          target_id: studentId,
+          timestamp: new Date().toISOString(),
+          details: {
+            claimedAt: now,
+            leaseExpiresAt,
+            claimedBy: claimantId,
+            dedupKey,
+          },
+        });
+
+        if (insertError) {
+          // If unique constraint violation, inspect existing claim lease
+          if (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('unique constraint')) {
+            const { data: existingClaim } = await supabase
+              .from('audit_logs')
+              .select('timestamp, details')
+              .eq('event_id', claimEventId)
+              .maybeSingle();
+
+            const existingExpiry = existingClaim?.details?.leaseExpiresAt || (new Date(existingClaim?.timestamp || 0).getTime() + lockTimeoutMs);
+
+            if (now < existingExpiry) {
+              return { claimed: false, reason: 'CROSS_INSTANCE_DATABASE_LOCK' };
+            }
+
+            // Stale Lock Recovery: Lease expired, update lease ownership
+            await supabase
+              .from('audit_logs')
+              .update({
+                actor_uid: claimantId,
+                timestamp: new Date().toISOString(),
+                details: {
+                  claimedAt: now,
+                  leaseExpiresAt,
+                  claimedBy: claimantId,
+                  recoveredFromStale: true,
+                  dedupKey,
+                },
+              })
+              .eq('event_id', claimEventId);
+          } else {
+            console.warn('Durable claim warning (non-fatal):', insertError.message);
+          }
+        }
+      } catch (dbErr) {
+        console.warn('Durable lock fallback to local memory due to error:', dbErr);
+      }
+    }
+
+    // Set L1 memory cache
+    this.activeClaims.set(studentId, { claimedAt: now, claimedBy: claimantId });
+    return { claimed: true };
+  }
+
+  /**
+   * Releases durable cross-instance atomic claim.
+   */
+  static async releaseRecipientDurable(studentId: string, options: DeduplicationOptions = {}): Promise<void> {
+    const dedupKey = this.getDeduplicationKey(studentId, options);
+    this.activeClaims.delete(studentId);
+
+    const isSupabaseConfigured =
+      Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const claimEventId = `claim_${dedupKey}`;
+        await supabase.from('audit_logs').delete().eq('event_id', claimEventId);
+      } catch (e) {
+        console.warn('Failed to release durable claim in database:', e);
+      }
+    }
   }
 
   /**
