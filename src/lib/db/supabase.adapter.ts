@@ -304,6 +304,7 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       groupLink?: string;
       campaignId?: string;
       campaignName?: string;
+      preserveSuccessful?: boolean;
       perStudentMetadata?: Record<
         string,
         {
@@ -323,14 +324,21 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     if (studentIds.length === 0) return 0;
 
     const now = new Date().toISOString();
-    const { error, count } = await this.client
+    let query = this.client
       .from('students')
       .update({
         whatsapp_status: status,
-        whatsapp_sent_at: status === 'SENT' || status === 'OPENED' ? now : null,
+        ...(status === 'SENT' || status === 'OPENED' ? { whatsapp_sent_at: now } : {}),
         updated_at: now,
       })
       .in('student_id', studentIds);
+
+    // Safe Delivery Policy: Successful deliveries must NEVER be reset to NOT_SENT if preserveSuccessful is requested
+    if (status === 'NOT_SENT' && metadata?.preserveSuccessful) {
+      query = query.not('whatsapp_status', 'in', '("SENT","DELIVERED","READ","OPENED")');
+    }
+
+    const { error, count } = await query;
 
     if (error) throw new Error(`Supabase batch whatsapp update error: ${error.message}`);
 

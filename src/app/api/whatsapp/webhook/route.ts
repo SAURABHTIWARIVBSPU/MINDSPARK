@@ -93,8 +93,31 @@ export async function POST(req: NextRequest) {
       else if (sLower.includes('fail') || sLower.includes('undeliv') || sLower.includes('reject')) targetStatus = 'FAILED';
       else if (sLower.includes('sent') || sLower.includes('accept') || sLower.includes('submit')) targetStatus = 'SENT';
 
-      const matchedStudent = phoneMap.get(cleanPhone);
+      const matchedStudent = (r.messageId
+        ? allStudents.find((s) => s.messageHistory?.some((h) => h.messageId === r.messageId))
+        : null) || phoneMap.get(cleanPhone);
+
       if (matchedStudent) {
+        // Monotonic Status Hierarchy: Never downgrade an already DELIVERED/READ status with an out-of-order webhook
+        const STATUS_RANK: Record<string, number> = {
+          NOT_SENT: 0,
+          QUEUED: 1,
+          UNCERTAIN: 1,
+          FAILED: 1,
+          SENT: 2,
+          DELIVERED: 3,
+          READ: 4,
+          OPENED: 4,
+        };
+
+        const currentRank = STATUS_RANK[matchedStudent.whatsappStatus || 'NOT_SENT'] ?? 0;
+        const newRank = STATUS_RANK[targetStatus] ?? 0;
+
+        // If target status is lower rank (e.g. out-of-order SENT or older FAILED arriving after DELIVERED), ignore status downgrade
+        if (newRank < currentRank) {
+          continue;
+        }
+
         const updates: any = {
           whatsappStatus: targetStatus,
           updatedAt: new Date().toISOString(),

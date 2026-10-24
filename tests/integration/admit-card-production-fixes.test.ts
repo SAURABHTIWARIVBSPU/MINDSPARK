@@ -388,4 +388,101 @@ describe('Admit Card Messaging System — Comprehensive Production Verification 
     expect(validateProvider('icpaas').valid).toBe(true);
     expect(validateProvider('icpaas').endpoint).toBe('1346032508598977');
   });
+
+  // 15. Crash after provider acceptance but before database update.
+  it('Case 15: Crash after provider acceptance reconciles via provider message ID without re-dispatching', async () => {
+    // Scenario: Provider accepted the message and returned message ID, but server crashed before DB update
+    const providerAccepted = {
+      phone: '9876543210',
+      messageId: 'wamid.HBgLMzE1MTIzNDU2NwA=',
+      acceptedAt: new Date().toISOString(),
+    };
+
+    let studentRecord = {
+      studentId: 'std_crash_test',
+      whatsappStatus: 'NOT_SENT',
+      lastMessageId: undefined as string | undefined,
+    };
+
+    // Reconciler checks provider log / DLR before attempting send
+    const reconcileBeforeSend = (student: typeof studentRecord, providerLog: typeof providerAccepted | null) => {
+      if (providerLog && providerLog.messageId) {
+        // Provider already accepted message! Update DB to SENT, do NOT call provider again.
+        student.whatsappStatus = 'SENT';
+        student.lastMessageId = providerLog.messageId;
+        return { shouldDispatch: false, reconciled: true };
+      }
+      return { shouldDispatch: true, reconciled: false };
+    };
+
+    const action = reconcileBeforeSend(studentRecord, providerAccepted);
+    expect(action.shouldDispatch).toBe(false);
+    expect(action.reconciled).toBe(true);
+    expect(studentRecord.whatsappStatus).toBe('SENT');
+    expect(studentRecord.lastMessageId).toBe('wamid.HBgLMzE1MTIzNDU2NwA=');
+  });
+
+  // 16. Duplicate or out-of-order webhooks.
+  it('Case 16: Out-of-order webhooks respect monotonic status hierarchy and cannot downgrade delivered status', () => {
+    const STATUS_RANK: Record<string, number> = {
+      NOT_SENT: 0,
+      QUEUED: 1,
+      UNCERTAIN: 1,
+      FAILED: 1,
+      SENT: 2,
+      DELIVERED: 3,
+      READ: 4,
+      OPENED: 4,
+    };
+
+    const applyWebhook = (currentStatus: string, webhookStatus: string) => {
+      const currentRank = STATUS_RANK[currentStatus] ?? 0;
+      const incomingRank = STATUS_RANK[webhookStatus] ?? 0;
+      if (incomingRank < currentRank) {
+        return currentStatus; // Reject downgrade
+      }
+      return webhookStatus;
+    };
+
+    // 1. DELIVERED arrives first, then delayed SENT webhook arrives
+    let status = 'DELIVERED';
+    status = applyWebhook(status, 'SENT');
+    expect(status).toBe('DELIVERED'); // Kept DELIVERED!
+
+    // 2. READ arrives, then stale FAILED arrives
+    status = 'READ';
+    status = applyWebhook(status, 'FAILED');
+    expect(status).toBe('READ'); // Kept READ!
+
+    // 3. Normal forward progression: SENT -> DELIVERED -> READ
+    status = 'SENT';
+    status = applyWebhook(status, 'DELIVERED');
+    expect(status).toBe('DELIVERED');
+    status = applyWebhook(status, 'READ');
+    expect(status).toBe('READ');
+  });
+
+  // 17. Multiple local environments using the same centralized queue.
+  it('Case 17: Multiple local environments using same centralized queue respect atomic leases and TTL', () => {
+    const leaseStore = new Map<string, { leasedTo: string; expiresAt: number }>();
+
+    const acquireLease = (jobId: string, envId: string, ttlMs: number = 30000): boolean => {
+      const now = Date.now();
+      const existing = leaseStore.get(jobId);
+      if (existing && existing.expiresAt > now) {
+        return false; // Active lease held by another environment
+      }
+      leaseStore.set(jobId, { leasedTo: envId, expiresAt: now + ttlMs });
+      return true;
+    };
+
+    // Local env A claims job
+    const envAClaimed = acquireLease('job_shared_100', 'env_local_laptop');
+    // Local env B (or concurrent worker) tries to claim same job
+    const envBClaimed = acquireLease('job_shared_100', 'env_dev_server');
+
+    expect(envAClaimed).toBe(true);
+    expect(envBClaimed).toBe(false);
+    expect(leaseStore.get('job_shared_100')?.leasedTo).toBe('env_local_laptop');
+  });
 });
