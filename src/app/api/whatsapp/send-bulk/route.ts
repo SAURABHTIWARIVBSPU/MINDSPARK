@@ -468,8 +468,11 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
+          const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          const initiatedAt = new Date().toISOString();
+
           // Fencing Check & Dispatch Commenced Mark:
-          // If this worker was stalled and superseded by another worker, abort dispatch!
+          // Persist attemptId, phone, logicalNotificationId and DISPATCHING state before firing HTTP request!
           const fenceResult = await DeduplicationGuard.markDispatchCommencedDurable(
             item.studentId,
             user.uid || 'admin',
@@ -478,6 +481,11 @@ export async function POST(req: NextRequest) {
               notificationType: templateType,
               templateId: templateType,
               sessionYear: settings.regNoYear || '2026',
+            },
+            {
+              attemptId,
+              phone: item.phone,
+              logicalNotificationId: item.dedupKey,
             }
           );
 
@@ -489,13 +497,18 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-          const initiatedAt = new Date().toISOString();
+          // Pass biz_opaque_callback_data so Meta echoes studentId & attemptId in webhook DLR receipts
+          const bizOpaqueCallbackData = JSON.stringify({
+            sId: item.studentId,
+            attId: attemptId,
+            dedup: item.dedupKey,
+          });
 
           const sendResult = await adapter.sendMessage(item.phone, item.message, {
             templateName: item.templateName,
             language: item.language,
             bodyParams: item.templateParams,
+            bizOpaqueCallbackData,
           });
 
           const providerAcceptedAt = new Date().toISOString();

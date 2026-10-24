@@ -226,6 +226,11 @@ export class DeduplicationGuard {
     claimantId: string,
     fencingToken: string,
     options: DeduplicationOptions = {},
+    dispatchMetadata: {
+      attemptId?: string;
+      phone?: string;
+      logicalNotificationId?: string;
+    } = {},
     extendedTimeoutMs: number = 120000
   ): Promise<{ success: boolean; reason?: string }> {
     const dedupKey = this.getDeduplicationKey(studentId, options);
@@ -268,6 +273,10 @@ export class DeduplicationGuard {
               state: 'DISPATCHING',
               dispatchCommencedAt: now,
               fencingToken,
+              attemptId: dispatchMetadata.attemptId || currentClaim.details?.attemptId,
+              phone: dispatchMetadata.phone || currentClaim.details?.phone,
+              logicalNotificationId: dispatchMetadata.logicalNotificationId || dedupKey,
+              studentId,
             },
           })
           .eq('event_id', claimEventId)

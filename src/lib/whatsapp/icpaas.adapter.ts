@@ -44,7 +44,12 @@ export class ICPaaSAdapter {
   async sendMessage(
     toPhone: string,
     text: string,
-    templateConfig?: { templateName?: string; language?: string; bodyParams?: string[] }
+    templateConfig?: {
+      templateName?: string;
+      language?: string;
+      bodyParams?: string[];
+      bizOpaqueCallbackData?: string;
+    }
   ): Promise<WhatsAppSendResult> {
     const cleanPhone = normalizePhone(toPhone);
     if (!cleanPhone || cleanPhone.length !== 10) {
@@ -67,7 +72,7 @@ export class ICPaaSAdapter {
     // Check if using the official v23.0 Meta messages endpoint or legacy endpoint
     const isMetaEndpoint = this.apiUrl.includes('/v23.0/') || this.apiUrl.includes('/messages');
 
-    const payload = isMetaEndpoint
+    const payload: any = isMetaEndpoint
       ? {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
@@ -86,6 +91,7 @@ export class ICPaaSAdapter {
               },
             ],
           },
+          ...(templateConfig?.bizOpaqueCallbackData ? { biz_opaque_callback_data: templateConfig.bizOpaqueCallbackData } : {}),
         }
       : {
           channel: 'WhatsApp',

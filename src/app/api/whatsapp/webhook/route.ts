@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
       error?: string;
     }
 
+    interface NormalizedReceipt {
+      phone: string;
+      status: string;
+      messageId?: string;
+      error?: string;
+      bizOpaqueData?: string;
+    }
+
     const receipts: NormalizedReceipt[] = [];
 
     // Format A: Standard Meta WhatsApp Cloud API (body.entry[].changes[].value.statuses[])
@@ -50,6 +58,7 @@ export async function POST(req: NextRequest) {
               status: String(st.status || ''),
               messageId: st.id,
               error: st.errors?.[0]?.message || st.errors?.[0]?.title,
+              bizOpaqueData: st.biz_opaque_callback_data,
             });
           }
         }
@@ -77,6 +86,7 @@ export async function POST(req: NextRequest) {
           status: String(rawStatus),
           messageId: item.message_id || item.id || item.msgId || item.wamid,
           error: item.error || item.reason || item.description,
+          bizOpaqueData: item.biz_opaque_callback_data || item.bizOpaqueData || item.tracking_id,
         });
       }
     }
@@ -95,8 +105,18 @@ export async function POST(req: NextRequest) {
 
       let matchedStudent: Student | null = null;
 
+      // 0. Instant Unambiguous Match via biz_opaque_callback_data (echoed directly by Meta!)
+      if (r.bizOpaqueData) {
+        try {
+          const parsed = typeof r.bizOpaqueData === 'string' ? JSON.parse(r.bizOpaqueData) : r.bizOpaqueData;
+          if (parsed?.sId) {
+            matchedStudent = allStudents.find((s) => s.studentId === parsed.sId) || null;
+          }
+        } catch {}
+      }
+
       // 1. Precise Provider Message ID (wamid) matching via durable PostgreSQL audit_logs
-      if (r.messageId) {
+      if (!matchedStudent && r.messageId) {
         try {
           const { createClient } = await import('@supabase/supabase-js');
           const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;

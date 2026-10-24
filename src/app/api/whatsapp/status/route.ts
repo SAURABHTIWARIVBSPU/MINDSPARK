@@ -4,6 +4,65 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { WhatsAppStatus } from '@/types';
 
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    assertPermission(user, 'messages.prepare');
+
+    const db = getDb();
+    const students = await db.getAllActiveStudents();
+
+    const uncertainStudents = students.filter((s) => s.whatsappStatus === 'UNCERTAIN');
+    const now = Date.now();
+
+    const agingBuckets = {
+      under5Min: 0,
+      between5And30Min: 0,
+      over30MinStale: 0,
+    };
+
+    const staleCandidates: Array<{
+      studentId: string;
+      name: string;
+      registrationNumber: string;
+      phone: string;
+      ageMinutes: number;
+      updatedAt?: string;
+    }> = [];
+
+    for (const s of uncertainStudents) {
+      const updatedAt = s.updatedAt ? new Date(s.updatedAt).getTime() : now;
+      const ageMs = now - updatedAt;
+      if (ageMs < 5 * 60 * 1000) {
+        agingBuckets.under5Min++;
+      } else if (ageMs < 30 * 60 * 1000) {
+        agingBuckets.between5And30Min++;
+      } else {
+        agingBuckets.over30MinStale++;
+        staleCandidates.push({
+          studentId: s.studentId,
+          name: s.name,
+          registrationNumber: s.registrationNumber,
+          phone: s.phone,
+          ageMinutes: Math.round(ageMs / 60000),
+          updatedAt: s.updatedAt,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      totalUncertain: uncertainStudents.length,
+      agingBuckets,
+      staleCandidates,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    const status = err.message?.includes('Unauthorized') ? 403 : 500;
+    return NextResponse.json({ error: err.message || 'Failed to fetch status metrics' }, { status });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -25,6 +84,17 @@ export async function POST(req: NextRequest) {
     const existingStudent = await db.getStudentById(studentId);
     if (!existingStudent) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    // DUPLICATE PREVENTION INVARIANT:
+    // Administrative resolution CANNOT reset a confirmed delivered candidate to NOT_SENT
+    if (status === 'NOT_SENT' && ['DELIVERED', 'READ', 'OPENED', 'SENT'].includes(existingStudent.whatsappStatus || '')) {
+      return NextResponse.json(
+        {
+          error: `Duplicate Prevention Policy: Cannot reset a confirmed sent/delivered candidate (Current Status: ${existingStudent.whatsappStatus}) to NOT_SENT.`,
+        },
+        { status: 409 }
+      );
     }
 
     const now = new Date().toISOString();
