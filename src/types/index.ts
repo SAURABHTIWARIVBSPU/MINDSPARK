@@ -68,6 +68,10 @@ export interface StudentMessageRecord {
   retryCount?: number;
   dedupKey?: string;
   isUncertain?: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
+  reconciliationReason?: string;
+  evidenceRef?: string;
 }
 
 export interface CustomWhatsAppTemplate {

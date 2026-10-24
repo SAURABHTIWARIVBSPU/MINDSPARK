@@ -168,6 +168,24 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
+    if (existingStudent.whatsappStatus === 'UNCERTAIN' || reconcileUncertain) {
+      const history = Array.isArray(existingStudent.messageHistory) ? [...existingStudent.messageHistory] : [];
+      if (history.length > 0) {
+        const targetAttempt = affectedAttemptId || history[history.length - 1]?.messageId || 'UNKNOWN_ATTEMPT';
+        const attemptIdx = history.findIndex((h) => h.messageId === targetAttempt);
+        const idxToUpdate = attemptIdx !== -1 ? attemptIdx : history.length - 1;
+        history[idxToUpdate] = {
+          ...history[idxToUpdate],
+          status,
+          reconciledAt: now,
+          reconciledBy: user!.email || user!.uid,
+          reconciliationReason: reason?.trim(),
+          evidenceRef: evidenceRef?.trim(),
+        };
+        updates.messageHistory = history;
+      }
+    }
+
     if (status === 'SENT' || status === 'OPENED' || status === 'DELIVERED') {
       updates.whatsappSentAt = now;
     }

@@ -61,7 +61,8 @@ describe('WhatsApp Bulk Messaging & Status Management Integration', () => {
 
   it('batch updates WhatsApp status for multiple candidates', async () => {
     const allActive = await db.getAllActiveStudents();
-    const ids = allActive.slice(0, 2).map((s: Student) => s.studentId);
+    const notSent = allActive.filter((s: Student) => !s.whatsappStatus || s.whatsappStatus === 'NOT_SENT');
+    const ids = notSent.slice(0, 2).map((s: Student) => s.studentId);
 
     const updatedCount = await db.batchUpdateStudentWhatsAppStatus(ids, 'SENT');
     expect(updatedCount).toBe(2);

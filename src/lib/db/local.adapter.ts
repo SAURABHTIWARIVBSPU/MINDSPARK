@@ -383,6 +383,11 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
           continue;
         }
 
+        // Invariant: Confirmed delivery states and UNCERTAIN must NEVER be overwritten/downgraded to SENT
+        if (status === 'SENT' && ['DELIVERED', 'READ', 'OPENED', 'UNCERTAIN'].includes(student.whatsappStatus || '')) {
+          continue;
+        }
+
         const history = Array.isArray(student.messageHistory) ? [...student.messageHistory] : [];
         const studentMeta = metadata?.perStudentMetadata?.[student.studentId];
 

@@ -338,6 +338,11 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       query = query.not('whatsapp_status', 'in', '("SENT","DELIVERED","READ","OPENED","UNCERTAIN")');
     }
 
+    // Invariant: Confirmed delivery states and UNCERTAIN must NEVER be overwritten/downgraded to SENT
+    if (status === 'SENT') {
+      query = query.not('whatsapp_status', 'in', '("DELIVERED","READ","OPENED","UNCERTAIN")');
+    }
+
     const { error, count } = await query;
 
     if (error) throw new Error(`Supabase batch whatsapp update error: ${error.message}`);

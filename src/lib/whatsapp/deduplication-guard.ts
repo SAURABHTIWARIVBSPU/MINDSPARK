@@ -423,6 +423,17 @@ export class DeduplicationGuard {
   }
 
   /**
+   * Clears all active in-memory claims (used in test fixtures and clean resets)
+   */
+  static clearMemoryClaims(): void {
+    this.activeClaims.clear();
+  }
+
+  static clearAll(): void {
+    this.activeClaims.clear();
+  }
+
+  /**
    * Evaluates if a provider error or HTTP status code represents an UNCERTAIN delivery
    * (e.g. gateway timeout, socket reset, unknown gateway state) rather than a confirmed failure.
    * Uncertain deliveries MUST NEVER be blindly retried without status reconciliation.

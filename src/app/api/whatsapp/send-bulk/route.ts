@@ -68,6 +68,18 @@ export async function POST(req: NextRequest) {
     const db = getDb();
     const origin = req.nextUrl.origin;
     const settings = await db.getSettings();
+
+    // Operational Kill Switch: Block initiation of new bulk dispatches across all concurrent workers
+    if (settings.whatsappDispatchPaused && provider === 'icpaas') {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Administrative Kill Switch Active: Bulk messaging is currently paused (whatsappDispatchPaused=true). New dispatches are blocked.',
+        },
+        { status: 503 }
+      );
+    }
     const allTemplates = getAllAvailableTemplates(settings);
     const activeTemplateDef = allTemplates.find((t) => t.id === templateType) || WHATSAPP_TEMPLATES.REGISTRATION_CONFIRMATION;
 

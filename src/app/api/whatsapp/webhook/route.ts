@@ -18,20 +18,35 @@ function verifyWebhookAuthentication(req: NextRequest, rawBody: string): { verif
     return { verified: true };
   }
 
-  // 1. Meta WhatsApp Cloud API: X-Hub-Signature-256 HMAC verification
   const hubSig = req.headers.get('x-hub-signature-256');
-  if (hubSig && appSecret) {
+  const isMetaPayload = Boolean(
+    hubSig ||
+    rawBody.includes('"whatsapp_business_account"') ||
+    (rawBody.includes('"entry"') && rawBody.includes('"changes"'))
+  );
+
+  // 1. Meta WhatsApp Cloud API request: MUST verify HMAC-SHA256 signature
+  if (isMetaPayload) {
+    if (!appSecret) {
+      return { verified: false, reason: 'WHATSAPP_APP_SECRET not configured for Meta webhook signature verification' };
+    }
+    if (!hubSig) {
+      return { verified: false, reason: 'Missing X-Hub-Signature-256 header on Meta webhook payload' };
+    }
     const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
-    const sigBuf = Buffer.from(hubSig);
-    const expBuf = Buffer.from(expected);
+    const sigBuf = Buffer.from(hubSig.trim().toLowerCase());
+    const expBuf = Buffer.from(expected.toLowerCase());
     if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
       return { verified: true };
     }
-    return { verified: false, reason: 'Invalid X-Hub-Signature-256' };
+    return { verified: false, reason: 'Invalid X-Hub-Signature-256 HMAC digest' };
   }
 
-  // 2. Token / Bearer header verification for ICPaaS or gateway callbacks
-  const tokenHeader = req.headers.get('x-webhook-token') || req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  // 2. ICPaaS / Gateway callback: MUST verify provider token / bearer header
+  const tokenHeader =
+    req.headers.get('x-webhook-token') ||
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+    req.headers.get('x-icpaas-signature');
   const tokenParam = new URL(req.url).searchParams.get('token');
   const incomingToken = (tokenHeader || tokenParam || '').trim();
 
@@ -39,13 +54,7 @@ function verifyWebhookAuthentication(req: NextRequest, rawBody: string): { verif
     if (incomingToken && incomingToken === verifyToken) {
       return { verified: true };
     }
-    if (!hubSig && !incomingToken) {
-      return { verified: false, reason: 'Missing webhook verification signature or token' };
-    }
-  }
-
-  if (appSecret && !hubSig) {
-    return { verified: false, reason: 'Missing X-Hub-Signature-256 header' };
+    return { verified: false, reason: 'Missing or invalid authentication token for ICPaaS webhook' };
   }
 
   return { verified: false, reason: 'Webhook authentication failed' };
