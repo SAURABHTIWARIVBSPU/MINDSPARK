@@ -131,7 +131,9 @@ async function executeStep1() {
             status: row.status,
             whatsappStatus: row.whatsapp_status,
             createdAt: row.created_at,
+            createdBy: 'batch_candidate_data_5',
             updatedAt: row.updated_at,
+            updatedBy: 'batch_candidate_data_5',
             dataVersion: 1,
           };
 
@@ -233,7 +235,7 @@ async function executeStep1() {
   const sampleNewStudent = studentRows[0];
   const sampleCard = await db.getAdmitCardByStudentId(sampleNewStudent.student_id);
   if (sampleCard) {
-    const downloadUrl = await storage.getDownloadUrl(sampleCard.fileId, 60);
+    const downloadUrl = await storage.getDownloadUrl(sampleCard.fileId);
     const testFetch = await fetch(downloadUrl);
     console.log(`      Live Signed URL Fetch for New Student (${sampleNewStudent.registration_number}): HTTP ${testFetch.status} (${testFetch.headers.get('content-type')}, ${testFetch.headers.get('content-length')} bytes)`);
   }
