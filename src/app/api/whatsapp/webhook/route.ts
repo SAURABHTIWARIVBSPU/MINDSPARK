@@ -10,11 +10,12 @@ function verifyWebhookAuthentication(req: NextRequest, rawBody: string): { verif
   const appSecret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || '').trim();
   const verifyToken = (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.ICPAAS_WEBHOOK_TOKEN || '').trim();
 
-  // If no secret or token is configured in the environment, log a security warning and allow for development
+  // If no secret or token is configured in the environment, strictly reject in production
   if (!appSecret && !verifyToken) {
     if (process.env.NODE_ENV === 'production') {
-      console.warn('CRITICAL SECURITY WARNING: Webhook secrets (WHATSAPP_APP_SECRET / WHATSAPP_WEBHOOK_VERIFY_TOKEN) are not configured.');
+      return { verified: false, reason: 'CRITICAL: Webhook authentication secrets (WHATSAPP_APP_SECRET / WHATSAPP_WEBHOOK_VERIFY_TOKEN) are not configured in production.' };
     }
+    // Allow only in local non-production development environments
     return { verified: true };
   }
 
@@ -67,10 +68,12 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  const verifyToken =
-    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ||
-    process.env.ICPAAS_WEBHOOK_TOKEN ||
-    'mindspark_webhook_verify_2026';
+  const configuredToken = (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.ICPAAS_WEBHOOK_TOKEN || '').trim();
+  const verifyToken = configuredToken || (process.env.NODE_ENV !== 'production' ? 'mindspark_webhook_verify_2026' : '');
+
+  if (!verifyToken) {
+    return NextResponse.json({ error: 'Server configuration error: Webhook verify token is not configured in production' }, { status: 500 });
+  }
 
   if (mode === 'subscribe' && token === verifyToken) {
     return new Response(challenge || '', { status: 200 });
@@ -188,8 +191,12 @@ export async function POST(req: NextRequest) {
       if (!matchedStudent && r.messageId) {
         try {
           const { createClient } = await import('@supabase/supabase-js');
-          const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+          const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (!supabaseUrl || !supabaseKey) {
+            console.warn('Webhook: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing, skipping audit_logs wamid lookup');
+            break;
+          }
           const supabase = createClient(supabaseUrl, supabaseKey);
 
           const { data: wamidRecord } = await supabase

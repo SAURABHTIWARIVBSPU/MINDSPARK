@@ -38,4 +38,11 @@ Thumbs.db
 /.data
 /storage
 /backups
+*.bak
+*.xlsx.bak
+/Programme_Wise_Candidate_PDFs
 whatsapp_dispatch_*.xlsx
+CAndidate_data-*.xlsx
+candidate_data_*.xlsx
+Graduation_Students_Registry.xlsx
+Online_Quiz_Event_Registry.xlsx

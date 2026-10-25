@@ -42,7 +42,7 @@ export const OFFICIAL_WHATSAPP_GROUPS: WhatsAppGroupLinkItem[] = [
     groupName: 'Mind Spark Online Quiz (Graduation)',
     competition: 'ONLINE QUIZ',
     classRange: 'Graduation',
-    url: 'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4',
+    url: 'https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw',
     description: 'Official WhatsApp group for Online Quiz (Graduation, BBA, BCA & College candidates)',
     isOfficial: true,
   },
@@ -60,7 +60,7 @@ export const OFFICIAL_WHATSAPP_GROUPS: WhatsAppGroupLinkItem[] = [
     groupName: 'Mind Spark Online Quiz (11–12)',
     competition: 'ONLINE QUIZ',
     classRange: '11-12',
-    url: 'https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4',
+    url: 'https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme',
     description: 'Official WhatsApp group for Online Quiz (Classes 11–12)',
     isOfficial: true,
   },
@@ -69,7 +69,7 @@ export const OFFICIAL_WHATSAPP_GROUPS: WhatsAppGroupLinkItem[] = [
     groupName: 'Mind Spark Online Quiz (9–10)',
     competition: 'ONLINE QUIZ',
     classRange: '9-10',
-    url: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4',
+    url: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
     description: 'Official WhatsApp group for Online Quiz (Classes 9–10)',
     isOfficial: true,
   },
@@ -366,7 +366,7 @@ export const OFFICIAL_COMPETITION_TEMPLATES: WhatsAppTemplateDef[] = [
     isOfficial: true,
     version: 1,
     groupLinkId: 'grp_online_quiz_grad',
-    groupUrl: 'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4',
+    groupUrl: 'https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw',
     defaultText: OFFICIAL_REGISTRATION_TEMPLATE_TEXT,
   },
   {
@@ -390,7 +390,7 @@ export const OFFICIAL_COMPETITION_TEMPLATES: WhatsAppTemplateDef[] = [
     isOfficial: true,
     version: 1,
     groupLinkId: 'grp_online_quiz_11_12',
-    groupUrl: 'https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4',
+    groupUrl: 'https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme',
     defaultText: OFFICIAL_REGISTRATION_TEMPLATE_TEXT,
   },
   {
@@ -402,7 +402,7 @@ export const OFFICIAL_COMPETITION_TEMPLATES: WhatsAppTemplateDef[] = [
     isOfficial: true,
     version: 1,
     groupLinkId: 'grp_online_quiz_9_10',
-    groupUrl: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4',
+    groupUrl: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
     defaultText: OFFICIAL_REGISTRATION_TEMPLATE_TEXT,
   },
   {
@@ -642,11 +642,11 @@ export const WHATSAPP_MERGE_TAGS = [
   { tag: '{venue}', label: 'Exam Venue', example: 'MSITM DEGREE COLLEGE GONDA' },
   { tag: '{contact_phone}', label: 'Helpdesk Phone', example: '9876543210' },
   { tag: '{admit_card_url}', label: 'Admit Card Link', example: 'https://mindspark.edu.in/admit-card' },
-  { tag: '{whatsapp_group_link}', label: 'Category & Class WhatsApp Group Link', example: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L' },
-  { tag: '{group_link}', label: 'Group Link (Alias)', example: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L' },
+  { tag: '{whatsapp_group_link}', label: 'Category & Class WhatsApp Group Link', example: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe' },
+  { tag: '{group_link}', label: 'Group Link (Alias)', example: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe' },
   { tag: '{dob}', label: 'Date of Birth (DOB)', example: '15/08/2012' },
   { tag: '[REGISTRATION_NUMBER]', label: 'Registration No (Bracket Tag)', example: 'MS261001' },
-  { tag: '[DYNAMIC_COMPETITION_GROUP_LINK]', label: 'Dynamic Group Link (Bracket Tag)', example: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L' },
+  { tag: '[DYNAMIC_COMPETITION_GROUP_LINK]', label: 'Dynamic Group Link (Bracket Tag)', example: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe' },
 ] as const;
 
 /**
@@ -682,7 +682,7 @@ export function getCategoryGroupLink(
   const defaultFallback =
     settings?.defaultWhatsAppGroupLink ||
     process.env.DEFAULT_WHATSAPP_GROUP_LINK ||
-    'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L';
+    'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe';
 
   if (!competitionName || !competitionName.trim()) {
     return defaultFallback;

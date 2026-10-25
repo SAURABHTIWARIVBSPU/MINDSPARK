@@ -487,11 +487,24 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     const pfx = prefix || currentSettings.regNoPrefix || 'MS';
     const yr = year || currentSettings.regNoYear || '26';
 
-    currentSettings.regNoSeqCurrent += 1;
-    const seq = currentSettings.regNoSeqCurrent;
+    let nextSeq = (currentSettings.regNoSeqCurrent || 1000) + 1;
+
+    // Dynamically guarantee nextSeq is strictly greater than any existing student in the same sequence pool
+    const regPattern = new RegExp(`^${pfx}${yr}(\\d+)$`, 'i');
+    for (const s of this.data.students) {
+      const match = s.registrationNumber ? s.registrationNumber.match(regPattern) : null;
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num >= nextSeq && match[1].length === String(nextSeq).length) {
+          nextSeq = num + 1;
+        }
+      }
+    }
+
+    currentSettings.regNoSeqCurrent = nextSeq;
     this.persist();
 
-    const formattedSeq = yr.length > 2 ? String(seq).padStart(5, '0') : String(seq);
+    const formattedSeq = yr.length > 2 ? String(nextSeq).padStart(5, '0') : String(nextSeq);
     return `${pfx}${yr}${formattedSeq}`;
   }
 

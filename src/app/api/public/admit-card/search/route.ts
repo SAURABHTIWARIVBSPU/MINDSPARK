@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchesDob } from '@/lib/excel/normalizer';
-import { searchRateLimiter, getClientIp } from '@/lib/security/rate-limiter';
+import { searchRateLimiter, failedDobGuard, getClientIp } from '@/lib/security/rate-limiter';
 import { getAdmitCardReleaseStatus } from '@/lib/admit-card/release-gate';
 
 export async function POST(req: NextRequest) {
   try {
     // 1. Enforce Rate Limiting (Brute-Force Guard)
     const clientIp = getClientIp(req);
-    // Allow up to 10 searches per 60 seconds per IP
-    const rateCheck = searchRateLimiter.check(clientIp, 10, 60);
+    // Allow up to 60 searches per 60 seconds per IP (supports cyber cafes and school labs)
+    const rateCheck = searchRateLimiter.check(clientIp, 60, 60);
 
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
-          error: `Too many verification attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`,
+          error: `Too many verification attempts from this network. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`,
         },
         {
           status: 429,
@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
             'X-RateLimit-Limit': String(rateCheck.limit),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(rateCheck.resetAt / 1000)),
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
           },
         }
       );
@@ -34,11 +37,43 @@ export async function POST(req: NextRequest) {
     if (!registrationNumber || !dateOfBirth) {
       return NextResponse.json(
         { error: 'Registration Number and Date of Birth are required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
       );
     }
 
     const cleanRegNo = registrationNumber.trim().toUpperCase();
+
+    // 2. Check if this IP is temporarily locked for this Registration Number (prevents cross-IP DoS attacks)
+    const compositeKey = `${clientIp}:${cleanRegNo}`;
+    const ipFailKey = `ip:${clientIp}`;
+
+    const lockCheck = failedDobGuard.isLocked(compositeKey);
+    const ipLockCheck = failedDobGuard.isLocked(ipFailKey);
+
+    if (lockCheck.locked || ipLockCheck.locked) {
+      const retryAfter = Math.max(lockCheck.retryAfterSeconds, ipLockCheck.retryAfterSeconds);
+      return NextResponse.json(
+        {
+          error: `Too many failed Date of Birth verification attempts. For security, access is temporarily locked from your network. Please wait ${retryAfter} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfter),
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
+    }
 
     const db = getDb();
     const student = await db.getStudentByRegNo(cleanRegNo);
@@ -46,17 +81,41 @@ export async function POST(req: NextRequest) {
     if (!student || student.status === 'VOID') {
       return NextResponse.json(
         { error: `No student record found with Registration Number '${cleanRegNo}'. Please verify your credentials or contact the examination committee.` },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
       );
     }
 
     // Verify Date of Birth (supports DD-MM-YYYY, YYYY-MM-DD, or YYYY)
     if (!matchesDob(student.dateOfBirth, dateOfBirth)) {
+      const failStatus = failedDobGuard.recordFailure(compositeKey, 5, 900);
+      failedDobGuard.recordFailure(ipFailKey, 15, 900); // Also protects against distributed scanning from a single IP
+
+      const remainingMsg = failStatus.locked
+        ? 'Maximum attempts exceeded from your network. This lookup is temporarily locked for 15 minutes.'
+        : `(${failStatus.remainingAttempts} attempts remaining before temporary lockout)`;
+
       return NextResponse.json(
-        { error: 'Date of Birth does not match our records for this Registration Number.' },
-        { status: 401 }
+        { error: `Date of Birth does not match our records for this Registration Number. ${remainingMsg}` },
+        { 
+          status: 401,
+          headers: {
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
       );
     }
+
+    // Verification successful: Clear any previous failed attempts for this composite key
+    failedDobGuard.recordSuccess(compositeKey);
 
     const settings = await db.getSettings();
     const releaseStatus = getAdmitCardReleaseStatus();
@@ -89,6 +148,9 @@ export async function POST(req: NextRequest) {
       },
       {
         headers: {
+          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-RateLimit-Limit': String(rateCheck.limit),
           'X-RateLimit-Remaining': String(rateCheck.remaining),
         },

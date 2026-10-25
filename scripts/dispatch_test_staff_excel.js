@@ -62,7 +62,7 @@ async function sendWhatsAppMessage(phone, name, regNo) {
     `Participant ${name}`,
     `Your form has been successfully enrolled for Mind Spark Competition 2026 This is your Registration Number: ${regNo}`,
     'After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.',
-    'Join whatspp group for more update https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+    'Join whatspp group for more update https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
   ];
 
   const payload = {

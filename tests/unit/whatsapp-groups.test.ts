@@ -49,13 +49,13 @@ describe('Official WhatsApp Groups & Class-Wise Mapping (Mind Spark 2026)', () =
     expect(essay?.url).toBe('https://chat.whatsapp.com/KoiQ7KE6j11HlstZw68WJ3?s=cl&p=a&mlu=4&ilr=4');
 
     const quizGrad = OFFICIAL_WHATSAPP_GROUPS.find((g) => g.groupName.includes('Online Quiz (Graduation)'));
-    expect(quizGrad?.url).toBe('https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4');
+    expect(quizGrad?.url).toBe('https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw');
 
     const quiz910 = OFFICIAL_WHATSAPP_GROUPS.find((g) => g.groupName.includes('Online Quiz (9–10)'));
-    expect(quiz910?.url).toBe('https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4');
+    expect(quiz910?.url).toBe('https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe');
 
     const quiz1112 = OFFICIAL_WHATSAPP_GROUPS.find((g) => g.groupName.includes('Online Quiz (11–12)'));
-    expect(quiz1112?.url).toBe('https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4');
+    expect(quiz1112?.url).toBe('https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme');
 
     const fireless = OFFICIAL_WHATSAPP_GROUPS.find((g) => g.groupName.includes('Fireless Cooking'));
     expect(fireless?.url).toBe('https://chat.whatsapp.com/CoSFm1OKCzI9dQvNPgoqr0?s=cl&p=a&mlu=4&ilr=4');
@@ -67,29 +67,29 @@ describe('Official WhatsApp Groups & Class-Wise Mapping (Mind Spark 2026)', () =
   it('correctly maps Online Quiz by student Class (9-10 vs 11-12 vs Graduation)', () => {
     // Class 9 or 10
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, '9')).toBe(
-      'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe'
     );
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, '10')).toBe(
-      'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe'
     );
 
     // Class 11 or 12
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, '11')).toBe(
-      'https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme'
     );
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, '12')).toBe(
-      'https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme'
     );
 
     // Graduation, BBA, BCA, Gradution
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, 'GRADUATION')).toBe(
-      'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw'
     );
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, 'BCA')).toBe(
-      'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw'
     );
     expect(getCategoryGroupLink('ONLINE QUIZ', emptySettings, 'BBA')).toBe(
-      'https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4'
+      'https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw'
     );
   });
 
@@ -171,7 +171,7 @@ describe('Official WhatsApp Groups & Class-Wise Mapping (Mind Spark 2026)', () =
     const rendered = renderMessageTemplate(promptTemplate, student, emptySettings);
 
     expect(rendered).toContain('This is your Registration Number: MS261100099');
-    expect(rendered).toContain('Link: https://chat.whatsapp.com/BWSp5EXT24K3xtOH0ahdyh?s=cl&p=a&mlu=4&ilr=4');
+    expect(rendered).toContain('Link: https://chat.whatsapp.com/HChYAjAXd2q9i9xnXbZwme');
     expect(rendered).toContain('Meena Shah Public School, Gonda');
     expect(rendered).toContain('Mind Spark Competition- 2026');
   });

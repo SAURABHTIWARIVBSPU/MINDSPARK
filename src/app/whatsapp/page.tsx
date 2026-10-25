@@ -161,7 +161,7 @@ export default function WhatsAppPage() {
 
   // Category-wise WhatsApp Group Links State
   const [categoryLinks, setCategoryLinks] = useState<Record<string, string>>({});
-  const [defaultGroupLink, setDefaultGroupLink] = useState<string>('https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L');
+  const [defaultGroupLink, setDefaultGroupLink] = useState<string>('https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe');
   const [savingCategoryLinks, setSavingCategoryLinks] = useState(false);
 
   // Test Staff & Teachers Registry State (Separate Excel)
@@ -4198,7 +4198,7 @@ export default function WhatsAppPage() {
                   type="url"
                   value={defaultGroupLink}
                   onChange={(e) => setDefaultGroupLink(e.target.value.trim())}
-                  placeholder="https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L"
+                  placeholder="https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe"
                   className="flex-1 p-2.5 bg-white border border-emerald-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
                 {defaultGroupLink && (

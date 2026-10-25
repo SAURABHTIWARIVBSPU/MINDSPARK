@@ -93,7 +93,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   regNoYear: '26',
   regNoSeqCurrent: 1000,
   categoryWhatsAppLinks: {},
-  defaultWhatsAppGroupLink: 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+  defaultWhatsAppGroupLink: 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
   whatsappGroupLinks: [],
   customTemplates: [],
   whatsappCampaigns: [],
@@ -101,18 +101,15 @@ const DEFAULT_SETTINGS: SystemSettings = {
 
 export class SupabaseAdapter implements IDatabaseAdapter {
   private client: SupabaseClient;
+  private cachedSettings: { data: SystemSettings; expiresAt: number } | null = null;
 
   constructor(supabaseUrl?: string, supabaseKey?: string) {
     const url = supabaseUrl || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key =
-      supabaseKey ||
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const key = supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !key) {
       throw new Error(
-        'Supabase configuration missing: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env.local'
+        'CRITICAL CONFIGURATION ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for server database access. The server must never silently fall back to the unprivileged anon key.'
       );
     }
 
@@ -470,7 +467,28 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     const settings = await this.getSettings();
     const p = prefix || settings.regNoPrefix || 'MS';
     const y = year || settings.regNoYear || '26';
-    const nextSeq = (settings.regNoSeqCurrent || 1000) + 1;
+    let nextSeq = (settings.regNoSeqCurrent || 1000) + 1;
+
+    // Collision guard: dynamically ensure nextSeq is strictly higher than any existing student registration sequence
+    try {
+      const { data: latestStudent } = await this.client
+        .from('students')
+        .select('registration_number')
+        .ilike('registration_number', `${p}${y}%`)
+        .order('registration_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestStudent?.registration_number) {
+        const seqPart = latestStudent.registration_number.replace(new RegExp(`^${p}${y}`, 'i'), '');
+        const highestSeq = parseInt(seqPart, 10);
+        if (!isNaN(highestSeq) && nextSeq <= highestSeq) {
+          nextSeq = highestSeq + 1;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not query highest existing registration sequence:', e);
+    }
 
     await this.updateSettings({ regNoSeqCurrent: nextSeq });
     const formattedSeq = y.length > 2 ? String(nextSeq).padStart(5, '0') : String(nextSeq);
@@ -712,6 +730,10 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   // --- Settings ---
 
   async getSettings(): Promise<SystemSettings> {
+    if (this.cachedSettings && Date.now() < this.cachedSettings.expiresAt) {
+      return this.cachedSettings.data;
+    }
+
     const { data, error } = await this.client
       .from('system_settings')
       .select('*')
@@ -721,10 +743,12 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     const ext = loadExtendedSettings();
 
     if (error || !data) {
-      return { ...DEFAULT_SETTINGS, ...ext };
+      const fallback = { ...DEFAULT_SETTINGS, ...ext };
+      this.cachedSettings = { data: fallback, expiresAt: Date.now() + 60000 };
+      return fallback;
     }
 
-    return {
+    const result: SystemSettings = {
       schoolName: data.school_name || DEFAULT_SETTINGS.schoolName,
       competitionTitle: data.competition_title || DEFAULT_SETTINGS.competitionTitle,
       venue: data.venue || DEFAULT_SETTINGS.venue,
@@ -739,14 +763,18 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       whatsappPhoneNumberId: data.whatsapp_phone_number_id,
       whatsappTemplateName: data.whatsapp_template_name,
       categoryWhatsAppLinks: ext.categoryWhatsAppLinks || {},
-      defaultWhatsAppGroupLink: ext.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+      defaultWhatsAppGroupLink: ext.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
       whatsappGroupLinks: ext.whatsappGroupLinks || [],
       customTemplates: ext.customTemplates || [],
       whatsappCampaigns: ext.whatsappCampaigns || [],
     };
+
+    this.cachedSettings = { data: result, expiresAt: Date.now() + 60000 };
+    return result;
   }
 
   async updateSettings(settings: Partial<SystemSettings>): Promise<SystemSettings> {
+    this.cachedSettings = null; // Invalidate cache immediately on update
     const current = await this.getSettings();
     const updated = { ...current, ...settings };
 

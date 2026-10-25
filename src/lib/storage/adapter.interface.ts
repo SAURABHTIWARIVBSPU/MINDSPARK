@@ -7,7 +7,7 @@ export interface StoredFile {
 }
 
 export interface IStorageAdapter {
-  saveFile(fileName: string, buffer: Uint8Array, contentType?: string): Promise<{ fileId: string; storageType: 'local' | 'gdrive' }>;
+  saveFile(fileName: string, buffer: Uint8Array, contentType?: string): Promise<{ fileId: string; storageType: 'local' | 'gdrive' | 'supabase' }>;
   getFile(fileId: string): Promise<Uint8Array | null>;
   deleteFile(fileId: string): Promise<boolean>;
   getDownloadUrl(fileId: string): Promise<string>;

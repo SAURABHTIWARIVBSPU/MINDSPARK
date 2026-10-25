@@ -66,7 +66,7 @@ export async function GET() {
       unassignedCount,
       competitions: registeredCompetitions,
       classCategories: CLASS_CATEGORIES,
-      defaultWhatsAppGroupLink: settings.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L?s=cl&p=a&mlu=4&ilr=4',
+      defaultWhatsAppGroupLink: settings.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to fetch WhatsApp groups' }, { status: 500 });

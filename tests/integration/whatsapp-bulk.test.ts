@@ -95,6 +95,7 @@ describe('WhatsApp Bulk Messaging & Status Management Integration', () => {
     const sentResult = await db.getStudents({
       whatsappStatus: 'SENT',
       status: 'ACTIVE',
+      search: allActive[0].registrationNumber,
     });
 
     expect(sentResult.students.some((s: Student) => s.studentId === firstId)).toBe(true);
@@ -102,6 +103,7 @@ describe('WhatsApp Bulk Messaging & Status Management Integration', () => {
     const unsentResult = await db.getStudents({
       whatsappStatus: 'NOT_SENT',
       status: 'ACTIVE',
+      search: allActive[0].registrationNumber,
     });
 
     expect(unsentResult.students.some((s: Student) => s.studentId === firstId)).toBe(false);

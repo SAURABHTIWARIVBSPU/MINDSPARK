@@ -137,13 +137,13 @@ export class DeduplicationGuard {
     // 2. Durable Cross-Instance Database Lock Check
     const isSupabaseConfigured =
       Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     if (isSupabaseConfigured) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const claimEventId = `claim_${dedupKey}`;
@@ -264,13 +264,13 @@ export class DeduplicationGuard {
 
     const isSupabaseConfigured =
       Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     if (isSupabaseConfigured) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const claimEventId = `claim_${dedupKey}`;
@@ -340,13 +340,13 @@ export class DeduplicationGuard {
   }): Promise<void> {
     const isSupabaseConfigured =
       Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     if (isSupabaseConfigured) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const wamidEventId = `wamid_${data.providerMessageId || data.attemptId}`;
@@ -390,13 +390,13 @@ export class DeduplicationGuard {
 
     const isSupabaseConfigured =
       Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     if (isSupabaseConfigured) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const claimEventId = `claim_${dedupKey}`;

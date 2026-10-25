@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     targetStudent = await db.getStudentById(studentId);
   }
 
-  let destinationUrl = settings.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L';
+  let destinationUrl = settings.defaultWhatsAppGroupLink || 'https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe';
 
   if (targetStudent) {
     const resolved = resolveStudentWhatsAppGroup(targetStudent, settings);

@@ -17,12 +17,12 @@ async function run() {
     console.log('system_settings row data:', data[0]);
   }
 
-  const { data: sData, error: sError } = await c.from('students').select('*').limit(1);
-  if (sError) {
-    console.error('Error fetching students:', sError);
+  const { data: aData, count: aCount, error: aError } = await c.from('admit_cards').select('*', { count: 'exact' }).limit(5);
+  if (aError) {
+    console.error('Error fetching admit_cards:', aError);
   } else {
-    console.log('students row keys:', Object.keys(sData[0] || {}));
-    console.log('sample student:', sData[0]);
+    console.log('admit_cards count in Supabase:', aCount);
+    console.log('sample admit_cards rows:', aData);
   }
 }
 

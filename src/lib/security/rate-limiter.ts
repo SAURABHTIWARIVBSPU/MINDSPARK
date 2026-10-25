@@ -94,17 +94,95 @@ export const searchRateLimiter = new InMemoryRateLimiter();
 export const downloadRateLimiter = new InMemoryRateLimiter();
 export const loginRateLimiter = new InMemoryRateLimiter();
 
-/**
- * Extracts client IP from Next.js request headers
- */
-export function getClientIp(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
+interface FailedAttemptRecord {
+  attempts: number;
+  lockedUntil: number;
+}
+
+export class FailedDobAttemptGuard {
+  private records = new Map<string, FailedAttemptRecord>();
+
+  isLocked(key: string): { locked: boolean; retryAfterSeconds: number } {
+    const now = Date.now();
+    const rec = this.records.get(key);
+    if (!rec) return { locked: false, retryAfterSeconds: 0 };
+    if (now >= rec.lockedUntil) {
+      if (rec.lockedUntil > 0) {
+        this.records.delete(key);
+      }
+      return { locked: false, retryAfterSeconds: 0 };
+    }
+    const retryAfterSeconds = Math.ceil((rec.lockedUntil - now) / 1000);
+    return { locked: true, retryAfterSeconds };
   }
+
+  recordFailure(
+    key: string,
+    maxAttempts: number = 5,
+    lockDurationSeconds: number = 900
+  ): { locked: boolean; remainingAttempts: number; retryAfterSeconds: number } {
+    const now = Date.now();
+    const rec = this.records.get(key) || { attempts: 0, lockedUntil: 0 };
+
+    if (rec.lockedUntil > 0 && now >= rec.lockedUntil) {
+      rec.attempts = 0;
+      rec.lockedUntil = 0;
+    }
+
+    rec.attempts += 1;
+    if (rec.attempts >= maxAttempts) {
+      rec.lockedUntil = now + lockDurationSeconds * 1000;
+      this.records.set(key, rec);
+      return {
+        locked: true,
+        remainingAttempts: 0,
+        retryAfterSeconds: lockDurationSeconds,
+      };
+    }
+
+    this.records.set(key, rec);
+    return {
+      locked: false,
+      remainingAttempts: maxAttempts - rec.attempts,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  recordSuccess(key: string): void {
+    this.records.delete(key);
+  }
+
+  reset(): void {
+    this.records.clear();
+  }
+}
+
+export const failedDobGuard = new FailedDobAttemptGuard();
+
+export function getClientIp(req: NextRequest): string {
+  // 1. Vercel edge verified IP header (tamper-proof behind Vercel infrastructure)
+  const vercelIp = req.headers.get('x-vercel-ip') || req.headers.get('x-vercel-forwarded-for');
+  if (vercelIp) {
+    return vercelIp.split(',')[0].trim();
+  }
+
+  // 2. Cloudflare verified connecting IP (tamper-proof behind Cloudflare)
+  const cfIp = req.headers.get('cf-connecting-ip');
+  if (cfIp) {
+    return cfIp.trim();
+  }
+
+  // 3. Reverse proxy trusted real IP
   const realIp = req.headers.get('x-real-ip');
   if (realIp) {
     return realIp.trim();
   }
+
+  // 4. Standard X-Forwarded-For fallback
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+
   return '127.0.0.1';
 }

@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
                 .replace(/{reg_no}/g, testRegNo)
                 .replace(/{registrationNumber}/g, testRegNo)
                 .replace(/{venue}/g, settings.venue || 'MSITM DEGREE COLLEGE GONDA')
-            : `*Meena Shah Public School, Gonda*\n*Mind Spark Competition- 2026*\n\nDear Participant,\n\nYour form has been successfully enrolled for Mind Spark Competition 2026.\nThis is your Registration Number: ${testRegNo}\n\nAfter 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.\n\n\n*नोट: आप सभी प्रतिभागियों के लिए नीचे दिए गए अपने Competition से संबंधित व्हाट्सएप ग्रुप लिंक पर क्लिक करके जॉइन करना अनिवार्य है।*\n👇\nLink: https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L\n\n*Thank you,*\n*Team Meena Shah Public School, Gonda*`;
+            : `*Meena Shah Public School, Gonda*\n*Mind Spark Competition- 2026*\n\nDear Participant,\n\nYour form has been successfully enrolled for Mind Spark Competition 2026.\nThis is your Registration Number: ${testRegNo}\n\nAfter 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.\n\n\n*नोट: आप सभी प्रतिभागियों के लिए नीचे दिए गए अपने Competition से संबंधित व्हाट्सएप ग्रुप लिंक पर क्लिक करके जॉइन करना अनिवार्य है।*\n👇\nLink: https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe\n\n*Thank you,*\n*Team Meena Shah Public School, Gonda*`;
 
         // Parameters matching approved Meta template admit_card_new
         const bodyParams = [
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
           `Participant ${teacher.name}`,
           `Your form has been successfully enrolled for Mind Spark Competition 2026 This is your Registration Number: ${testRegNo}`,
           'After 26th October, we will provide a link on your WhatsApp to download your admit card. You can enter your Registration Number and Date of Birth to download your admit card.',
-          'Join whatspp group for more update https://chat.whatsapp.com/DTuxN2SADVdCm714xkPB3L',
+          'Join whatspp group for more update https://chat.whatsapp.com/GVPQlFZgMgqBns2WlQGcNe',
         ];
 
         const sendResult = await adapter.sendMessage(teacher.phone, sampleMessage, {

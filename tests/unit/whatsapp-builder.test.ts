@@ -222,7 +222,7 @@ describe('WhatsApp Message Builder & Template Engine', () => {
     expect(rendered).toContain('MS269999');
     expect(rendered).toContain('Your form has been successfully Registered for Mind Spark Competition 2026.');
     expect(rendered).toContain('After 26th October, we will provide a link on your WhatsApp Group to download your admit card.');
-    expect(rendered).toContain('https://chat.whatsapp.com/J7XtWdHvNke48e34nI6DxO?s=cl&p=a&mlu=4&ilr=4');
+    expect(rendered).toContain('https://chat.whatsapp.com/FnBeq6O9TIyIGvbJiK6quw');
   });
 
   it('automatically auto-fills registration number and group link even if template is pasted without merge tags', () => {

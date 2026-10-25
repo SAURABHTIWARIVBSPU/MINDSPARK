@@ -174,7 +174,7 @@ export interface AdmitCard {
   studentId: string;
   registrationNumber: string;
   fileId: string; // Storage key / Drive file ID
-  storageType: 'local' | 'gdrive';
+  storageType: 'local' | 'gdrive' | 'supabase';
   templateVersion: string;
   sourceDataHash: string;
   status: 'READY' | 'STALE';

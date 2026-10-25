@@ -11,7 +11,7 @@ export function getDb(): IDatabaseAdapter {
   const dataSource = (process.env.DATA_SOURCE || '').toLowerCase();
   const hasSupabaseEnv =
     !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (dataSource === 'supabase' || (dataSource !== 'local' && dataSource !== 'firestore' && hasSupabaseEnv)) {
     try {
