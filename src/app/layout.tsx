@@ -3,8 +3,19 @@ import './globals.css';
 import Navigation from '@/components/Navigation';
 
 export const metadata: Metadata = {
-  title: 'Mind-Spark • School Competition Management System',
-  description: 'Secure, production-grade registration, admit card generation, and student management portal',
+  title: 'Mind-Spark 2026 • Official Admit Card & Student Portal',
+  description: 'Official candidate hall ticket portal for Mind-Spark 2026 Academic Olympiad. Search, verify, and download your examination Admit Card.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

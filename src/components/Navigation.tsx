@@ -83,21 +83,23 @@ export default function Navigation() {
     <header className="bg-[#7a0c16] border-b-4 border-amber-500 text-white sticky top-0 z-50 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo - UP Scholarship / Examination Portal Style */}
+          {/* Brand Logo - Official Meena Shah Public School MindSpark Logo */}
           <div className="flex items-center space-x-3">
             <Link
               href="/"
-              className="flex items-center space-x-2.5 font-bold text-base sm:text-lg text-white group focus:outline-none"
+              className="flex items-center space-x-3 font-bold text-white group focus:outline-none"
             >
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:border-amber-400 transition-colors">
-                <GraduationCap className="w-4 h-4" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="Meena Shah Public School - MINDSPARK 2026"
+                className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-sm bg-white shrink-0 group-hover:scale-105 transition-transform"
+              />
               <div className="leading-tight">
-                <span className="tracking-tight text-white font-extrabold text-base sm:text-lg block">
-                  MIND<span className="text-amber-400 font-bold">SPARK</span>
+                <span className="text-[10px] sm:text-[11px] font-bold text-amber-300 tracking-wider uppercase block">
+                  MEENA SHAH PUBLIC SCHOOL
                 </span>
-                <span className="text-[10px] text-amber-200/90 font-medium tracking-wide hidden sm:block">
-                  Examination & Operations Portal
+                <span className="tracking-tight text-white font-extrabold text-base sm:text-lg block">
+                  MIND<span className="text-amber-400 font-bold">SPARK 2026</span>
                 </span>
               </div>
             </Link>
@@ -130,17 +132,30 @@ export default function Navigation() {
             ) : (
               // Public Student Portal Navigation
               <div className="flex items-center space-x-1 sm:space-x-2">
+                <a
+                  href="tel:9569731566"
+                  className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5c000b] hover:bg-[#4a0008] text-amber-300 border border-amber-400/50 shadow-xs transition-colors"
+                >
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Helpline: 9569731566</span>
+                </a>
                 <Link
-                  href="/#about"
+                  href="/#venue"
                   className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-100 hover:text-white hover:bg-[#5c000b]/60 transition-colors"
                 >
-                  About
+                  Venue (परीक्षा केंद्र)
+                </Link>
+                <Link
+                  href="/#helpdesk"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-100 hover:text-white hover:bg-[#5c000b]/60 transition-colors"
+                >
+                  हेल्पलाइन
                 </Link>
                 <Link
                   href="/#rules"
                   className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-100 hover:text-white hover:bg-[#5c000b]/60 transition-colors"
                 >
-                  Rules & Venue
+                  Rules
                 </Link>
                 <Link
                   href="/#admit-card"
@@ -304,18 +319,40 @@ export default function Navigation() {
                 <span>Download Admit Card</span>
               </Link>
 
+              {/* Direct Helpline Buttons for Mobile */}
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <Link
-                  href="/#about"
-                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
+                <a
+                  href="tel:9569731566"
+                  className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-[#7a0c16] text-amber-300 border border-amber-400/50"
                 >
-                  About
+                  <span>📞 9569731566</span>
+                </a>
+                <a
+                  href="tel:8948905711"
+                  className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-[#7a0c16] text-amber-300 border border-amber-400/50"
+                >
+                  <span>📞 8948905711</span>
+                </a>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                <Link
+                  href="/#venue"
+                  className="flex items-center justify-center px-2 py-2 rounded-lg text-xs font-medium text-amber-200 bg-[#7a0c16] border border-amber-500/20"
+                >
+                  Venue
+                </Link>
+                <Link
+                  href="/#helpdesk"
+                  className="flex items-center justify-center px-2 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
+                >
+                  हेल्पलाइन
                 </Link>
                 <Link
                   href="/#rules"
-                  className="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
+                  className="flex items-center justify-center px-2 py-2 rounded-lg text-xs font-medium text-rose-100 bg-[#7a0c16] border border-amber-500/20"
                 >
-                  Rules & Venue
+                  Rules
                 </Link>
               </div>
 

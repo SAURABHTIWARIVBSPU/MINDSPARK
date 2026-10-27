@@ -215,6 +215,7 @@ export interface SystemSettings {
   venue: string;
   examDate: string;
   reportingTime: string;
+  examTime?: string;
   contactPhone: string;
   contactEmail: string;
   regNoPrefix: string;

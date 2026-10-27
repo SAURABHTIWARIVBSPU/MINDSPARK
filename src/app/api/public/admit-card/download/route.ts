@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getStorageAdapter } from '@/lib/storage';
-import { generateAdmitCardPdf } from '@/lib/pdf/template';
+import {
+  generateAdmitCardPdf,
+  computeStudentDataHash,
+  ADMIT_CARD_TEMPLATE_VERSION,
+} from '@/lib/pdf/template';
 import { matchesDob } from '@/lib/excel/normalizer';
 import { downloadRateLimiter, failedDobGuard, getClientIp } from '@/lib/security/rate-limiter';
 import { getAdmitCardReleaseStatus } from '@/lib/admit-card/release-gate';
+import { getStudentEventSchedule } from '@/lib/pdf/event-schedule';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,9 +41,9 @@ export async function GET(req: NextRequest) {
     const regNo = searchParams.get('regNo');
     const dob = searchParams.get('dob');
 
-    if (!regNo || !dob) {
+    if (!regNo) {
       return NextResponse.json(
-        { error: 'Registration Number and Date of Birth parameters are required' },
+        { error: 'Registration Number parameter is required' },
         { 
           status: 400,
           headers: {
@@ -76,32 +81,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const cleanRegNo = regNo.trim().toUpperCase();
-
-    // Check if this IP is temporarily locked for this Registration Number (prevents cross-IP DoS attacks)
-    const compositeKey = `${clientIp}:${cleanRegNo}`;
-    const ipFailKey = `ip:${clientIp}`;
-
-    const lockCheck = failedDobGuard.isLocked(compositeKey);
-    const ipLockCheck = failedDobGuard.isLocked(ipFailKey);
-
-    if (lockCheck.locked || ipLockCheck.locked) {
-      const retryAfter = Math.max(lockCheck.retryAfterSeconds, ipLockCheck.retryAfterSeconds);
-      return NextResponse.json(
-        {
-          error: `Too many failed Date of Birth verification attempts. For security, access is temporarily locked from your network. Please wait ${retryAfter} seconds before trying again.`,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(retryAfter),
-            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-          },
-        }
-      );
-    }
+    const cleanRegNo = regNo.trim().toUpperCase().replace(/[\s\u200B-\u200D\uFEFF\u00A0]/g, '');
 
     const db = getDb();
     const student = await db.getStudentByRegNo(cleanRegNo);
@@ -120,17 +100,35 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Verify Date of Birth (supports DD-MM-YYYY, YYYY-MM-DD, or YYYY)
-    if (!matchesDob(student.dateOfBirth, dob)) {
-      const failStatus = failedDobGuard.recordFailure(compositeKey, 5, 900);
-      failedDobGuard.recordFailure(ipFailKey, 15, 900);
+    // Check if competition is on hold as per Events Deatails.xlsx directives
+    const eventSched = getStudentEventSchedule(
+      student.competitionName || '',
+      student.className || '',
+      student.registrationNumber
+    );
 
-      const remainingMsg = failStatus.locked
-        ? 'Maximum attempts exceeded from your network. This download is temporarily locked for 15 minutes.'
-        : `(${failStatus.remainingAttempts} attempts remaining before temporary lockout)`;
-
+    if (eventSched.isHold && !bypassDateLock) {
       return NextResponse.json(
-        { error: `Date of Birth verification failed. ${remainingMsg}` },
+        {
+          error: `${eventSched.holdReason || 'This competition schedule is currently on hold by the examination committee. Official Admit Card will be released once the revised schedule is confirmed.'}`,
+          onHold: true,
+          canDownload: false,
+        },
+        { 
+          status: 403,
+          headers: {
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
+      );
+    }
+
+    // Verify Date of Birth only if explicitly provided
+    if (dob && student.dateOfBirth && !matchesDob(student.dateOfBirth, dob)) {
+      return NextResponse.json(
+        { error: 'Date of Birth verification failed.' },
         { 
           status: 401,
           headers: {
@@ -142,14 +140,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Successful verification clears failure tracking for this composite key
-    failedDobGuard.recordSuccess(compositeKey);
-
     const storage = getStorageAdapter();
     const cardRecord = await db.getAdmitCardByStudentId(student.studentId);
+    const expectedHash = computeStudentDataHash(student, ADMIT_CARD_TEMPLATE_VERSION);
 
     let pdfBytes: Uint8Array | null = null;
-    if (cardRecord?.fileId) {
+    if (cardRecord?.fileId && cardRecord.sourceDataHash === expectedHash && cardRecord.status === 'READY') {
       try {
         pdfBytes = await storage.getFile(cardRecord.fileId);
       } catch (storageErr) {
@@ -157,10 +153,29 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Generate fresh on-the-fly if not in storage
+    // Generate fresh on-the-fly if not in storage or template version updated
     if (!pdfBytes) {
       const settings = await db.getSettings();
       pdfBytes = await generateAdmitCardPdf(student, settings);
+
+      try {
+        const fileName = `AdmitCard_${student.registrationNumber}_${student.name.replace(/\s+/g, '_')}.pdf`;
+        const { fileId, storageType } = await storage.saveFile(fileName, pdfBytes, 'application/pdf');
+        const now = new Date().toISOString();
+        await db.saveAdmitCard({
+          studentId: student.studentId,
+          registrationNumber: student.registrationNumber,
+          fileId,
+          storageType,
+          templateVersion: ADMIT_CARD_TEMPLATE_VERSION,
+          sourceDataHash: expectedHash,
+          status: 'READY',
+          generatedAt: now,
+          updatedAt: now,
+        });
+      } catch (cacheErr) {
+        console.warn('Admit card background cache save warning:', cacheErr);
+      }
     }
 
     const safeFileName = `AdmitCard_${student.registrationNumber}_${student.name.replace(/\s+/g, '_')}.pdf`;
@@ -170,6 +185,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${safeFileName}"`,
+        'Content-Length': String(pdfBytes.length),
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0',

@@ -84,10 +84,10 @@ function saveStudentHistoryMap(map: Record<string, any>) {
 const DEFAULT_SETTINGS: SystemSettings = {
   schoolName: 'Mind-Spark Inter-School Competition',
   competitionTitle: 'Annual Mind-Spark Academic Olympiad 2026',
-  venue: process.env.DEFAULT_VENUE || 'MSITM DEGREE COLLEGE GONDA UTTAR PRADESH',
+  venue: process.env.DEFAULT_VENUE || 'MEENA SHAH PUBLIC SCHOOL, GONDA (U.P.)',
   examDate: process.env.DEFAULT_EXAM_DATE || '01 Nov 2026',
   reportingTime: '09:00 AM',
-  contactPhone: '9876543210',
+  contactPhone: '9569731566, 8948905711',
   contactEmail: 'admissions@mindspark.edu.in',
   regNoPrefix: 'MS',
   regNoYear: '26',
@@ -212,12 +212,25 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   }
 
   async getStudentByRegNo(regNo: string): Promise<Student | null> {
-    const clean = regNo.trim().toUpperCase();
-    const { data, error } = await this.client
+    const clean = regNo.trim().toUpperCase().replace(/[\s\u200B-\u200D\uFEFF\u00A0]/g, '');
+
+    // Fast path: Exact match uses the primary/unique B-tree index on registration_number
+    let { data, error } = await this.client
       .from('students')
       .select('*')
-      .ilike('registration_number', clean)
+      .eq('registration_number', clean)
       .maybeSingle();
+
+    // Fallback path: Case-insensitive search if exact index match returns nothing
+    if (!data && !error) {
+      const fallback = await this.client
+        .from('students')
+        .select('*')
+        .ilike('registration_number', clean)
+        .maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) throw new Error(`Supabase error: ${error.message}`);
     return data ? this.mapRowToStudent(data) : null;

@@ -29,10 +29,10 @@ interface DatabaseSchema {
 const DEFAULT_SETTINGS: SystemSettings = {
   schoolName: 'Mind-Spark Inter-School Competition',
   competitionTitle: 'Annual Mind-Spark Academic Olympiad 2026',
-  venue: process.env.DEFAULT_VENUE || 'MSITM DEGREE COLLEGE GONDA UTTAR PRADESH',
+  venue: process.env.DEFAULT_VENUE || 'MEENA SHAH PUBLIC SCHOOL, GONDA (U.P.)',
   examDate: process.env.DEFAULT_EXAM_DATE || '01 Nov 2026',
   reportingTime: '09:00 AM',
-  contactPhone: '9876543210',
+  contactPhone: '9569731566, 8948905711',
   contactEmail: 'admissions@mindspark.edu.in',
   regNoPrefix: 'MS',
   regNoYear: '26',
@@ -91,11 +91,13 @@ import os from 'os';
 
 export class LocalJsonDbAdapter implements IDatabaseAdapter {
   private filePath: string;
+  private isCustomPath: boolean = false;
   private data: DatabaseSchema;
 
   constructor(customPath?: string) {
     if (customPath) {
       this.filePath = customPath;
+      this.isCustomPath = true;
     } else if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
       this.filePath = path.join(os.tmpdir(), 'mind_spark_db.json');
     } else {
@@ -139,9 +141,9 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
       }
     }
 
-    // Check for bundled seed database (e.g. on Vercel / production deployment)
+    // Check for bundled seed database (e.g. on Vercel / production deployment) - only if not custom test path
     const seedPath = path.join(process.cwd(), 'src', 'data', 'seed_db.json');
-    if (fs.existsSync(seedPath)) {
+    if (!this.isCustomPath && fs.existsSync(seedPath)) {
       try {
         const seedContent = fs.readFileSync(seedPath, 'utf-8');
         const parsedSeed = JSON.parse(seedContent);
@@ -493,9 +495,9 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     const regPattern = new RegExp(`^${pfx}${yr}(\\d+)$`, 'i');
     for (const s of this.data.students) {
       const match = s.registrationNumber ? s.registrationNumber.match(regPattern) : null;
-      if (match) {
+      if (match && match[1].length === String(nextSeq).length) {
         const num = parseInt(match[1], 10);
-        if (!isNaN(num) && num >= nextSeq && match[1].length === String(nextSeq).length) {
+        if (!isNaN(num) && num >= nextSeq) {
           nextSeq = num + 1;
         }
       }

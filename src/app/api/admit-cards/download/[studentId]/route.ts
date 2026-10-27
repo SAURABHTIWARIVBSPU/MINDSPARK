@@ -3,7 +3,11 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { getDb } from '@/lib/db';
 import { getStorageAdapter } from '@/lib/storage';
-import { generateAdmitCardPdf } from '@/lib/pdf/template';
+import {
+  generateAdmitCardPdf,
+  computeStudentDataHash,
+  ADMIT_CARD_TEMPLATE_VERSION,
+} from '@/lib/pdf/template';
 
 export async function GET(
   req: NextRequest,
@@ -23,16 +27,40 @@ export async function GET(
 
     const storage = getStorageAdapter();
     const cardRecord = await db.getAdmitCardByStudentId(studentId);
+    const expectedHash = computeStudentDataHash(student, ADMIT_CARD_TEMPLATE_VERSION);
 
     let pdfBytes: Uint8Array | null = null;
-    if (cardRecord?.fileId) {
-      pdfBytes = await storage.getFile(cardRecord.fileId);
+    if (cardRecord?.fileId && cardRecord.sourceDataHash === expectedHash && cardRecord.status === 'READY') {
+      try {
+        pdfBytes = await storage.getFile(cardRecord.fileId);
+      } catch (storageErr) {
+        console.warn('Storage fetch fallback to dynamic generation:', storageErr);
+      }
     }
 
-    // Fallback: If not in storage or not generated yet, generate fresh
+    // Fallback: If not in storage or template version updated, generate fresh
     if (!pdfBytes) {
       const settings = await db.getSettings();
       pdfBytes = await generateAdmitCardPdf(student, settings);
+
+      try {
+        const fileName = `AdmitCard_${student.registrationNumber}_${student.name.replace(/\s+/g, '_')}.pdf`;
+        const { fileId, storageType } = await storage.saveFile(fileName, pdfBytes, 'application/pdf');
+        const now = new Date().toISOString();
+        await db.saveAdmitCard({
+          studentId: student.studentId,
+          registrationNumber: student.registrationNumber,
+          fileId,
+          storageType,
+          templateVersion: ADMIT_CARD_TEMPLATE_VERSION,
+          sourceDataHash: expectedHash,
+          status: 'READY',
+          generatedAt: now,
+          updatedAt: now,
+        });
+      } catch (cacheErr) {
+        console.warn('Admit card background cache save warning:', cacheErr);
+      }
     }
 
     await db.addAuditLog({

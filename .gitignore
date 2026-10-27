@@ -40,7 +40,66 @@ Thumbs.db
 /backups
 *.bak
 *.xlsx.bak
-/Programme_Wise_Candidate_PDFs
+/Class_Wise_Candidate_PDFs/
+/Programme_Wise_Candidate_Excel/
+/Programme_Wise_Candidate_PDFs/
+/Audit_Verification_2026/
+
+# Campaign & Temporary Deliverables
+WHATSAPP_CAMPAIGN_*
+WhatsApp_Campaign_*
+MINDSPARK_2026_OFFICIAL_TIMETABLE_MASTER.xlsx
+Events Deatails.xlsx
+*.tmp
+
+# Raw & Temporary Image/PDF Files
+LOO.PNG
+admit card LOGO*
+admit card.pdf
+*.pdf
+!public/admit_card_template.pdf
+!public/verified_sample_admit_card.pdf
+
+# Untracked Scratch & Audit Scripts
+scripts/analyze_*.js
+scripts/apply_*.js
+scripts/audit_*.js
+scripts/build_*.js
+scripts/categorize_*.js
+scripts/check_*.js
+scripts/compare_*.js
+scripts/deep_audit_*.js
+scripts/fix_*.js
+scripts/generate_all_*.ts
+scripts/generate_all_*.js
+scripts/generate_class_wise_*.js
+scripts/generate_official_*.js
+scripts/generate_online_quiz_*.js
+scripts/generate_programme_wise_*.js
+scripts/generate_security_*.js
+scripts/generate_test_*.js
+scripts/hierarchical_*.js
+scripts/inspect_staff_*.js
+scripts/inspect_supabase_*.js
+scripts/integrate_*.js
+scripts/process_incremental_*.js
+scripts/rearrange_*.js
+scripts/set_staff_*.ts
+scripts/sync_to_*.js
+scripts/test_api_*.ts
+scripts/test_candidate_*.ts
+scripts/test_dynamic_*.ts
+scripts/test_edge_*.ts
+scripts/test_live_all_*.ts
+scripts/test_ms261101798_*.ts
+scripts/test_schedule_*.ts
+scripts/test_student_*.ts
+scripts/update_all_*.js
+scripts/update_student_*.js
+scripts/validate_*.js
+scripts/verify_live_*.js
+scripts/verify_reg_*.js
+
 whatsapp_dispatch_*.xlsx
 CAndidate_data-*.xlsx
 candidate_data_*.xlsx

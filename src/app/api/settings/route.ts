@@ -14,17 +14,24 @@ export async function GET() {
       return NextResponse.json(settings);
     }
 
-    // Unauthenticated requests only receive safe, non-sensitive public event metadata
-    return NextResponse.json({
-      schoolName: settings.schoolName,
-      competitionTitle: settings.competitionTitle,
-      venue: settings.venue,
-      examDate: settings.examDate,
-      reportingTime: settings.reportingTime,
-      contactPhone: settings.contactPhone,
-      contactEmail: settings.contactEmail,
-      regNoPrefix: settings.regNoPrefix,
-    });
+    // Unauthenticated requests only receive safe, non-sensitive public event metadata (Cached at edge/browser)
+    return NextResponse.json(
+      {
+        schoolName: settings.schoolName,
+        competitionTitle: settings.competitionTitle,
+        venue: settings.venue,
+        examDate: settings.examDate,
+        reportingTime: settings.reportingTime,
+        contactPhone: settings.contactPhone,
+        contactEmail: settings.contactEmail,
+        regNoPrefix: settings.regNoPrefix,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
