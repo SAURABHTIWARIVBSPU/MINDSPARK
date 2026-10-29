@@ -18,6 +18,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Lock,
+  Sparkles,
 } from 'lucide-react';
 import { Student } from '@/types';
 import { generateWhatsAppLink } from '@/lib/whatsapp/message-builder';
@@ -155,6 +157,10 @@ export default function StudentsPage() {
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to save student record');
+      }
+
+      if (!editingStudent && data.student?.registrationNumber) {
+        alert(`✅ Student Registered Successfully!\n\nName: ${data.student.name}\nAllocated Reg No: ${data.student.registrationNumber}\nCategory: ${data.student.competitionName}`);
       }
 
       setIsModalOpen(false);
@@ -456,16 +462,32 @@ export default function StudentsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Registration No
+                  <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Registration No</span>
+                    {editingStudent ? (
+                      <span className="text-[10px] text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        🔒 Permanent Roll No
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-emerald-600" /> Auto-Generated
+                      </span>
+                    )}
                   </label>
-                  <input
-                    type="text"
-                    value={formData.registrationNumber}
-                    onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                    placeholder="Leave empty to auto-generate"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
-                  />
+                  {editingStudent ? (
+                    <div className="flex items-center px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-mono font-bold text-[#7a0c16] text-xs">
+                      <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                      {formData.registrationNumber}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between px-3 py-2 bg-emerald-50/60 border border-dashed border-emerald-300 rounded-lg text-xs">
+                      <span className="font-mono font-bold text-emerald-900 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        ⚡ Auto-Assigned by System
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-700">Next Sequence</span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
