@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { Student } from '@/types';
 import { generateWhatsAppLink } from '@/lib/whatsapp/message-builder';
+import { APPROVED_COMPETITIONS, CompetitionOption } from '@/lib/constants/competitions';
+import { formatDobToDmy } from '@/lib/excel/normalizer';
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -42,13 +44,30 @@ export default function StudentsPage() {
     dateOfBirth: '',
     phone: '',
     schoolOrCollege: '',
-    className: '',
-    competitionName: 'ONLINE QUIZ',
+    className: 'NURSERY',
+    competitionName: 'Colour by Number',
     status: 'ACTIVE',
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+
+  const selectedComp = APPROVED_COMPETITIONS.find(
+    (c) => c.title.toUpperCase() === (formData.competitionName || '').toUpperCase() || c.key === formData.competitionName
+  ) || APPROVED_COMPETITIONS.find((c) => (formData.competitionName || '').toUpperCase().includes(c.title.toUpperCase()));
+
+  const handleCompetitionChange = (compTitle: string) => {
+    const comp = APPROVED_COMPETITIONS.find(c => c.title === compTitle || c.key === compTitle);
+    if (comp) {
+      setFormData(prev => ({
+        ...prev,
+        competitionName: comp.title,
+        className: prev.className && comp.eligibleClasses.includes(prev.className.toUpperCase()) ? prev.className : comp.defaultClass
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, competitionName: compTitle }));
+    }
+  };
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(setSettings).catch(() => {});
@@ -107,7 +126,7 @@ export default function StudentsPage() {
       registrationNumber: student.registrationNumber,
       name: student.name,
       fatherName: student.fatherName,
-      dateOfBirth: student.dateOfBirth,
+      dateOfBirth: formatDobToDmy(student.dateOfBirth),
       phone: student.phone,
       schoolOrCollege: student.schoolOrCollege,
       className: student.className,
@@ -281,7 +300,7 @@ export default function StudentsPage() {
                       {student.name}
                     </td>
                     <td className="py-3 px-4 text-slate-700">{student.fatherName}</td>
-                    <td className="py-3 px-4 text-slate-500 font-mono">{student.dateOfBirth}</td>
+                    <td className="py-3 px-4 text-slate-500 font-mono">{formatDobToDmy(student.dateOfBirth)}</td>
                     <td className="py-3 px-4 text-slate-700 font-mono">{student.phone}</td>
                     <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={student.schoolOrCollege}>
                       {student.schoolOrCollege}
@@ -479,14 +498,14 @@ export default function StudentsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Date of Birth (YYYY-MM-DD) *
+                    Date of Birth (DD-MM-YYYY) *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    placeholder="2008-05-31"
+                    placeholder="DD-MM-YYYY (e.g. 15-08-2015)"
                     className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
                   />
                 </div>
@@ -509,15 +528,35 @@ export default function StudentsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Class / Grade
+                    Class / Grade *
                   </label>
                   <input
                     type="text"
+                    required
                     value={formData.className}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                    placeholder="e.g. 12 or B.SC"
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
+                    placeholder="e.g. NURSERY, 5, 12, GRADUATION"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase font-semibold"
                   />
+                  {selectedComp && (
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <span className="text-[10px] text-slate-500 font-medium">Eligible:</span>
+                      {selectedComp.eligibleClasses.map((cls) => (
+                        <button
+                          key={cls}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, className: cls })}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                            formData.className.toUpperCase() === cls
+                              ? 'bg-[#7a0c16] text-white border-[#7a0c16]'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'
+                          }`}
+                        >
+                          {cls}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -537,16 +576,68 @@ export default function StudentsPage() {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Competition Category
+                  Competition Category *
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.competitionName}
-                  onChange={(e) => setFormData({ ...formData, competitionName: e.target.value })}
-                  placeholder="e.g. ONLINE QUIZ"
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] uppercase"
-                />
+                  onChange={(e) => handleCompetitionChange(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16] bg-white font-medium text-slate-900"
+                >
+                  <option value="">-- Select Official Competition --</option>
+                  {APPROVED_COMPETITIONS.map((c) => (
+                    <option key={c.key} value={c.title}>
+                      {c.title} ({c.category}) {c.isHold ? '⚠️ [HOLD]' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {/* Dynamic Live Shift Allocation & Schedule Preview */}
+              {selectedComp && (
+                <div
+                  className={`p-3 rounded-lg border text-xs transition-all ${
+                    selectedComp.isHold
+                      ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                      : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-bold pb-1.5 border-b border-current/10">
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${selectedComp.isHold ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`} />
+                      {selectedComp.title}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
+                        selectedComp.isHold
+                          ? 'bg-amber-200 text-amber-900 border border-amber-300'
+                          : 'bg-emerald-200 text-emerald-900 border border-emerald-300'
+                      }`}
+                    >
+                      {selectedComp.isHold ? 'SCHEDULE ON HOLD' : 'CONFIRMED ALLOTMENT'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] mt-2">
+                    <div>
+                      <span className="font-semibold text-slate-600 block">Exam Timing:</span>
+                      <span className="font-medium">{selectedComp.examSlot}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-600 block">Reporting Window:</span>
+                      <span className="font-medium">{selectedComp.reportingTime}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-semibold text-slate-600 block">Allotted Venue & Room:</span>
+                      <span className="font-medium">{selectedComp.venue}</span>
+                    </div>
+                    {selectedComp.isHold && (
+                      <div className="col-span-2 p-2 bg-amber-100/80 rounded border border-amber-300 text-amber-900 font-medium">
+                        ⚠️ {selectedComp.holdReason}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
                 <button

@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { StudentFormSchema } from '@/lib/validation/student.schema';
+import { validateStudentEligibility } from '@/lib/validation/eligibility';
 
 export async function GET(
   req: NextRequest,
@@ -39,6 +40,18 @@ export async function PUT(
     const body = await req.json();
     const validated = StudentFormSchema.parse(body);
 
+    // Validate eligibility for the updated competition & class
+    const eligibility = validateStudentEligibility(validated.competitionName, validated.className);
+    if (!eligibility.valid) {
+      return NextResponse.json(
+        {
+          error: eligibility.error || 'Invalid competition program or incompatible class grade.',
+          eventKey: eligibility.eventKey
+        },
+        { status: 400 }
+      );
+    }
+
     const db = getDb();
     const updated = await db.updateStudent(id, {
       registrationNumber: validated.registrationNumber,
@@ -48,7 +61,7 @@ export async function PUT(
       phone: validated.phone,
       schoolOrCollege: validated.schoolOrCollege.toUpperCase(),
       className: validated.className.toUpperCase(),
-      competitionName: validated.competitionName.toUpperCase(),
+      competitionName: eligibility.canonicalCompetition,
       status: validated.status,
       updatedBy: user!.uid,
     });

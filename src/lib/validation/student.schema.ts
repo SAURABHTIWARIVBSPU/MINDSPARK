@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeDate } from '@/lib/excel/normalizer';
 
 export const PhoneSchema = z.string().transform((val) => {
   // Strip non-digits
@@ -15,11 +16,18 @@ export const PhoneSchema = z.string().transform((val) => {
   message: 'Phone number must be a valid 10-digit Indian mobile number',
 });
 
+export const DateOfBirthSchema = z.string().trim().transform((val) => {
+  const norm = normalizeDate(val);
+  return norm || val;
+}).refine((val) => val.length >= 4, {
+  message: 'Date of birth is required and must be a valid date (DD-MM-YYYY or YYYY-MM-DD)',
+});
+
 export const StudentFormSchema = z.object({
   registrationNumber: z.string().trim().optional(),
   name: z.string().trim().min(2, 'Name must be at least 2 characters'),
   fatherName: z.string().trim().min(2, "Father's name must be at least 2 characters"),
-  dateOfBirth: z.string().trim().min(4, 'Date of birth is required'),
+  dateOfBirth: DateOfBirthSchema,
   phone: PhoneSchema,
   schoolOrCollege: z.string().trim().min(2, 'School/College name is required'),
   className: z.string().trim().default(''),

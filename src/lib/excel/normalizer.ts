@@ -140,3 +140,20 @@ export function matchesDob(storedDob: string, inputDob: string): boolean {
   return String(storedDob).trim().toLowerCase() === cleanInput.toLowerCase();
 }
 
+/**
+ * Formats any raw date (ISO YYYY-MM-DD, DD/MM/YYYY, etc.) to standard Indian format DD-MM-YYYY
+ */
+export function formatDobToDmy(raw?: any): string {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  const mYmd = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (mYmd) {
+    return `${mYmd[3].padStart(2, '0')}-${mYmd[2].padStart(2, '0')}-${mYmd[1]}`;
+  }
+  const mDmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (mDmy) {
+    return `${mDmy[1].padStart(2, '0')}-${mDmy[2].padStart(2, '0')}-${mDmy[3]}`;
+  }
+  return s;
+}
+

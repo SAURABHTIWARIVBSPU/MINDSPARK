@@ -22,7 +22,13 @@ async function run() {
     console.error('Error fetching admit_cards:', aError);
   } else {
     console.log('admit_cards count in Supabase:', aCount);
-    console.log('sample admit_cards rows:', aData);
+  }
+
+  const { data: sData, count: sCount } = await c.from('students').select('*', { count: 'exact' }).limit(1);
+  console.log('students count in Supabase:', sCount);
+  if (sData && sData.length > 0) {
+    console.log('students row keys:', Object.keys(sData[0]));
+    console.log('sample student row:', sData[0]);
   }
 }
 

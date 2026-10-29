@@ -243,12 +243,24 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     venueDetail: 'MSITM 1st FLOOR',
     isHold: true,
     holdReason: 'HOLD (DO NOT GENERATE ADMIT CARD FOR THIS - SCHEDULE PENDING)'
+  },
+  PENDING_REVIEW: {
+    eventTitle: 'Event Allocation Pending',
+    classMatch: 'Under Administrative Verification',
+    venueMain: 'MEENA SHAH PUBLIC SCHOOL',
+    venueDetail: 'ADMINISTRATION OFFICE',
+    isHold: true,
+    holdReason: 'HOLD (Missing or unconfirmed competition event - pending committee approval)'
   }
 };
 
 export function resolveEventKey(competitionName?: string, className?: string): string {
   const comp = String(competitionName || '').trim().toUpperCase();
   const cls = String(className || '').trim().toUpperCase();
+
+  if (!comp || comp === 'MISSING_EVENT' || comp === 'GENERAL COMPETITION') {
+    return 'PENDING_REVIEW';
+  }
 
   if (comp.includes('FANCY DRESS') || comp.includes('UNIQUE')) return 'FANCY_DRESS';
   if (comp.includes('COLOUR BY NUMBER') || comp.includes('COLOR BY NUMBER')) return 'COLOUR_BY_NUMBER';
@@ -283,7 +295,7 @@ export function resolveEventKey(competitionName?: string, className?: string): s
     return 'POSTER_ARTIST';
   }
 
-  return 'COLOUR_BY_NUMBER';
+  return 'PENDING_REVIEW';
 }
 
 // In-memory cache for deterministic rank of candidates in their respective competitions

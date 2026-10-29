@@ -239,38 +239,95 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   async createStudent(
     studentData: Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>
   ): Promise<Student> {
-    let regNo = studentData.registrationNumber?.trim();
-    if (!regNo) {
-      regNo = await this.allocateNextRegistrationNumber();
+    const cleanName = studentData.name.trim().toUpperCase();
+    const cleanFather = studentData.fatherName.trim().toUpperCase();
+    const cleanPhone = studentData.phone.replace(/\D/g, '').slice(-10);
+
+    // 1. Strict Duplicate Candidate Check: Prevent duplicate registrations of the same human student
+    const { data: existingCandidates } = await this.client
+      .from('students')
+      .select('registration_number, name, father_name, phone, date_of_birth, competition_name, status')
+      .ilike('name', cleanName)
+      .ilike('father_name', cleanFather)
+      .neq('status', 'VOID')
+      .neq('status', 'ARCHIVED');
+
+    if (existingCandidates && existingCandidates.length > 0) {
+      const match = existingCandidates.find(
+        (c) =>
+          (cleanPhone && c.phone === cleanPhone) ||
+          (studentData.dateOfBirth && c.date_of_birth === studentData.dateOfBirth)
+      );
+
+      if (match) {
+        throw new Error(
+          `DUPLICATE REGISTRATION CONFLICT: Candidate '${cleanName}' (Father: '${cleanFather}') is already registered under Registration No. ${match.registration_number} in event '${match.competition_name}' (Status: ${match.status}). A student cannot receive two simultaneous registrations or allotments.`
+        );
+      }
     }
 
-    const studentId = `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const now = new Date().toISOString();
+    // 2. Atomic Registration Number Allocation with Collision Retry Loop
+    const explicitRegNo = studentData.registrationNumber?.trim();
+    if (explicitRegNo) {
+      // Admin specified a custom registration number - verify it doesn't collide
+      const existing = await this.getStudentByRegNo(explicitRegNo);
+      if (existing) {
+        throw new Error(
+          `REGISTRATION NUMBER COLLISION: Registration Number '${explicitRegNo.toUpperCase()}' is already assigned to student '${existing.name}'.`
+        );
+      }
+    }
 
-    const row = {
-      student_id: studentId,
-      registration_number: regNo.toUpperCase(),
-      name: studentData.name.trim().toUpperCase(),
-      father_name: studentData.fatherName.trim().toUpperCase(),
-      date_of_birth: studentData.dateOfBirth,
-      phone: studentData.phone.replace(/\D/g, '').slice(-10),
-      school_or_college: studentData.schoolOrCollege.trim().toUpperCase(),
-      class_name: studentData.className?.trim().toUpperCase() || '',
-      competition_name: studentData.competitionName?.trim().toUpperCase() || 'GENERAL',
-      status: studentData.status || 'ACTIVE',
-      whatsapp_status: studentData.whatsappStatus || 'NOT_SENT',
-      whatsapp_sent_at: studentData.whatsappSentAt || null,
-      source_import_id: studentData.sourceImportId || null,
-      created_at: now,
-      created_by: studentData.createdBy || 'system',
-      updated_at: now,
-      updated_by: studentData.updatedBy || 'system',
-      data_version: 1,
-    };
+    let attempts = 0;
+    const maxAttempts = 5;
+    let lastError: any = null;
 
-    const { data, error } = await this.client.from('students').insert(row).select().single();
-    if (error) throw new Error(`Supabase insert student error: ${error.message}`);
-    return this.mapRowToStudent(data);
+    while (attempts < maxAttempts) {
+      attempts++;
+      const regNo = explicitRegNo || (await this.allocateNextRegistrationNumber());
+      const studentId = `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date().toISOString();
+
+      const row = {
+        student_id: studentId,
+        registration_number: regNo.toUpperCase(),
+        name: cleanName,
+        father_name: cleanFather,
+        date_of_birth: studentData.dateOfBirth,
+        phone: cleanPhone,
+        school_or_college: studentData.schoolOrCollege.trim().toUpperCase(),
+        class_name: studentData.className?.trim().toUpperCase() || '',
+        competition_name: studentData.competitionName?.trim().toUpperCase() || 'GENERAL',
+        status: studentData.status || 'ACTIVE',
+        whatsapp_status: studentData.whatsappStatus || 'NOT_SENT',
+        whatsapp_sent_at: studentData.whatsappSentAt || null,
+        source_import_id: studentData.sourceImportId || null,
+        created_at: now,
+        created_by: studentData.createdBy || 'system',
+        updated_at: now,
+        updated_by: studentData.updatedBy || 'system',
+        data_version: 1,
+      };
+
+      const { data, error } = await this.client.from('students').insert(row).select().single();
+
+      if (!error && data) {
+        return this.mapRowToStudent(data);
+      }
+
+      // If collision on registration_number during auto-allocation, invalidate cache and retry
+      if (error && !explicitRegNo && (error.code === '23505' || error.message?.includes('registration_number'))) {
+        this.cachedSettings = null; // Flush cache to force fresh seq read
+        lastError = error;
+        continue;
+      }
+
+      throw new Error(`Supabase insert student error: ${error?.message || 'Unknown database error'}`);
+    }
+
+    throw new Error(
+      `Failed to allocate unique registration number after ${maxAttempts} concurrent attempts: ${lastError?.message}`
+    );
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>): Promise<Student> {
@@ -298,6 +355,21 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       .single();
 
     if (error) throw new Error(`Supabase update student error: ${error.message}`);
+
+    // Invalidate stale admit card in database if program, class, or student details changed
+    if (
+      updates.competitionName !== undefined ||
+      updates.className !== undefined ||
+      updates.name !== undefined ||
+      updates.status !== undefined
+    ) {
+      try {
+        await this.client.from('admit_cards').delete().eq('student_id', studentId);
+      } catch (cardErr) {
+        console.warn('Admit card invalidation note:', cardErr);
+      }
+    }
+
     return this.mapRowToStudent(data);
   }
 

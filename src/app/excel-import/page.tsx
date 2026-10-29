@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { ImportPreviewResult, RowEvaluation } from '@/lib/excel/importer';
+import { formatDobToDmy } from '@/lib/excel/normalizer';
 
 export default function ExcelImportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -281,7 +282,7 @@ export default function ExcelImportPage() {
                       </td>
                       <td className="py-2 px-3 font-semibold text-slate-900">{r.canonicalData.name}</td>
                       <td className="py-2 px-3 text-slate-700">{r.canonicalData.fatherName}</td>
-                      <td className="py-2 px-3 font-mono text-slate-600">{r.canonicalData.dateOfBirth}</td>
+                      <td className="py-2 px-3 font-mono text-slate-600">{formatDobToDmy(r.canonicalData.dateOfBirth)}</td>
                       <td className="py-2 px-3 font-mono text-slate-700">{r.canonicalData.phone}</td>
                       <td className="py-2 px-3 text-slate-600 max-w-[180px] truncate" title={r.canonicalData.schoolOrCollege}>
                         {r.canonicalData.schoolOrCollege}
