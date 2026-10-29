@@ -32,7 +32,8 @@ export const StudentFormSchema = z.object({
   schoolOrCollege: z.string().trim().min(2, 'School/College name is required'),
   className: z.string().trim().default(''),
   competitionName: z.string().trim().default('General Competition'),
-  status: z.enum(['ACTIVE', 'ARCHIVED', 'VOID']).default('ACTIVE'),
+  status: z.enum(['ACTIVE', 'PENDING', 'HOLD', 'REJECTED', 'ARCHIVED', 'VOID']).default('ACTIVE'),
+  selectedBatchNumber: z.number().int().nonnegative().optional().default(0),
 });
 
 export type StudentFormData = z.infer<typeof StudentFormSchema>;

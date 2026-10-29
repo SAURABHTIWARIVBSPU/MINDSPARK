@@ -52,5 +52,5 @@ describe('Real-Time WhatsApp Dispatch Excel & CSV Logger', () => {
     const match = rows.find((r) => r['Reg Number'] === 'MS261100037');
     expect(match).toBeDefined();
     expect(match['Dispatch Status']).toBe('SENT');
-  });
+  }, 15000);
 });

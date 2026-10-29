@@ -24,13 +24,13 @@ export const APPROVED_COMPETITIONS = [
   { key: 'POSTER_ARTIST', title: 'Poster Artist', eligibleClasses: ['4', '5', 'CLASS 4', 'CLASS 5', '4TH', '5TH'], defaultClass: '4' },
   { key: 'SUDOKU', title: 'Sudoku', eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'], defaultClass: '6' },
   { key: 'FIRELESS_COOKING', title: 'Fireless Cooking', eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'], defaultClass: '6' },
-  { key: 'JUNIOR_SCIENTIST', title: 'Junior Scientist [HOLD]', eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'], defaultClass: '6' },
+  { key: 'JUNIOR_SCIENTIST', title: 'Junior Scientist', eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'], defaultClass: '6' },
   { key: 'YOUNG_INNOVATORS', title: 'Young Innovators', eligibleClasses: ['9', '10', 'CLASS 9', 'CLASS 10', '9TH', '10TH'], defaultClass: '9' },
   { key: 'ONLINE_QUIZ_9_10', title: 'Online Quiz (Class 9-10)', eligibleClasses: ['9', '10', 'CLASS 9', 'CLASS 10', '9TH', '10TH'], defaultClass: '9' },
   { key: 'WRITING_QUEST', title: 'Writing Quest', eligibleClasses: ['11', '12', 'CLASS 11', 'CLASS 12', '11TH', '12TH'], defaultClass: '11' },
   { key: 'ONLINE_QUIZ_11_12', title: 'Online Quiz (Class 11-12)', eligibleClasses: ['11', '12', 'CLASS 11', 'CLASS 12', '11TH', '12TH'], defaultClass: '11' },
-  { key: 'ONLINE_QUIZ_GRADUATION', title: 'Online Quiz (Graduation) [HOLD]', eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'], defaultClass: 'GRADUATION' },
-  { key: 'ESSAY_WRITING_GRADUATION', title: 'Essay Writing (Graduation) [HOLD]', eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'], defaultClass: 'GRADUATION' }
+  { key: 'ONLINE_QUIZ_GRADUATION', title: 'Online Quiz (Graduation)', eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'], defaultClass: 'GRADUATION' },
+  { key: 'ESSAY_WRITING_GRADUATION', title: 'Essay Writing (Graduation)', eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'], defaultClass: 'GRADUATION' }
 ];
 
 export function validateStudentEligibility(competitionName: string, className: string): EligibilityResult {

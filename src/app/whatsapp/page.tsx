@@ -45,6 +45,8 @@ import {
   Flame,
   BarChart3,
   Link as LinkIcon,
+  CheckCheck,
+  GraduationCap,
 } from 'lucide-react';
 import {
   Student,
@@ -1034,7 +1036,7 @@ export default function WhatsAppPage() {
         }),
       });
       if (bulkRes.ok) {
-        setActionSuccessMsg(`✓ Successfully marked ${targetIds.length} candidate(s) in "${groupName}" as SENT! Zero duplicacy guaranteed.`);
+        setActionSuccessMsg(`Successfully marked ${targetIds.length} candidate(s) in "${groupName}" as SENT! Zero duplicacy guaranteed.`);
         setTimeout(() => setActionSuccessMsg(null), 4000);
         fetchStudents();
       }
@@ -1316,7 +1318,7 @@ export default function WhatsAppPage() {
       }
 
       setCloudSendSummary(
-        `✅ ICPaaS Bulk Send Complete: ${target.length} candidates processed across ${totalBatches} batches of 100! (${totalSucceeded} Succeeded, ${totalFailed} Failed). Data real-time me Database aur Excel log me update ho chuka hai.`
+        `ICPaaS Bulk Send Complete: ${target.length} candidates processed across ${totalBatches} batches of 100! (${totalSucceeded} Succeeded, ${totalFailed} Failed). Data real-time me Database aur Excel log me update ho chuka hai.`
       );
       fetchStudents();
     } catch (err: any) {
@@ -1370,7 +1372,7 @@ export default function WhatsAppPage() {
         throw new Error(data.error || data.failedDetails?.[0]?.error || 'Dispatch failed');
       }
 
-      setActionSuccessMsg(`✓ WhatsApp notification delivered to ${student.name} via ICPaaS Gateway!`);
+      setActionSuccessMsg(`WhatsApp notification delivered to ${student.name} via ICPaaS Gateway!`);
       setTimeout(() => setActionSuccessMsg(null), 3500);
       fetchStudents();
     } catch (err: any) {
@@ -1416,14 +1418,14 @@ export default function WhatsAppPage() {
 
   return (
     <div className="space-y-6 pb-16">
-      {/* Official UP Portal Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      {/* Official Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              WhatsApp Dispatch & Messaging Console
+          <div className="border-l-4 border-portal-maroon pl-3.5 py-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-apple-ink tracking-tight">
+              WhatsApp Dispatch &amp; Messaging Console
             </h1>
-            <p className="text-xs text-slate-600 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Dispatch examination schedules, admit card links, and venue updates to candidates via WhatsApp.
             </p>
           </div>
@@ -1434,7 +1436,7 @@ export default function WhatsAppPage() {
           <button
             type="button"
             onClick={() => openSequentialWorkflow('ALL')}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-portal-maroon hover:bg-portal-maroon-dark text-white text-xs font-semibold rounded-full shadow-apple-subtle hover:shadow-apple-hover transition-all cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>Guided Sequential Dispatch</span>
@@ -1445,7 +1447,7 @@ export default function WhatsAppPage() {
             <input type="hidden" name="statusFilter" value={statusFilter} />
             <button
               type="submit"
-              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-xs transition-colors"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/80 text-slate-700 text-xs font-semibold rounded-full shadow-apple-subtle transition-all cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-amber-600" />
               <span>Download Excel Report</span>
@@ -1454,23 +1456,25 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* Metrics Row - UP Scholarship Style */}
+      {/* Metrics Row - Apple Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div
           onClick={() => {
             setStatusFilter('ALL');
             setPage(1);
           }}
-          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-[#7a0c16] cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'ALL' ? 'bg-rose-50/60 ring-2 ring-[#7a0c16]' : 'bg-white border-slate-200'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-apple-card hover:shadow-apple-hover ${
+            statusFilter === 'ALL'
+              ? 'bg-portal-maroon-soft/60 border-portal-maroon/40 ring-2 ring-portal-maroon/20'
+              : 'bg-white border-slate-200/80'
           }`}
           title="Click to view all registered candidate records"
         >
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
             <span>Total Students</span>
-            <span className="text-[10px] text-[#7a0c16] font-bold">Registry</span>
+            <span className="text-[10px] text-portal-maroon font-bold px-1.5 py-0.5 bg-portal-maroon/10 rounded-md">Registry</span>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#7a0c16] mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black text-portal-maroon mt-1.5 tabular-nums">
             {stats.totalActive}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
@@ -1483,16 +1487,21 @@ export default function WhatsAppPage() {
             setStatusFilter('SENT');
             setPage(1);
           }}
-          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-emerald-700 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'SENT' ? 'bg-emerald-50/60 ring-2 ring-emerald-600' : 'bg-white border-slate-200'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-apple-card hover:shadow-apple-hover ${
+            statusFilter === 'SENT'
+              ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20'
+              : 'bg-white border-slate-200/80'
           }`}
           title="Click to view dispatched / sent candidates"
         >
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
             <span>Dispatched (Sent)</span>
-            <span className="text-[10px] text-emerald-700 font-bold">✓ Delivered</span>
+            <span className="text-[10px] text-emerald-700 font-bold px-1.5 py-0.5 bg-emerald-100/70 rounded-md inline-flex items-center space-x-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 inline mr-0.5" />
+              <span>Delivered</span>
+            </span>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1.5 tabular-nums">
             {stats.sentCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
@@ -1505,16 +1514,21 @@ export default function WhatsAppPage() {
             setStatusFilter('NOT_SENT');
             setPage(1);
           }}
-          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-amber-600 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'NOT_SENT' ? 'bg-amber-50/60 ring-2 ring-amber-600' : 'bg-white border-slate-200'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-apple-card hover:shadow-apple-hover ${
+            statusFilter === 'NOT_SENT'
+              ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/20'
+              : 'bg-white border-slate-200/80'
           }`}
           title="Click to view pending queue awaiting dispatch"
         >
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
             <span>Pending Queue</span>
-            <span className="text-[10px] text-amber-700 font-bold">⏳ Awaiting</span>
+            <span className="text-[10px] text-amber-700 font-bold px-1.5 py-0.5 bg-amber-100/70 rounded-md inline-flex items-center space-x-1">
+              <Clock className="w-3 h-3 text-amber-600 inline mr-0.5" />
+              <span>Awaiting</span>
+            </span>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black text-amber-700 mt-1.5 tabular-nums">
             {stats.pendingCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
@@ -1527,16 +1541,21 @@ export default function WhatsAppPage() {
             setStatusFilter('FAILED');
             setPage(1);
           }}
-          className={`p-4 rounded-lg border shadow-xs border-t-4 border-t-rose-600 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'FAILED' ? 'bg-rose-50/60 ring-2 ring-rose-600' : 'bg-white border-slate-200'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-apple-card hover:shadow-apple-hover ${
+            statusFilter === 'FAILED'
+              ? 'bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/20'
+              : 'bg-white border-slate-200/80'
           }`}
           title="Click to view failed delivery attempts"
         >
-          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
             <span>Delivery Failed</span>
-            <span className="text-[10px] text-rose-700 font-bold">❌ Error</span>
+            <span className="text-[10px] text-rose-700 font-bold px-1.5 py-0.5 bg-rose-100/70 rounded-md inline-flex items-center space-x-1">
+              <AlertCircle className="w-3 h-3 text-rose-600 inline mr-0.5" />
+              <span>Error</span>
+            </span>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1.5 tabular-nums">
             {stats.failedCount || 0}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
@@ -1545,20 +1564,22 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* Tabs Navigation Header */}
-      <div className="flex border-b border-slate-200 space-x-1 sm:space-x-3 text-xs font-bold overflow-x-auto">
+      {/* Tabs Navigation Header - Apple Pill Segmented */}
+      <div className="flex border-b border-slate-200/80 space-x-1 sm:space-x-1.5 text-xs font-semibold overflow-x-auto pb-2">
         <button
           onClick={() => setActiveTab('bulk')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'bulk'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Layers className="w-4 h-4" />
+          <Layers className="w-3.5 h-3.5" />
           <span>Bulk Dispatch</span>
           {selectedCount > 0 && (
-            <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-900 rounded-full text-[10px]">
+            <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono ${
+              activeTab === 'bulk' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
+            }`}>
               {selectedCount}
             </span>
           )}
@@ -1566,31 +1587,35 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('groups')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'groups'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Trophy className="w-4 h-4 text-amber-600" />
-          <span>🏆 Competition Groups</span>
-          <span className="ml-1.5 px-2 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold font-mono">
+          <Trophy className="w-3.5 h-3.5 text-amber-500" />
+          <span>Competition Groups</span>
+          <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'groups' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+          }`}>
             {groups.length || 18}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('templates')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'templates'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <FileText className="w-4 h-4 text-indigo-600" />
-          <span>📝 Dynamic Templates</span>
+          <FileText className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Dynamic Templates</span>
           {customTemplates.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.2 bg-indigo-100 text-indigo-800 rounded-full text-[10px]">
+            <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === 'templates' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-800'
+            }`}>
               {customTemplates.length} Custom
             </span>
           )}
@@ -1598,16 +1623,18 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('history')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'history'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <History className="w-4 h-4 text-purple-600" />
-          <span>📊 Campaign History</span>
+          <History className="w-3.5 h-3.5 text-purple-400" />
+          <span>Campaign History</span>
           {settings?.whatsappCampaigns && settings.whatsappCampaigns.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.2 bg-purple-100 text-purple-800 rounded-full text-[10px]">
+            <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+            }`}>
               {settings.whatsappCampaigns.length}
             </span>
           )}
@@ -1615,31 +1642,35 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('categoryGroups')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'categoryGroups'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Users className="w-4 h-4 text-emerald-600" />
-          <span>📱 Official Communities</span>
-          <span className="ml-1.5 px-2 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold font-mono">
+          <Users className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Official Communities</span>
+          <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'categoryGroups' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+          }`}>
             {groups.length || 18}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('testStaff')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'testStaff'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Smartphone className="w-4 h-4 text-amber-600" />
-          <span>🧪 Test Staff Registry</span>
+          <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+          <span>Test Staff Registry</span>
           {testStaffList.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px]">
+            <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === 'testStaff' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+            }`}>
               {testStaffList.length}
             </span>
           )}
@@ -1647,37 +1678,37 @@ export default function WhatsAppPage() {
 
         <button
           onClick={() => setActiveTab('single')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'single'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <MessageSquare className="w-4 h-4" />
+          <MessageSquare className="w-3.5 h-3.5" />
           <span>Single Chat</span>
         </button>
 
         <button
           onClick={() => setActiveTab('broadcast')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'broadcast'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Users className="w-4 h-4" />
+          <Users className="w-3.5 h-3.5" />
           <span>Broadcast List</span>
         </button>
 
         <button
           onClick={() => setActiveTab('config')}
-          className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+          className={`py-2 px-3.5 rounded-full flex items-center space-x-2 transition-all whitespace-nowrap ${
             activeTab === 'config'
-              ? 'border-[#7a0c16] text-[#7a0c16]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-portal-maroon text-white shadow-apple-subtle'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <Settings2 className="w-4 h-4" />
+          <Settings2 className="w-3.5 h-3.5" />
           <span>Cloud API Settings</span>
         </button>
       </div>
@@ -1723,7 +1754,7 @@ export default function WhatsAppPage() {
                           onClick={() => handleTemplateChange(tpl.id)}
                           className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                             isCurrent
-                              ? 'bg-[#7a0c16] text-white shadow-xs'
+                              ? 'bg-portal-maroon text-white shadow-xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                           }`}
                         >
@@ -1745,7 +1776,7 @@ export default function WhatsAppPage() {
                           settings
                         );
                         handleTemplateChange(rec.id);
-                        setActionSuccessMsg(`🎯 Auto-selected: "${rec.title}" for current filter`);
+                        setActionSuccessMsg(`Auto-selected: "${rec.title}" for current filter`);
                         setTimeout(() => setActionSuccessMsg(null), 3000);
                       }}
                       className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] rounded-lg shadow-xs flex items-center space-x-1 cursor-pointer transition-colors"
@@ -1778,14 +1809,14 @@ export default function WhatsAppPage() {
                       <option value="">-- Choose from 18 Competition Templates --</option>
                       {OFFICIAL_COMPETITION_TEMPLATES.map((t) => (
                         <option key={t.id} value={t.id}>
-                          🏆 {t.title} [{t.categoryFilter} &bull; {t.classFilter}]
+                          {t.title} [{t.categoryFilter} &bull; {t.classFilter}]
                         </option>
                       ))}
                     </select>
                   </div>
                   {OFFICIAL_COMPETITION_TEMPLATES.some((t) => t.id === activeTemplate) && (
                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded shrink-0">
-                      ✓ Active Preset
+                      Active Preset
                     </span>
                   )}
                 </div>
@@ -1833,7 +1864,7 @@ export default function WhatsAppPage() {
                       setTplMetaName('admit_card_new');
                       setTemplateModalOpen(true);
                     }}
-                    className="px-2.5 py-1 text-xs font-bold text-[#7a0c16] hover:bg-rose-50 rounded-lg border border-dashed border-[#7a0c16] flex items-center space-x-1 transition-colors"
+                    className="px-2.5 py-1 text-xs font-bold text-portal-maroon hover:bg-rose-50 rounded-lg border border-dashed border-portal-maroon flex items-center space-x-1 transition-colors"
                   >
                     <Plus className="w-3 h-3" />
                     <span>+ New Custom Template</span>
@@ -1854,7 +1885,7 @@ export default function WhatsAppPage() {
                       type="button"
                       onClick={() => insertMergeTag(tagItem.tag)}
                       title={`Example: ${tagItem.example}`}
-                      className="px-2 py-1 bg-white hover:bg-rose-50 hover:text-[#7a0c16] hover:border-amber-300 border border-slate-200 rounded-md text-[10px] font-mono text-slate-700 transition-colors"
+                      className="px-2 py-1 bg-white hover:bg-rose-50 hover:text-portal-maroon hover:border-amber-300 border border-slate-200 rounded-md text-[10px] font-mono text-slate-700 transition-colors"
                     >
                       + {tagItem.tag}
                     </button>
@@ -1870,7 +1901,7 @@ export default function WhatsAppPage() {
                   onChange={(e) => setCustomText(e.target.value)}
                   rows={8}
                   placeholder="Type your WhatsApp message..."
-                  className="w-full p-3.5 text-xs font-mono leading-relaxed border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7a0c16] focus:border-[#7a0c16]"
+                  className="w-full p-3.5 text-xs font-mono leading-relaxed border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon"
                 />
                 <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
                   <span>Formatting: *bold*, _italics_, ~strike~, ```code```</span>
@@ -1891,7 +1922,7 @@ export default function WhatsAppPage() {
                     <button
                       type="button"
                       onClick={() => copyToClipboard(renderedPreviewMessage)}
-                      className="text-xs text-[#7a0c16] hover:text-[#5c000b] flex items-center space-x-1 font-semibold"
+                      className="text-xs text-portal-maroon hover:text-portal-maroon-dark flex items-center space-x-1 font-semibold"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -1906,7 +1937,7 @@ export default function WhatsAppPage() {
                         <span className="font-bold text-slate-900">{previewCandidate.name}</span>{' '}
                         <span className="text-slate-500 font-mono">({previewCandidate.registrationNumber})</span>
                       </div>
-                      <span className="text-[11px] font-mono text-[#7a0c16] bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                      <span className="text-[11px] font-mono text-portal-maroon bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
                         +91 {previewCandidate.phone}
                       </span>
                     </div>
@@ -1917,7 +1948,7 @@ export default function WhatsAppPage() {
                         {renderedPreviewMessage}
                         <div className="text-[9px] text-slate-400 text-right mt-1.5 flex items-center justify-end space-x-1">
                           <span>09:41 AM</span>
-                          <span className="text-emerald-500 font-bold">&#10003;&#10003;</span>
+                          <CheckCheck className="w-3.5 h-3.5 text-emerald-500 inline" />
                         </div>
                       </div>
                     </div>
@@ -1965,7 +1996,7 @@ export default function WhatsAppPage() {
                         className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-2 text-center shadow-xs cursor-pointer disabled:opacity-50"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>{isSingleSending ? 'Dispatching...' : `⚡ Send via ICPaaS to ${previewCandidate.name.split(' ')[0]}`}</span>
+                        <span>{isSingleSending ? 'Dispatching...' : `Send via ICPaaS to ${previewCandidate.name.split(' ')[0]}`}</span>
                       </button>
                     );
                   })()}
@@ -1999,7 +2030,7 @@ export default function WhatsAppPage() {
                     className="px-3.5 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-all cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    <span>🚀 Launch Campaign</span>
+                    <span className="inline-flex items-center space-x-1.5"><Flame className="w-3.5 h-3.5" /><span>Launch Campaign</span></span>
                   </button>
 
                   <button
@@ -2012,7 +2043,7 @@ export default function WhatsAppPage() {
                     <span>
                       {isIcpaasSending
                         ? `Sending Batch ${icpaasProgress?.currentBatch || 1}/${icpaasProgress?.totalBatches || 1}...`
-                        : `⚡ Send ICPaaS (${selectedCount > 0 ? selectedCount : total} Candidates)`}
+                        : `Send ICPaaS (${selectedCount > 0 ? selectedCount : total} Candidates)`}
                     </span>
                   </button>
 
@@ -2078,8 +2109,8 @@ export default function WhatsAppPage() {
                       Progress: <strong>{icpaasProgress.processed}</strong> / {icpaasProgress.totalCandidates} candidates
                     </span>
                     <div className="flex items-center space-x-3">
-                      <span className="text-emerald-700 font-bold">✓ Succeeded: {icpaasProgress.succeeded}</span>
-                      <span className="text-red-700 font-bold">✗ Failed: {icpaasProgress.failed}</span>
+                      <span className="text-emerald-700 font-bold inline-flex items-center space-x-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /><span>Succeeded: {icpaasProgress.succeeded}</span></span>
+                      <span className="text-red-700 font-bold inline-flex items-center space-x-1"><AlertCircle className="w-3.5 h-3.5 text-rose-600" /><span>Failed: {icpaasProgress.failed}</span></span>
                       <span className="text-slate-600 font-mono bg-white px-2 py-0.5 rounded border border-emerald-200">
                         Real-time Sync: DB + Excel Log
                       </span>
@@ -2134,7 +2165,7 @@ export default function WhatsAppPage() {
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <span>✓ Dispatched (Sent)</span>
+                    <span className="inline-flex items-center space-x-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /><span>Dispatched (Sent)</span></span>
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                         statusFilter === 'SENT'
@@ -2158,7 +2189,7 @@ export default function WhatsAppPage() {
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <span>❌ Delivery Failed</span>
+                    <span className="inline-flex items-center space-x-1.5"><AlertCircle className="w-3.5 h-3.5 text-rose-500" /><span>Delivery Failed</span></span>
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                         statusFilter === 'FAILED'
@@ -2178,15 +2209,15 @@ export default function WhatsAppPage() {
                     }}
                     className={`px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-bold transition-all shadow-xs cursor-pointer ${
                       statusFilter === 'ALL'
-                        ? 'bg-[#7a0c16] text-white shadow-sm ring-2 ring-rose-400'
+                        ? 'bg-portal-maroon text-white shadow-sm ring-2 ring-rose-400'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <span>📋 All Records</span>
+                    <span className="inline-flex items-center space-x-1.5"><Layers className="w-3.5 h-3.5 text-slate-500" /><span>All Records</span></span>
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                         statusFilter === 'ALL'
-                          ? 'bg-[#5c000b] text-white'
+                          ? 'bg-portal-maroon-dark text-white'
                           : 'bg-slate-200 text-slate-800'
                       }`}
                     >
@@ -2198,17 +2229,17 @@ export default function WhatsAppPage() {
                 <div className="text-[11px] text-slate-500 font-medium">
                   {statusFilter === 'NOT_SENT' && (
                     <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                      ⚡ Showing Pending Queue: Sent candidates automatically exit this view upon delivery
+                      Showing Pending Queue: Sent candidates automatically exit this view upon delivery
                     </span>
                   )}
                   {statusFilter === 'SENT' && (
                     <span className="text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
-                      ✓ Showing Dispatched List: Messages already delivered/sent
+                      Showing Dispatched List: Messages already delivered/sent
                     </span>
                   )}
                   {statusFilter === 'FAILED' && (
                     <span className="text-rose-800 font-semibold bg-rose-50 px-2 py-1 rounded border border-rose-200">
-                      ⚠️ Showing Failed Deliveries: Require telephone verification or number fix
+                      Showing Failed Deliveries: Require telephone verification or number fix
                     </span>
                   )}
                   {statusFilter === 'ALL' && (
@@ -2230,7 +2261,7 @@ export default function WhatsAppPage() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search name, reg no, phone..."
-                      className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                      className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                     />
                   </div>
 
@@ -2241,67 +2272,67 @@ export default function WhatsAppPage() {
                     className="px-2.5 py-1.5 border border-emerald-400 bg-emerald-50 text-emerald-950 rounded-lg text-xs font-bold focus:outline-none focus:ring-1 focus:ring-emerald-600 max-w-[260px] truncate"
                     title="Filter candidates strictly by their official WhatsApp group (e.g. Online Quiz Graduation vs 9-10 vs 11-12)"
                   >
-                    <option value="">📱 WhatsApp Group (All 18)</option>
-                    <optgroup label="🎓 Online Quiz Communities (Separate Tiers)">
+                    <option value="">WhatsApp Group (All 18)</option>
+                    <optgroup label="Online Quiz Communities (Separate Tiers)">
                       <option value="grp_online_quiz_grad">
-                        🎓 Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total})` : ''}
+                        Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total})` : ''}
                       </option>
                       <option value="grp_online_quiz_9_10">
-                        📚 Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total})` : ''}
+                        Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total})` : ''}
                       </option>
                       <option value="grp_online_quiz_11_12">
-                        🎓 Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total})` : ''}
+                        Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total})` : ''}
                       </option>
                     </optgroup>
-                    <optgroup label="🏆 Senior Competitions">
+                    <optgroup label="Senior Competitions">
                       <option value="grp_essay_writing">
-                        📝 Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total})` : ''}
+                        Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total})` : ''}
                       </option>
                       <option value="grp_writing_quest_11_12">
-                        ✍️ Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total})` : ''}
+                        Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total})` : ''}
                       </option>
                       <option value="grp_young_innovators_9_10">
-                        💡 Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total})` : ''}
+                        Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total})` : ''}
                       </option>
                     </optgroup>
-                    <optgroup label="🔬 Middle & Primary School">
+                    <optgroup label="Middle & Primary School">
                       <option value="grp_fireless_cooking_6_8">
-                        🍳 Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total})` : ''}
+                        Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total})` : ''}
                       </option>
                       <option value="grp_junior_scientist_6_8">
-                        🔬 Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total})` : ''}
+                        Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total})` : ''}
                       </option>
                       <option value="grp_battle_of_brains_4_5">
-                        🧠 Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total})` : ''}
+                        Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total})` : ''}
                       </option>
                       <option value="grp_poster_artist_4_5">
-                        🎨 Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total})` : ''}
+                        Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total})` : ''}
                       </option>
                       <option value="grp_paint_your_imagination_2_3">
-                        🖌️ Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total})` : ''}
+                        Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total})` : ''}
                       </option>
                       <option value="grp_writing_stars_2_3">
                         ⭐ Writing Stars (Classes 2–3) {groupStats['grp_writing_stars_2_3'] ? `(${groupStats['grp_writing_stars_2_3'].total})` : ''}
                       </option>
                       <option value="grp_dress_to_impress_1">
-                        👗 Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total})` : ''}
+                        Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total})` : ''}
                       </option>
                       <option value="grp_clay_champs_1">
-                        🏺 Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total})` : ''}
+                        Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total})` : ''}
                       </option>
                     </optgroup>
-                    <optgroup label="🎨 Pre-Primary & Kindergarten">
+                    <optgroup label="Pre-Primary & Kindergarten">
                       <option value="grp_complete_the_picture_ukg">
-                        🖼️ Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total})` : ''}
+                        Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total})` : ''}
                       </option>
                       <option value="grp_join_the_dots_lkg">
-                        ✏️ Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total})` : ''}
+                        Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total})` : ''}
                       </option>
                       <option value="grp_colour_by_number_nursery">
-                        🔢 Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total})` : ''}
+                        Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total})` : ''}
                       </option>
                       <option value="grp_handmade_fancy_playgroup">
-                        🎭 Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total})` : ''}
+                        Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total})` : ''}
                       </option>
                     </optgroup>
                   </select>
@@ -2314,7 +2345,7 @@ export default function WhatsAppPage() {
                       setSelectedGroupId('');
                       setPage(1);
                     }}
-                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                   >
                     <option value="">All Competitions</option>
                     {competitions.map((c) => (
@@ -2330,7 +2361,7 @@ export default function WhatsAppPage() {
                       setSelectedGroupId('');
                       setPage(1);
                     }}
-                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#7a0c16] font-medium"
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-portal-maroon font-medium"
                   >
                     <option value="">All Class Categories</option>
                     {availableClassCategories.map((cls) => {
@@ -2368,9 +2399,9 @@ export default function WhatsAppPage() {
                     className="px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="NOT_SENT">⏳ Pending Queue ({stats.pendingCount})</option>
-                    <option value="SENT">✓ Dispatched / Sent ({stats.sentCount})</option>
-                    <option value="FAILED">❌ Delivery Failed ({stats.failedCount || 0})</option>
-                    <option value="ALL">📋 All Registry Records ({stats.totalActive})</option>
+                    <option value="SENT">Dispatched / Sent ({stats.sentCount})</option>
+                    <option value="FAILED">Delivery Failed ({stats.failedCount || 0})</option>
+                    <option value="ALL">All Registry Records ({stats.totalActive})</option>
                   </select>
                 </div>
 
@@ -2380,9 +2411,9 @@ export default function WhatsAppPage() {
                     type="checkbox"
                     checked={usePreviousTemplateForResend}
                     onChange={(e) => setUsePreviousTemplateForResend(e.target.checked)}
-                    className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16]"
+                    className="rounded border-slate-300 text-portal-maroon focus:ring-portal-maroon"
                   />
-                  <span>🔁 Controlled Resend Mode</span>
+                  <span className="inline-flex items-center space-x-1.5"><RotateCcw className="w-3.5 h-3.5" /><span>Controlled Resend Mode</span></span>
                 </label>
               </div>
               </div>
@@ -2399,7 +2430,7 @@ export default function WhatsAppPage() {
                       <span className="font-bold text-emerald-900">Filtered by Official Community:</span>
                       <span className="px-2.5 py-1 bg-emerald-700 text-white font-extrabold rounded-lg shadow-xs">{activeGrp.groupName}</span>
                       <span className="font-mono text-emerald-800 font-bold bg-white px-2 py-0.5 rounded border border-emerald-200">
-                        👥 {total} Candidates
+                        {total} Candidates
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -2428,7 +2459,7 @@ export default function WhatsAppPage() {
                         }}
                         className="text-xs text-rose-700 hover:text-rose-900 font-bold px-2 py-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
                       >
-                        ✕ Clear Group Filter
+                        Clear Group Filter
                       </button>
                     </div>
                   </div>
@@ -2456,7 +2487,7 @@ export default function WhatsAppPage() {
                   <button
                     type="button"
                     onClick={handleSelectPage}
-                    className="text-xs text-[#7a0c16] hover:text-[#5c000b] font-semibold"
+                    className="text-xs text-portal-maroon hover:text-portal-maroon-dark font-semibold"
                   >
                     Select Page ({students.length})
                   </button>
@@ -2465,7 +2496,7 @@ export default function WhatsAppPage() {
                     type="button"
                     onClick={handleSelectAllFiltered}
                     disabled={fetchingAll}
-                    className="text-xs text-[#7a0c16] hover:text-[#5c000b] font-semibold"
+                    className="text-xs text-portal-maroon hover:text-portal-maroon-dark font-semibold"
                   >
                     {fetchingAll ? 'Loading all...' : selectAllMatching ? 'Deselect All' : `Select All ${total} Filtered`}
                   </button>
@@ -2562,11 +2593,11 @@ export default function WhatsAppPage() {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleToggleSelect(s.studentId)}
-                                className="rounded border-slate-300 text-[#7a0c16] focus:ring-[#7a0c16] cursor-pointer"
+                                className="rounded border-slate-300 text-portal-maroon focus:ring-portal-maroon cursor-pointer"
                               />
                             )}
                           </td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-[#7a0c16]">
+                          <td className="py-2.5 px-3 font-mono font-bold text-portal-maroon">
                             {s.registrationNumber}
                           </td>
                           <td className="py-2.5 px-3 font-medium text-slate-900">{s.name}</td>
@@ -2764,7 +2795,7 @@ export default function WhatsAppPage() {
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  🏆 Competition-Wise WhatsApp Community Groups Desk
+                  Competition-Wise WhatsApp Community Groups Desk
                 </h2>
                 <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
                   Students are organized by their 18 verified WhatsApp competition communities. Online Quiz is completely separated into its 3 distinct tiers (Graduation, Classes 9–10, and Classes 11–12) with dedicated invite links. Launch targeted messages or filter candidates in the bulk desk without affecting other categories.
@@ -2796,7 +2827,7 @@ export default function WhatsAppPage() {
               </div>
               <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
                 <div className="text-[10px] font-bold text-slate-600 uppercase">Total Students</div>
-                <div className="text-xl font-extrabold text-[#7a0c16] mt-0.5">{stats.totalActive}</div>
+                <div className="text-xl font-extrabold text-portal-maroon mt-0.5">{stats.totalActive}</div>
               </div>
               <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
                 <div className="text-[10px] font-bold text-emerald-700 uppercase">Delivered (Sent)</div>
@@ -2822,7 +2853,7 @@ export default function WhatsAppPage() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                📱 18 Official WhatsApp Groups
+                18 Official WhatsApp Groups
               </button>
               <button
                 type="button"
@@ -2833,7 +2864,7 @@ export default function WhatsAppPage() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                🏆 16 Raw Competitions
+                16 Raw Competitions
               </button>
             </div>
 
@@ -2861,7 +2892,7 @@ export default function WhatsAppPage() {
                         : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                     }`}
                   >
-                    🎓 Online Quiz (3 Tiers)
+                    Online Quiz (3 Tiers)
                   </button>
                   <button
                     type="button"
@@ -3083,7 +3114,7 @@ export default function WhatsAppPage() {
                         <button
                           type="button"
                           onClick={() => openSequentialWorkflow(grp.id)}
-                          className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
+                          className="flex-1 py-2 px-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
                           title={`Launch guided sequential dispatch for ${grp.groupName}`}
                         >
                           <Send className="w-3.5 h-3.5 text-amber-200" />
@@ -3099,7 +3130,7 @@ export default function WhatsAppPage() {
                             className="px-2 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer"
                             title="Mark all pending candidates in this group as already sent (Prevents duplicate messages if already blasted via ICPaaS)"
                           >
-                            ✓ Already Sent
+                            Already Sent
                           </button>
                         )}
 
@@ -3190,7 +3221,7 @@ export default function WhatsAppPage() {
                         {link ? (
                           <div className="flex items-center space-x-1.5">
                             <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              ✓ Configured
+                              Configured
                             </span>
                             <a
                               href={link}
@@ -3253,7 +3284,7 @@ export default function WhatsAppPage() {
                                           setCampaignNameInput(`${sg.groupName} Blast`);
                                           setCampaignModalOpen(true);
                                         }}
-                                        className="px-2 py-0.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded text-[10px] font-bold cursor-pointer"
+                                        className="px-2 py-0.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded text-[10px] font-bold cursor-pointer"
                                         title={`Blast messages directly to ${sg.groupName}`}
                                       >
                                         Blast
@@ -3293,7 +3324,7 @@ export default function WhatsAppPage() {
                           setCampaignNameInput(`${comp} Blast`);
                           setCampaignModalOpen(true);
                         }}
-                        className="flex-1 py-2 px-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
+                        className="flex-1 py-2 px-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition-colors shadow-xs cursor-pointer"
                         title="Launch a targeted message campaign to this competition group"
                       >
                         <Send className="w-3.5 h-3.5 text-amber-200" />
@@ -3337,7 +3368,7 @@ export default function WhatsAppPage() {
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  📝 Dynamic Message Templates Manager
+                  Dynamic Message Templates Manager
                 </h2>
                 <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
                   Create, edit, save, and launch custom WhatsApp message templates directly from the admin panel.
@@ -3374,9 +3405,9 @@ export default function WhatsAppPage() {
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
                   { id: 'ALL', label: `All (${UNIVERSAL_TEMPLATES.length + OFFICIAL_COMPETITION_TEMPLATES.length + customTemplates.length})` },
-                  { id: 'COMPETITIONS', label: `🏆 18 Competition Presets (${OFFICIAL_COMPETITION_TEMPLATES.length})` },
-                  { id: 'UNIVERSAL', label: `🌟 Universal Presets (${UNIVERSAL_TEMPLATES.length})` },
-                  { id: 'CUSTOM', label: `✏️ Custom (${customTemplates.length})` },
+                  { id: 'COMPETITIONS', label: `18 Competition Presets (${OFFICIAL_COMPETITION_TEMPLATES.length})` },
+                  { id: 'UNIVERSAL', label: `Universal Presets (${UNIVERSAL_TEMPLATES.length})` },
+                  { id: 'CUSTOM', label: `Custom (${customTemplates.length})` },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -3384,7 +3415,7 @@ export default function WhatsAppPage() {
                     onClick={() => setTemplateTabType(tab.id as any)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                       templateTabType === tab.id
-                        ? 'bg-[#7a0c16] text-white shadow-xs'
+                        ? 'bg-portal-maroon text-white shadow-xs'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                   >
@@ -3556,7 +3587,7 @@ export default function WhatsAppPage() {
                                 {isOfficialComp && (
                                   <>
                                     <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase tracking-wide">
-                                      🏆 18 Competition Preset
+                                      18 Competition Preset
                                     </span>
                                     <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold">
                                       {item.categoryFilter}
@@ -3569,7 +3600,7 @@ export default function WhatsAppPage() {
                                 {isUniversal && (
                                   <>
                                     <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase">
-                                      🌟 Universal Preset
+                                      Universal Preset
                                     </span>
                                     <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold">
                                       All Categories & Classes
@@ -3729,10 +3760,10 @@ export default function WhatsAppPage() {
                                 setCampaignNameInput(`${item.title} Campaign`);
                                 setCampaignModalOpen(true);
                               }}
-                              className="py-2 px-3.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
+                              className="py-2 px-3.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
                             >
                               <Send className="w-3.5 h-3.5 text-amber-200" />
-                              <span>🚀 Launch Campaign</span>
+                              <span className="inline-flex items-center space-x-1.5"><Flame className="w-3.5 h-3.5" /><span>Launch Campaign</span></span>
                             </button>
                           </div>
                         </div>
@@ -3764,7 +3795,7 @@ export default function WhatsAppPage() {
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  📊 WhatsApp Campaign & Dispatch History
+                  WhatsApp Campaign & Dispatch History
                 </h2>
                 <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
                   Real-time history of all message campaigns dispatched from this admin panel. Every campaign logs the exact competition group, message template, timestamp, operator, and actual API delivery reports (accepted Meta wamid vs exact error code).
@@ -3825,7 +3856,7 @@ export default function WhatsAppPage() {
                               setCampaignTargetGroup('ALL');
                               setCampaignModalOpen(true);
                             }}
-                            className="mt-2 px-4 py-2 bg-[#7a0c16] text-white rounded-lg text-xs font-bold shadow-xs hover:bg-[#5c000b] cursor-pointer"
+                            className="mt-2 px-4 py-2 bg-portal-maroon text-white rounded-lg text-xs font-bold shadow-xs hover:bg-portal-maroon-dark cursor-pointer"
                           >
                             Launch First Campaign
                           </button>
@@ -3898,7 +3929,7 @@ export default function WhatsAppPage() {
                   <div className="font-bold text-slate-900 text-sm">{singleStudent.name}</div>
                   <div className="font-mono text-emerald-700 font-bold">+91 {singleStudent.phone}</div>
                   <div className="text-[11px] text-slate-500 truncate">{singleStudent.schoolOrCollege}</div>
-                  <div className="text-[11px] text-[#7a0c16] font-semibold">Category: {singleStudent.competitionName}</div>
+                  <div className="text-[11px] text-portal-maroon font-semibold">Category: {singleStudent.competitionName}</div>
                 </div>
 
                 <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl space-y-2 text-xs font-sans text-slate-800 whitespace-pre-wrap leading-relaxed shadow-xs">
@@ -3941,7 +3972,7 @@ export default function WhatsAppPage() {
                         className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2 text-center cursor-pointer disabled:opacity-50"
                       >
                         <Send className="w-4 h-4" />
-                        <span>{isSingleSending ? 'Dispatching via ICPaaS...' : '⚡ Dispatch via ICPaaS Gateway'}</span>
+                        <span>{isSingleSending ? 'Dispatching via ICPaaS...' : 'Dispatch via ICPaaS Gateway'}</span>
                       </button>
                       <div className="text-[10px] text-center text-slate-400">
                         Dispatches official Meta v23.0 template via ICPS-approved ICPaaS Gateway.
@@ -3967,7 +3998,7 @@ export default function WhatsAppPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Filter candidate name or reg no..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
               <div className="text-xs text-slate-500">
@@ -3995,7 +4026,7 @@ export default function WhatsAppPage() {
                         singleStudent?.studentId === s.studentId ? 'bg-amber-50/70 font-semibold' : 'hover:bg-slate-50'
                       }`}
                     >
-                      <td className="py-2.5 px-4 font-mono font-bold text-[#7a0c16]">{s.registrationNumber}</td>
+                      <td className="py-2.5 px-4 font-mono font-bold text-portal-maroon">{s.registrationNumber}</td>
                       <td className="py-2.5 px-4 text-slate-900">{s.name}</td>
                       <td className="py-2.5 px-4 font-mono text-slate-600">{s.phone}</td>
                       <td className="py-2.5 px-4">
@@ -4004,7 +4035,7 @@ export default function WhatsAppPage() {
                         </span>
                       </td>
                       <td className="py-2.5 px-4 text-right">
-                        <span className="text-[#7a0c16] font-semibold text-[11px] hover:underline">
+                        <span className="text-portal-maroon font-semibold text-[11px] hover:underline">
                           Select &rarr;
                         </span>
                       </td>
@@ -4042,7 +4073,7 @@ export default function WhatsAppPage() {
                 <button
                   type="button"
                   onClick={() => copyToClipboard(getFormattedPhoneList(','))}
-                  className="text-xs text-[#7a0c16] hover:text-[#5c000b] font-semibold flex items-center space-x-1"
+                  className="text-xs text-portal-maroon hover:text-portal-maroon-dark font-semibold flex items-center space-x-1"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copy List</span>
@@ -4062,7 +4093,7 @@ export default function WhatsAppPage() {
                 <button
                   type="button"
                   onClick={() => copyToClipboard(getFormattedPhoneList('\n'))}
-                  className="text-xs text-[#7a0c16] hover:text-[#5c000b] font-semibold flex items-center space-x-1"
+                  className="text-xs text-portal-maroon hover:text-portal-maroon-dark font-semibold flex items-center space-x-1"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copy List</span>
@@ -4081,7 +4112,7 @@ export default function WhatsAppPage() {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-2">
-                <FileSpreadsheet className="w-4 h-4 text-[#7a0c16]" />
+                <FileSpreadsheet className="w-4 h-4 text-portal-maroon" />
                 <h2 className="font-bold text-sm text-slate-900">Export Formatted Dispatch Log</h2>
               </div>
             </div>
@@ -4107,7 +4138,7 @@ export default function WhatsAppPage() {
                 <input type="hidden" name="format" value="xlsx" />
                 <button
                   type="submit"
-                  className="w-full py-3 px-4 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center justify-center space-x-2"
+                  className="w-full py-3 px-4 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center justify-center space-x-2"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download Excel (.xlsx)</span>
@@ -4147,7 +4178,7 @@ export default function WhatsAppPage() {
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  📱 Official WhatsApp Group & Community Manager
+                  Official WhatsApp Group & Community Manager
                 </h2>
                 <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
                   Manage WhatsApp invite links for all 18 official competition and class categories.
@@ -4325,7 +4356,7 @@ export default function WhatsAppPage() {
                             )}
                           </div>
                           <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px] font-bold font-mono">
-                            👥 {grp.studentCount ?? 0} Students
+                            {grp.studentCount ?? 0} Students
                           </span>
                         </div>
 
@@ -4484,7 +4515,7 @@ export default function WhatsAppPage() {
                     setSettings(settings ? { ...settings, whatsappCloudToken: e.target.value } : null)
                   }
                   placeholder="EAAG... (System User or Permanent Access Token)"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
@@ -4499,7 +4530,7 @@ export default function WhatsAppPage() {
                     setSettings(settings ? { ...settings, whatsappPhoneNumberId: e.target.value } : null)
                   }
                   placeholder="10987654321..."
-                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
@@ -4524,7 +4555,7 @@ export default function WhatsAppPage() {
                     setActionSuccessMsg('WhatsApp Cloud API configuration saved.');
                     setTimeout(() => setActionSuccessMsg(null), 3000);
                   }}
-                  className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                  className="px-4 py-2 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                 >
                   Save API Settings
                 </button>
@@ -4570,7 +4601,7 @@ export default function WhatsAppPage() {
                   value={metaTemplateName}
                   onChange={(e) => setMetaTemplateName(e.target.value.trim())}
                   placeholder="e.g. admit_card_notice, mindspark_2026_admit"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
                   Jo exact Template Name Meta / ICPaaS portal me approved hua hai.
@@ -4584,7 +4615,7 @@ export default function WhatsAppPage() {
                 <select
                   value={metaTemplateLang}
                   onChange={(e) => setMetaTemplateLang(e.target.value)}
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 >
                   <option value="en">English (en)</option>
                   <option value="en_US">English US (en_US)</option>
@@ -4606,7 +4637,7 @@ export default function WhatsAppPage() {
                 <button
                   type="button"
                   onClick={() => setMetaVariables([...metaVariables, 'name'])}
-                  className="text-xs font-bold text-[#7a0c16] hover:underline"
+                  className="text-xs font-bold text-portal-maroon hover:underline"
                 >
                   + Add Next Variable
                 </button>
@@ -4618,7 +4649,7 @@ export default function WhatsAppPage() {
                     <span className="w-16 text-center py-2 px-2.5 bg-slate-100 border border-slate-300 rounded-lg font-mono font-bold text-slate-800">
                       {`{{${idx + 1}}}`}
                     </span>
-                    <span className="text-slate-400 font-bold text-sm">➔</span>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
                     <select
                       value={vField}
                       onChange={(e) => {
@@ -4626,7 +4657,7 @@ export default function WhatsAppPage() {
                         updated[idx] = e.target.value;
                         setMetaVariables(updated);
                       }}
-                      className="flex-1 p-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                      className="flex-1 p-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                     >
                       <option value="competitionTitle">1. Event Title (Mind Spark Competition- 2026)</option>
                       <option value="participantName">2. Participant Line (Participant Rahul Sharma)</option>
@@ -4653,10 +4684,10 @@ export default function WhatsAppPage() {
                         onClick={() => {
                           setMetaVariables(metaVariables.filter((_, i) => i !== idx));
                         }}
-                        className="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                        className="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded flex items-center justify-center"
                         title="Remove Variable"
                       >
-                        ✕
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -4798,7 +4829,7 @@ export default function WhatsAppPage() {
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                <span>➕ Add Teacher / Staff Mobile for Testing</span>
+                <span className="inline-flex items-center space-x-1.5"><Plus className="w-3.5 h-3.5" /><span>Add Teacher / Staff Mobile for Testing</span></span>
                 <span className="text-[11px] font-normal text-slate-500">
                   (Duplicacy Check Enabled)
                 </span>
@@ -4829,7 +4860,7 @@ export default function WhatsAppPage() {
                   value={newStaffName}
                   onChange={(e) => setNewStaffName(e.target.value)}
                   placeholder="e.g. Dr. Rajesh Kumar"
-                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
@@ -4844,7 +4875,7 @@ export default function WhatsAppPage() {
                   value={newStaffPhone}
                   onChange={(e) => setNewStaffPhone(e.target.value)}
                   placeholder="e.g. 9795600217"
-                  className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
@@ -4857,7 +4888,7 @@ export default function WhatsAppPage() {
                   value={newStaffDesignation}
                   onChange={(e) => setNewStaffDesignation(e.target.value)}
                   placeholder="e.g. Senior Teacher / HOD"
-                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
@@ -4870,14 +4901,14 @@ export default function WhatsAppPage() {
                   value={newStaffSchool}
                   onChange={(e) => setNewStaffSchool(e.target.value)}
                   placeholder="e.g. Meena Shah Public School"
-                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#7a0c16]"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-portal-maroon"
                 />
               </div>
 
               <div className="md:col-span-1">
                 <button
                   type="submit"
-                  className="w-full py-2 px-3 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                  className="w-full py-2 px-3 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                 >
                   Save to Test Excel
                 </button>
@@ -4933,7 +4964,7 @@ export default function WhatsAppPage() {
 
             {loadingStaff ? (
               <div className="p-10 text-center text-xs text-slate-500 space-y-2">
-                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#7a0c16]" />
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-portal-maroon" />
                 <p>Loading Test Staff Registry from Excel...</p>
               </div>
             ) : testStaffList.length === 0 ? (
@@ -5023,20 +5054,20 @@ export default function WhatsAppPage() {
       {/* 10-STEP STRICT SEQUENTIAL MESSAGING WORKFLOW MODAL (workflowOpen) */}
       {/* ========================================================================= */}
       {workflowOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full flex flex-col max-h-[92vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-apple-sheet max-w-3xl w-full flex flex-col max-h-[88vh] overflow-hidden">
             {/* Header with Sequential Step Indicator */}
             <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[#7a0c16]" />
+                <div className="w-10 h-10 rounded-xl bg-portal-maroon/10 text-portal-maroon flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-portal-maroon" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <h3 className="text-sm sm:text-base font-bold text-slate-900">
                       Guided Sequential Messaging Workflow
                     </h3>
-                    <span className="px-2 py-0.5 bg-[#7a0c16] text-white rounded text-[10px] font-bold">
+                    <span className="px-2 py-0.5 bg-portal-maroon text-white rounded text-[10px] font-bold">
                       Step {workflowStep} of 10
                     </span>
                   </div>
@@ -5061,16 +5092,16 @@ export default function WhatsAppPage() {
 
             {/* Stepper Progress Bar */}
             <div className="px-5 py-2.5 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-[11px] font-bold text-slate-600 overflow-x-auto gap-2">
-              <span className={workflowStep === 1 ? 'text-[#7a0c16] font-extrabold underline' : ''}>1. Select Group</span> &rarr;
-              <span className={workflowStep === 2 ? 'text-[#7a0c16] font-extrabold underline' : ''}>2. Validate</span> &rarr;
-              <span className={workflowStep === 3 ? 'text-[#7a0c16] font-extrabold underline' : ''}>3. Statuses</span> &rarr;
-              <span className={workflowStep === 4 ? 'text-[#7a0c16] font-extrabold underline' : ''}>4. Select</span> &rarr;
-              <span className={workflowStep === 5 ? 'text-[#7a0c16] font-extrabold underline' : ''}>5. Preview</span> &rarr;
-              <span className={workflowStep === 6 ? 'text-[#7a0c16] font-extrabold underline' : ''}>6. Pre-Check</span> &rarr;
-              <span className={workflowStep === 7 ? 'text-[#7a0c16] font-extrabold underline' : ''}>7. Confirm</span> &rarr;
-              <span className={workflowStep === 8 ? 'text-[#7a0c16] font-extrabold underline' : ''}>8. Dispatch</span> &rarr;
-              <span className={workflowStep === 9 ? 'text-[#7a0c16] font-extrabold underline' : ''}>9. Sync</span> &rarr;
-              <span className={workflowStep === 10 ? 'text-[#7a0c16] font-extrabold underline' : ''}>10. Summary</span>
+              <span className={workflowStep === 1 ? 'text-portal-maroon font-extrabold underline' : ''}>1. Select Group</span> &rarr;
+              <span className={workflowStep === 2 ? 'text-portal-maroon font-extrabold underline' : ''}>2. Validate</span> &rarr;
+              <span className={workflowStep === 3 ? 'text-portal-maroon font-extrabold underline' : ''}>3. Statuses</span> &rarr;
+              <span className={workflowStep === 4 ? 'text-portal-maroon font-extrabold underline' : ''}>4. Select</span> &rarr;
+              <span className={workflowStep === 5 ? 'text-portal-maroon font-extrabold underline' : ''}>5. Preview</span> &rarr;
+              <span className={workflowStep === 6 ? 'text-portal-maroon font-extrabold underline' : ''}>6. Pre-Check</span> &rarr;
+              <span className={workflowStep === 7 ? 'text-portal-maroon font-extrabold underline' : ''}>7. Confirm</span> &rarr;
+              <span className={workflowStep === 8 ? 'text-portal-maroon font-extrabold underline' : ''}>8. Dispatch</span> &rarr;
+              <span className={workflowStep === 9 ? 'text-portal-maroon font-extrabold underline' : ''}>9. Sync</span> &rarr;
+              <span className={workflowStep === 10 ? 'text-portal-maroon font-extrabold underline' : ''}>10. Summary</span>
             </div>
 
             {/* Modal Body */}
@@ -5090,7 +5121,7 @@ export default function WhatsAppPage() {
                       onClick={() => setWorkflowGroupId('ALL')}
                       className={`p-3 rounded-xl border cursor-pointer transition-all ${
                         workflowGroupId === 'ALL'
-                          ? 'border-[#7a0c16] bg-rose-50/60 ring-2 ring-[#7a0c16]'
+                          ? 'border-portal-maroon bg-rose-50/60 ring-2 ring-portal-maroon'
                           : 'border-slate-200 bg-white hover:bg-slate-50'
                       }`}
                     >
@@ -5104,7 +5135,7 @@ export default function WhatsAppPage() {
                         onClick={() => setWorkflowGroupId(grp.id)}
                         className={`p-3 rounded-xl border cursor-pointer transition-all ${
                           workflowGroupId === grp.id
-                            ? 'border-[#7a0c16] bg-rose-50/60 ring-2 ring-[#7a0c16]'
+                            ? 'border-portal-maroon bg-rose-50/60 ring-2 ring-portal-maroon'
                             : 'border-slate-200 bg-white hover:bg-slate-50'
                         }`}
                       >
@@ -5124,7 +5155,7 @@ export default function WhatsAppPage() {
                         await loadWorkflowCandidates(workflowGroupId);
                         setWorkflowStep(3);
                       }}
-                      className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                      className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl font-bold shadow-xs transition-colors"
                     >
                       Next: Load & Validate Recipients (Step 2) &rarr;
                     </button>
@@ -5135,7 +5166,7 @@ export default function WhatsAppPage() {
               {/* STEP 2: LOAD & VALIDATE RECIPIENT RECORDS */}
               {workflowStep === 2 && (
                 <div className="py-12 text-center space-y-3">
-                  <RefreshCw className="w-8 h-8 text-[#7a0c16] animate-spin mx-auto" />
+                  <RefreshCw className="w-8 h-8 text-portal-maroon animate-spin mx-auto" />
                   <h4 className="font-bold text-slate-900 text-sm">Step 2: Loading & Validating Recipient Records...</h4>
                   <p className="text-slate-500 text-xs max-w-sm mx-auto">
                     Retrieving authoritative database entries, verifying mobile numbers, and preparing group mapping.
@@ -5185,7 +5216,7 @@ export default function WhatsAppPage() {
 
                     {uncertainList.length > 0 && (
                       <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs">
-                        ⚠️ <strong>{uncertainList.length} Uncertain Deliveries Detected:</strong> Previous gateway timeouts require status reconciliation before retrying.
+                        <AlertCircle className="w-4 h-4 text-amber-600 inline mr-1" /> <strong>{uncertainList.length} Uncertain Deliveries Detected:</strong> Previous gateway timeouts require status reconciliation before retrying.
                       </div>
                     )}
 
@@ -5206,7 +5237,7 @@ export default function WhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => setWorkflowStep(4)}
-                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                        className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl font-bold shadow-xs transition-colors"
                       >
                         Next: Select Eligible Recipients (Step 4) &rarr;
                       </button>
@@ -5306,9 +5337,9 @@ export default function WhatsAppPage() {
                               >
                                 <td className="py-2 px-3 text-center">
                                   {isDelivered ? (
-                                    <span title="Already Delivered - Duplicate Selection Blocked">🔒</span>
+                                    <span title="Already Delivered - Duplicate Selection Blocked" className="inline-flex items-center"><ShieldCheck className="w-3.5 h-3.5 text-slate-400" /></span>
                                   ) : !isPhoneValid ? (
-                                    <span title="Invalid Mobile Number">❌</span>
+                                    <span title="Invalid Mobile Number" className="inline-flex items-center"><AlertCircle className="w-3.5 h-3.5 text-rose-500" /></span>
                                   ) : (
                                     <input
                                       type="checkbox"
@@ -5327,7 +5358,7 @@ export default function WhatsAppPage() {
                                 <td className="py-2 px-3">
                                   {isDelivered ? (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                      ✓ Sent
+                                      Sent
                                     </span>
                                   ) : cand.whatsappStatus === 'FAILED' ? (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
@@ -5362,7 +5393,7 @@ export default function WhatsAppPage() {
                           type="button"
                           disabled={workflowSelectedIds.size === 0}
                           onClick={() => setWorkflowStep(5)}
-                          className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors disabled:opacity-50"
+                          className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl font-bold shadow-xs transition-colors disabled:opacity-50"
                         >
                           Next: Preview Message (Step 5) &rarr;
                         </button>
@@ -5431,7 +5462,7 @@ export default function WhatsAppPage() {
                           setWorkflowStep(6);
                           setWorkflowPreflightValid(true);
                         }}
-                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                        className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl font-bold shadow-xs transition-colors"
                       >
                         Next: Server Pre-Check (Step 6) &rarr;
                       </button>
@@ -5478,7 +5509,7 @@ export default function WhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => setWorkflowStep(7)}
-                        className="px-5 py-2.5 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-xl font-bold shadow-xs transition-colors"
+                        className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-xl font-bold shadow-xs transition-colors"
                       >
                         Next: Explicit Confirmation (Step 7) &rarr;
                       </button>
@@ -5625,7 +5656,7 @@ export default function WhatsAppPage() {
                   </div>
 
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs">
-                    🔒 <strong>Audit Record Saved:</strong> All dispatched entries have been logged real-time in <code>whatsapp_dispatch_audit_log.xlsx</code> with unique Meta message IDs.
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 inline mr-1" /> <strong>Audit Record Saved:</strong> All dispatched entries have been logged real-time in <code>whatsapp_dispatch_audit_log.xlsx</code> with unique Meta message IDs.
                   </div>
 
                   <div className="pt-2 flex items-center justify-between border-t border-slate-100">
@@ -5660,12 +5691,12 @@ export default function WhatsAppPage() {
           MODAL 1: DYNAMIC TEMPLATE EDITOR MODAL (templateModalOpen)
           ========================================================================= */}
       {templateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-apple-sheet border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-portal-maroon/10 text-portal-maroon flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
@@ -5701,7 +5732,7 @@ export default function WhatsAppPage() {
                     value={tplTitle}
                     onChange={(e) => setTplTitle(e.target.value)}
                     placeholder="e.g. Online Quiz Round 1 Confirmation"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-portal-maroon"
                   />
                 </div>
 
@@ -5712,7 +5743,7 @@ export default function WhatsAppPage() {
                   <select
                     value={tplCategory}
                     onChange={(e) => setTplCategory(e.target.value)}
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-portal-maroon"
                   >
                     <option value="ALL">ALL Competitions (Universal)</option>
                     {(competitions.length > 0 ? competitions : OFFICIAL_COMPETITION_CATEGORIES).map((comp) => (
@@ -5734,7 +5765,7 @@ export default function WhatsAppPage() {
                     value={tplMetaName}
                     onChange={(e) => setTplMetaName(e.target.value)}
                     placeholder="admit_card_new"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-portal-maroon"
                   />
                   <span className="text-[10px] text-slate-500">
                     Meta WhatsApp Business API approved template name
@@ -5750,7 +5781,7 @@ export default function WhatsAppPage() {
                     value={tplDesc}
                     onChange={(e) => setTplDesc(e.target.value)}
                     placeholder="e.g. Sent to quiz participants with registration details"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#7a0c16]"
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-portal-maroon"
                   />
                 </div>
               </div>
@@ -5767,7 +5798,7 @@ export default function WhatsAppPage() {
                       key={tag}
                       type="button"
                       onClick={() => setTplContent((prev) => prev ? `${prev} ${tag}` : tag)}
-                      className="px-2 py-1 bg-white hover:bg-[#7a0c16] hover:text-white text-slate-700 rounded-md text-[11px] font-mono border border-slate-200 shadow-2xs transition-colors flex items-center space-x-1"
+                      className="px-2 py-1 bg-white hover:bg-portal-maroon hover:text-white text-slate-700 rounded-md text-[11px] font-mono border border-slate-200 shadow-2xs transition-colors flex items-center space-x-1"
                       title={label}
                     >
                       <span>{tag}</span>
@@ -5791,7 +5822,7 @@ export default function WhatsAppPage() {
                   value={tplContent}
                   onChange={(e) => setTplContent(e.target.value)}
                   placeholder="Enter message text... (e.g. Dear {name}, your form has been registered with {reg_no}. Group link: {whatsapp_group_link})"
-                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#7a0c16] leading-relaxed"
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-portal-maroon leading-relaxed"
                 />
               </div>
 
@@ -5851,7 +5882,7 @@ export default function WhatsAppPage() {
                 type="button"
                 onClick={handleSaveTemplate}
                 disabled={savingTemplate || !tplTitle.trim() || !tplContent.trim()}
-                className="px-5 py-2 text-xs font-bold text-white bg-[#7a0c16] hover:bg-[#5c000b] disabled:bg-slate-300 rounded-xl shadow-xs transition-colors flex items-center space-x-1.5"
+                className="px-5 py-2 text-xs font-bold text-white bg-portal-maroon hover:bg-portal-maroon-dark disabled:bg-slate-300 rounded-xl shadow-xs transition-colors flex items-center space-x-1.5"
               >
                 {savingTemplate ? (
                   <>
@@ -5874,8 +5905,8 @@ export default function WhatsAppPage() {
           MODAL 2: CAMPAIGN LAUNCHER MODAL (campaignModalOpen)
           ========================================================================= */}
       {campaignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-apple-sheet border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden">
             {/* Header */}
             <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center space-x-3">
@@ -5965,7 +5996,7 @@ export default function WhatsAppPage() {
                   {/* Quick Select by Official WhatsApp Group */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      📱 Quick Target by Official WhatsApp Group (18 Groups)
+                      Quick Target by Official WhatsApp Group (18 Groups)
                     </label>
                     <select
                       value={campaignTargetOfficialGroup}
@@ -5988,66 +6019,66 @@ export default function WhatsAppPage() {
                       className="w-full p-2.5 border border-emerald-400 rounded-xl text-xs bg-emerald-50/50 font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     >
                       <option value="">-- Choose Official Group to Auto-Target (All 18) --</option>
-                      <optgroup label="🎓 Online Quiz Communities (Separate Tiers)">
+                      <optgroup label="Online Quiz Communities (Separate Tiers)">
                         <option value="grp_online_quiz_grad">
-                          🎓 Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total} Students)` : ''}
+                          Online Quiz (Graduation) {groupStats['grp_online_quiz_grad'] ? `(${groupStats['grp_online_quiz_grad'].total} Students)` : ''}
                         </option>
                         <option value="grp_online_quiz_9_10">
-                          📚 Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total} Students)` : ''}
+                          Online Quiz (Classes 9–10) {groupStats['grp_online_quiz_9_10'] ? `(${groupStats['grp_online_quiz_9_10'].total} Students)` : ''}
                         </option>
                         <option value="grp_online_quiz_11_12">
-                          🎓 Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total} Students)` : ''}
+                          Online Quiz (Classes 11–12) {groupStats['grp_online_quiz_11_12'] ? `(${groupStats['grp_online_quiz_11_12'].total} Students)` : ''}
                         </option>
                       </optgroup>
-                      <optgroup label="🏆 Senior Competitions">
+                      <optgroup label="Senior Competitions">
                         <option value="grp_essay_writing">
-                          📝 Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total} Students)` : ''}
+                          Essay Writing (All Classes) {groupStats['grp_essay_writing'] ? `(${groupStats['grp_essay_writing'].total} Students)` : ''}
                         </option>
                         <option value="grp_writing_quest_11_12">
-                          ✍️ Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total} Students)` : ''}
+                          Writing Quest (Classes 11–12) {groupStats['grp_writing_quest_11_12'] ? `(${groupStats['grp_writing_quest_11_12'].total} Students)` : ''}
                         </option>
                         <option value="grp_young_innovators_9_10">
-                          💡 Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total} Students)` : ''}
+                          Young Innovators (Classes 9–10) {groupStats['grp_young_innovators_9_10'] ? `(${groupStats['grp_young_innovators_9_10'].total} Students)` : ''}
                         </option>
                       </optgroup>
-                      <optgroup label="🔬 Middle & Primary School">
+                      <optgroup label="Middle & Primary School">
                         <option value="grp_fireless_cooking_6_8">
-                          🍳 Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total} Students)` : ''}
+                          Fireless Cooking (Classes 6–8) {groupStats['grp_fireless_cooking_6_8'] ? `(${groupStats['grp_fireless_cooking_6_8'].total} Students)` : ''}
                         </option>
                         <option value="grp_junior_scientist_6_8">
-                          🔬 Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total} Students)` : ''}
+                          Junior Scientist (Classes 6–8) {groupStats['grp_junior_scientist_6_8'] ? `(${groupStats['grp_junior_scientist_6_8'].total} Students)` : ''}
                         </option>
                         <option value="grp_battle_of_brains_4_5">
-                          🧠 Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total} Students)` : ''}
+                          Battle of Brains (Classes 4–5) {groupStats['grp_battle_of_brains_4_5'] ? `(${groupStats['grp_battle_of_brains_4_5'].total} Students)` : ''}
                         </option>
                         <option value="grp_poster_artist_4_5">
-                          🎨 Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total} Students)` : ''}
+                          Poster Artist (Classes 4–5) {groupStats['grp_poster_artist_4_5'] ? `(${groupStats['grp_poster_artist_4_5'].total} Students)` : ''}
                         </option>
                         <option value="grp_paint_your_imagination_2_3">
-                          🖌️ Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total} Students)` : ''}
+                          Paint Your Imagination (Classes 2–3) {groupStats['grp_paint_your_imagination_2_3'] ? `(${groupStats['grp_paint_your_imagination_2_3'].total} Students)` : ''}
                         </option>
                         <option value="grp_writing_stars_2_3">
                           ⭐ Writing Stars (Classes 2–3) {groupStats['grp_writing_stars_2_3'] ? `(${groupStats['grp_writing_stars_2_3'].total} Students)` : ''}
                         </option>
                         <option value="grp_dress_to_impress_1">
-                          👗 Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total} Students)` : ''}
+                          Dress To Impress (Class 1) {groupStats['grp_dress_to_impress_1'] ? `(${groupStats['grp_dress_to_impress_1'].total} Students)` : ''}
                         </option>
                         <option value="grp_clay_champs_1">
-                          🏺 Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total} Students)` : ''}
+                          Clay Champs (Class 1) {groupStats['grp_clay_champs_1'] ? `(${groupStats['grp_clay_champs_1'].total} Students)` : ''}
                         </option>
                       </optgroup>
-                      <optgroup label="🎨 Pre-Primary & Kindergarten">
+                      <optgroup label="Pre-Primary & Kindergarten">
                         <option value="grp_complete_the_picture_ukg">
-                          🖼️ Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total} Students)` : ''}
+                          Complete The Picture (UKG) {groupStats['grp_complete_the_picture_ukg'] ? `(${groupStats['grp_complete_the_picture_ukg'].total} Students)` : ''}
                         </option>
                         <option value="grp_join_the_dots_lkg">
-                          ✏️ Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total} Students)` : ''}
+                          Join The Dots (LKG) {groupStats['grp_join_the_dots_lkg'] ? `(${groupStats['grp_join_the_dots_lkg'].total} Students)` : ''}
                         </option>
                         <option value="grp_colour_by_number_nursery">
-                          🔢 Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total} Students)` : ''}
+                          Colour by Number (Nursery) {groupStats['grp_colour_by_number_nursery'] ? `(${groupStats['grp_colour_by_number_nursery'].total} Students)` : ''}
                         </option>
                         <option value="grp_handmade_fancy_playgroup">
-                          🎭 Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total} Students)` : ''}
+                          Fancy Design (Play Group) {groupStats['grp_handmade_fancy_playgroup'] ? `(${groupStats['grp_handmade_fancy_playgroup'].total} Students)` : ''}
                         </option>
                       </optgroup>
                     </select>
@@ -6068,7 +6099,7 @@ export default function WhatsAppPage() {
                         className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       >
                         <option value="ALL">
-                          🏆 ALL Competitions ({stats.totalActive} Candidates)
+                          ALL Competitions ({stats.totalActive} Candidates)
                         </option>
                         {(competitions.length > 0 ? competitions : OFFICIAL_COMPETITION_CATEGORIES).map((comp) => {
                           const cStat = competitionStats[comp];
@@ -6158,7 +6189,7 @@ export default function WhatsAppPage() {
                       onChange={(e) => setCampaignTargetTemplate(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     >
-                      <optgroup label="🌟 Universal Mind Spark Templates">
+                      <optgroup label="Universal Mind Spark Templates">
                         <option value="REGISTRATION_CONFIRMATION">
                           Registration Confirmation (Universal Notice & Link)
                         </option>
@@ -6172,15 +6203,15 @@ export default function WhatsAppPage() {
                           Custom Announcement
                         </option>
                       </optgroup>
-                      <optgroup label="🏆 18 Official Competition-Specific Templates">
+                      <optgroup label="18 Official Competition-Specific Templates">
                         {OFFICIAL_COMPETITION_TEMPLATES.map((t) => (
                           <option key={t.id} value={t.id}>
-                            🏆 {t.title} [{t.categoryFilter} • {t.classFilter}]
+                            {t.title} [{t.categoryFilter} • {t.classFilter}]
                           </option>
                         ))}
                       </optgroup>
                       {customTemplates.length > 0 && (
-                        <optgroup label="✏️ Custom Admin Templates">
+                        <optgroup label="Custom Admin Templates">
                           {customTemplates.map((tpl) => (
                             <option key={tpl.id} value={tpl.id}>
                               {tpl.title} ({tpl.categoryFilter || 'ALL'}) {tpl.version ? `(v${tpl.version})` : ''}
@@ -6257,11 +6288,11 @@ export default function WhatsAppPage() {
                         type="checkbox"
                         checked={usePreviousTemplateForResend}
                         onChange={(e) => setUsePreviousTemplateForResend(e.target.checked)}
-                        className="mt-0.5 rounded text-[#7a0c16] focus:ring-[#7a0c16]"
+                        className="mt-0.5 rounded text-portal-maroon focus:ring-portal-maroon"
                       />
                       <div className="text-xs">
                         <span className="font-bold text-slate-800">
-                          🔁 Controlled Message Repetition (Retain Original Template & Group)
+                          Controlled Message Repetition (Retain Original Template & Group)
                         </span>
                         <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
                           When resending to candidates who already received a message, resend their previously used template version and original group link by default.
@@ -6280,7 +6311,7 @@ export default function WhatsAppPage() {
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
                         <div>
                           <div className="font-bold text-emerald-950">
-                            ⚡ ICPaaS Official Gateway (Meta v23.0 Cloud Endpoint)
+                            ICPaaS Official Gateway (Meta v23.0 Cloud Endpoint)
                           </div>
                           <div className="text-[10px] text-emerald-700 font-mono">
                             Endpoint: 1346032508598977 &bull; Template: {metaTemplateName} ({metaTemplateLang})
@@ -6357,12 +6388,12 @@ export default function WhatsAppPage() {
           MODAL 3: CANDIDATE WHATSAPP HISTORY MODAL (historyModalStudent)
           ========================================================================= */}
       {historyModalStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-apple-sheet border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden">
             {/* Header */}
             <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7a0c16]/10 text-[#7a0c16] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-portal-maroon/10 text-portal-maroon flex items-center justify-center">
                   <History className="w-5 h-5" />
                 </div>
                 <div>
@@ -6430,7 +6461,7 @@ export default function WhatsAppPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900 flex items-center space-x-1.5">
-                          <MessageSquare className="w-3.5 h-3.5 text-[#7a0c16]" />
+                          <MessageSquare className="w-3.5 h-3.5 text-portal-maroon" />
                           <span>{rec.templateName || rec.templateId}</span>
                           {rec.templateVersion && (
                             <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-800 rounded font-mono text-[10px] font-bold">
@@ -6519,7 +6550,7 @@ export default function WhatsAppPage() {
                               {rec.messageContent}
                               <div className="text-[9px] text-slate-500 text-right mt-1.5 flex items-center justify-end space-x-1">
                                 <span>{new Date(rec.sentAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                <span className="text-[#53bdeb] font-bold">&#10003;&#10003;</span>
+                                <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb] inline" />
                               </div>
                             </div>
                           </div>
@@ -6599,7 +6630,7 @@ export default function WhatsAppPage() {
                   ) : (
                     <>
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>🔁 Safe Resend Previous</span>
+                      <span className="inline-flex items-center space-x-1.5"><RotateCcw className="w-3.5 h-3.5" /><span>Safe Resend Previous</span></span>
                     </>
                   )}
                 </button>
@@ -6613,7 +6644,7 @@ export default function WhatsAppPage() {
                   }}
                   className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors flex items-center space-x-1.5"
                 >
-                  <Send className="w-3.5 h-3.5 text-[#7a0c16]" />
+                  <Send className="w-3.5 h-3.5 text-portal-maroon" />
                   <span>Open in Single Chat &rarr;</span>
                 </button>
               </div>
@@ -6634,8 +6665,8 @@ export default function WhatsAppPage() {
           MODAL 4: WHATSAPP GROUP ADD / EDIT MODAL (groupModalOpen)
           ========================================================================= */}
       {groupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-apple-sheet border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden">
             <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">

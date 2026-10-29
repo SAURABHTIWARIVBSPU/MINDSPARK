@@ -35,7 +35,7 @@ export interface User {
   passwordHash?: string;
 }
 
-export type StudentStatus = 'ACTIVE' | 'ARCHIVED' | 'VOID';
+export type StudentStatus = 'ACTIVE' | 'PENDING' | 'HOLD' | 'REJECTED' | 'ARCHIVED' | 'VOID';
 
 export type WhatsAppStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'OPENED' | 'UNCERTAIN';
 
@@ -136,6 +136,7 @@ export interface Student {
   messageHistory?: StudentMessageRecord[];
   sourceImportId?: string;
   registrationSource?: 'ADMIN_PANEL' | 'EXCEL_IMPORT' | 'PUBLIC_REGISTRATION' | 'SYSTEM_BATCH';
+  allocatedBatchNumber?: number;
   createdAt: string;
   createdBy: string;
   updatedAt: string;

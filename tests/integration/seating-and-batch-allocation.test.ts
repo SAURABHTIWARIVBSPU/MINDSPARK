@@ -75,25 +75,38 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
     });
   });
 
-  describe('3. HOLD Status Enforcement', () => {
-    it('strictly locks admit card issuance for Junior Scientist', () => {
+  describe('3. Official Announcement Schedule & Unhold Verification', () => {
+    it('allocates and confirms admit card issuance for Junior Scientist at MSPS Ground', () => {
       const alloc = allocateStudentToBatch('Junior Scientist', '7', 10);
-      expect(alloc.isHold).toBe(true);
-      expect(alloc.status).toBe('ON_HOLD');
-      expect(alloc.canIssueAdmitCard).toBe(false);
-      expect(alloc.examTime).toContain('ON HOLD');
+      expect(alloc.isHold).toBe(false);
+      expect(alloc.status).toBe('CONFIRMED');
+      expect(alloc.canIssueAdmitCard).toBe(true);
+      expect(alloc.venueDetail).toBe('MSPS GROUND');
+      expect(alloc.examDate).toBe('01 Nov 2026');
+      expect(alloc.batchNumber).toBe(1);
     });
 
-    it('strictly locks admit card issuance for Online Quiz (Graduation)', () => {
+    it('allocates and confirms admit card issuance for Online Quiz (Graduation) on 02 Nov', () => {
       const alloc = allocateStudentToBatch('Online Quiz', 'GRADUATION', 5);
-      expect(alloc.isHold).toBe(true);
-      expect(alloc.status).toBe('ON_HOLD');
-      expect(alloc.canIssueAdmitCard).toBe(false);
-      expect(alloc.holdReason).toContain('semester exams');
+      expect(alloc.isHold).toBe(false);
+      expect(alloc.status).toBe('CONFIRMED');
+      expect(alloc.canIssueAdmitCard).toBe(true);
+      expect(alloc.venueDetail).toBe('MSITM LAB');
+      expect(alloc.examDate).toBe('02 Nov 2026');
+      expect(alloc.luckyDrawNotice).toContain('Lucky Draw');
     });
 
-    it('strictly locks admit card issuance for Essay Writing (Graduation)', () => {
+    it('allocates and confirms admit card issuance for Essay Writing (Graduation) at 4:00 PM', () => {
       const alloc = allocateStudentToBatch('Essay Writing', 'GRADUATION', 0);
+      expect(alloc.isHold).toBe(false);
+      expect(alloc.status).toBe('CONFIRMED');
+      expect(alloc.canIssueAdmitCard).toBe(true);
+      expect(alloc.venueDetail).toBe('MSITM LT-2, LT-3 & LT-4');
+      expect(alloc.examTime).toContain('04:00 PM - 05:00 PM');
+    });
+
+    it('strictly locks unknown or unallocated competition on hold', () => {
+      const alloc = allocateStudentToBatch('Unrecognized Competition', '10', 0);
       expect(alloc.isHold).toBe(true);
       expect(alloc.status).toBe('ON_HOLD');
       expect(alloc.canIssueAdmitCard).toBe(false);
@@ -139,8 +152,9 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
 
       const js = metrics.find((m) => m.eventKey === 'JUNIOR_SCIENTIST');
       expect(js).toBeDefined();
-      expect(js?.isHold).toBe(true);
-      expect(js?.status).toBe('ON_HOLD');
+      expect(js?.isHold).toBe(false);
+      expect(js?.status).toBe('SEATS_AVAILABLE');
+      expect(js?.venue).toContain('MSPS GROUND');
     });
   });
 });

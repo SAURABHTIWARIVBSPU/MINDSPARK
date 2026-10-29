@@ -13,7 +13,7 @@ describe('Public Student Admit Card Verification & Download', () => {
       await db.createStudent({
         registrationNumber: 'MS211001',
         name: 'MEENAKSHI GUPTA',
-        fatherName: 'RAKESH KUMAR GUPTA',
+        fatherName: 'TEST UNIQUE FATHER',
         dateOfBirth: '2008-05-31',
         phone: '7007440076',
         schoolOrCollege: 'AIMS INTERNATIONAL',

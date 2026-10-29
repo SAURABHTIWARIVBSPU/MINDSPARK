@@ -290,6 +290,13 @@ function drawBarcode(
     student.registrationNumber
   );
 
+  // Column 1 Clean Overwrite (Date of Examination) if date is 2 Nov 2026
+  if (schedule.examDate && (schedule.examDate.includes('02') || schedule.examDate.includes('2 Nov'))) {
+    page.drawRectangle({ x: 20, y: 390, width: 155, height: 50, color: WHITE });
+    page.drawText('DATE OF EXAMINATION :', { x: 24, y: 422, size: 7.5, font: fontBold, color: DARK });
+    page.drawText('02- Nov- 2026', { x: 24, y: 402, size: 9.0, font: fontBold, color: MAROON });
+  }
+
   // Column 2 Clean Overwrite (Reporting Time & Exam Time)
   page.drawRectangle({ x: 180, y: 390, width: 155, height: 50, color: WHITE });
 

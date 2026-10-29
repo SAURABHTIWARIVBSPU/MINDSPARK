@@ -3,39 +3,111 @@
 @tailwind utilities;
 
 :root {
-  --background: #f4f6f9;
-  --foreground: #0f172a;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --color-primary: #0066cc;
+  --color-primary-hover: #0071e3;
+  --color-primary-active: #005bb5;
+  --color-destructive: #dc2626;
+  --color-destructive-hover: #b91c1c;
+  --color-surface-canvas: #ffffff;
+  --color-surface-parchment: #f5f5f7;
+  --color-surface-pearl: #fafafc;
+  --color-text-ink: #1d1d1f;
+  --color-text-muted: #6e6e73;
+  --color-border-hairline: #e5e5ea;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars */
+/* Subtle, restrained scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(0, 0, 0, 0.3);
 }
 
-/* Print Styles: Ensure only the Candidate Admit Slip prints and eliminates 4-page homepage bloat */
+/* Reusable Semantic Component Styles */
+@layer components {
+  /* Button Variants */
+  .btn-apple-primary {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-apple-blue hover:bg-apple-blue-hover active:bg-apple-blue-active text-white text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-2;
+  }
+
+  .btn-apple-secondary {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-2;
+  }
+
+  .btn-apple-destructive {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-apple-red hover:bg-apple-red-hover active:bg-apple-red-active text-white text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-red focus-visible:ring-offset-2;
+  }
+
+  .btn-apple-ghost {
+    @apply inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-1;
+  }
+
+  /* Form Input State */
+  .input-apple {
+    @apply w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-apple-subtle focus:outline-none focus:ring-2 focus:ring-apple-blue/25 focus:border-apple-blue transition-all disabled:bg-slate-50 disabled:text-slate-400;
+  }
+
+  /* Status Badges */
+  .badge-apple-blue {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80;
+  }
+
+  .badge-apple-red {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
+  }
+
+  .badge-apple-emerald {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
+  }
+
+  .badge-apple-amber {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
+  }
+
+  .badge-apple-neutral {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/90;
+  }
+
+  /* Calm Card */
+  .card-apple {
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-apple-card;
+  }
+
+  /* Dialog Sheet */
+  .dialog-apple {
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-apple-sheet max-h-[88vh] flex flex-col overflow-hidden;
+  }
+}
+
+/* Print Styles: Strictly preserve Candidate Admit Slip single-page A4 print */
 @media print {
-  /* Page setup for clean A4 printing */
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 10mm;
   }
 
   body {
@@ -80,4 +152,3 @@ body {
     display: none !important;
   }
 }
-

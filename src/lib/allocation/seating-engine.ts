@@ -5,6 +5,8 @@ export interface BatchAllocationResult {
   isHold: boolean;
   status: 'CONFIRMED' | 'ON_HOLD' | 'OVER_CAPACITY_BLOCKED';
   holdReason?: string;
+  examDate?: string;
+  luckyDrawNotice?: string;
   batchNumber: number;
   batchName: string;
   reportingTime: string;
@@ -101,6 +103,8 @@ export function allocateStudentToBatch(
       return {
         isHold: false,
         status: 'CONFIRMED',
+        examDate: rule.examDate || '01-Nov-2026',
+        luckyDrawNotice: rule.luckyDrawNotice,
         batchNumber: batch.batchNumber,
         batchName: batch.batchName,
         reportingTime: batch.reportingTime,

@@ -14,6 +14,9 @@ import {
   MapPin,
   ArrowRight,
   ShieldAlert,
+  MessageSquare,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { AuditLog, SystemSettings } from '@/types';
 
@@ -59,25 +62,26 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Official UP Portal Top Banner */}
-      <div className="bg-[#7a0c16] text-white p-6 sm:p-7 rounded-xl shadow-md border-b-4 border-amber-500">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-amber-300">
-              Mind-Spark Examination & Competition Console | Operations Dashboard
+      {/* Operations Dashboard Hero */}
+      <div className="bg-gradient-to-br from-portal-maroon via-rose-900 to-portal-maroon-dark text-white p-6 sm:p-8 rounded-2xl shadow-apple-card border border-white/15">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 text-amber-300 border border-white/15 text-[11px] font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Operations Console &amp; Examination Command</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-white">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-apple-headline text-white mt-2">
               {settings?.schoolName || 'Mind-Spark Competition Portal'}
             </h1>
-            <p className="text-xs sm:text-sm text-rose-100/90 mt-1">
+            <p className="text-xs sm:text-sm text-rose-100/90 leading-relaxed">
               {settings?.competitionTitle || 'Academic Excellence & Talent Assessment 2026'}
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/excel-import"
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow-sm transition-colors"
+              className="inline-flex items-center space-x-1.5 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded-full shadow-apple-subtle transition-all active:scale-[0.98]"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Import Excel</span>
@@ -86,7 +90,7 @@ export default function DashboardPage() {
             <a
               href="/api/excel/export"
               download
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#5c000b] hover:bg-[#4a0009] text-rose-100 border border-amber-500/40 text-xs font-semibold rounded-lg transition-colors"
+              className="inline-flex items-center space-x-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/15 text-rose-100 hover:text-white border border-white/20 text-xs font-semibold rounded-full transition-colors shadow-apple-subtle"
             >
               <Download className="w-3.5 h-3.5 text-amber-300" />
               <span>Export Master Data</span>
@@ -96,145 +100,155 @@ export default function DashboardPage() {
 
         {/* Schedule metadata pills */}
         {settings && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-rose-900/60 text-xs text-rose-100">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4 text-amber-300 flex-shrink-0" />
-              <span>Exam Date: <strong className="text-white font-semibold">{settings.examDate}</strong></span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-white/10 text-xs text-rose-100">
+            <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/15">
+              <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>Exam Date: <strong className="text-white font-bold">{settings.examDate}</strong></span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-amber-300 flex-shrink-0" />
-              <span>Reporting Time: <strong className="text-white font-semibold">{settings.reportingTime}</strong></span>
+            <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/15">
+              <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>Reporting Time: <strong className="text-white font-bold">{settings.reportingTime}</strong></span>
             </div>
-            <div className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4 text-amber-300 flex-shrink-0" />
-              <span className="truncate">Venue: <strong className="text-white font-semibold">{settings.venue}</strong></span>
+            <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/15">
+              <MapPin className="w-4 h-4 text-amber-300 shrink-0" />
+              <span className="truncate">Venue: <strong className="text-white font-bold">{settings.venue}</strong></span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Metrics Row - UP Scholarship Style */}
+      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-[#7a0c16]">
+        {/* Metric 1 */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-apple-card hover:shadow-apple-hover transition-all">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Total Registered Candidates</div>
-            <div className="p-2 bg-rose-50 text-[#7a0c16] rounded-lg">
+            <span className="text-[11px] font-bold text-apple-ink-muted uppercase tracking-wider">Registered Candidates</span>
+            <div className="p-2 bg-rose-50 text-portal-maroon rounded-xl border border-rose-100">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#7a0c16] mt-2 tabular-nums">
-            {loading ? '...' : totalStudents}
+          <div className="text-2xl sm:text-3xl font-black text-portal-maroon mt-2 tabular-nums">
+            {loading ? '...' : totalStudents.toLocaleString()}
           </div>
-          <div className="text-xs text-slate-500 mt-1">Verified Candidate Records</div>
+          <div className="text-xs text-apple-ink-muted mt-1 font-medium">Verified Candidate Records</div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-amber-600">
+        {/* Metric 2 */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-apple-card hover:shadow-apple-hover transition-all">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Admit Cards</div>
-            <div className="p-2 bg-amber-50 text-amber-700 rounded-lg">
+            <span className="text-[11px] font-bold text-apple-ink-muted uppercase tracking-wider">Admit Cards</span>
+            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100">
               <FileCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tabular-nums">
-            {loading ? '...' : totalStudents}
+          <div className="text-2xl sm:text-3xl font-black text-apple-ink mt-2 tabular-nums">
+            {loading ? '...' : totalStudents.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 font-medium mt-1">Generated & Ready for Download</div>
+          <div className="text-xs text-emerald-700 font-semibold mt-1 flex items-center space-x-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Generated &amp; Ready for Release</span>
+          </div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-emerald-700">
+        {/* Metric 3 */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-apple-card hover:shadow-apple-hover transition-all">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">WhatsApp Dispatch</div>
-            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg">
-              <Calendar className="w-4 h-4" />
+            <span className="text-[11px] font-bold text-apple-ink-muted uppercase tracking-wider">WhatsApp Dispatch</span>
+            <div className="p-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
+              <MessageSquare className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Active</div>
-          <div className="text-xs text-slate-500 mt-1">Bulk Queue & Instant Links</div>
+          <div className="text-2xl sm:text-3xl font-black text-apple-ink mt-2">Active</div>
+          <div className="text-xs text-apple-ink-muted mt-1 font-medium">Bulk Queue &amp; Instant Links</div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs border-t-4 border-t-slate-700">
+        {/* Metric 4 */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-apple-card hover:shadow-apple-hover transition-all">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">System Security</div>
-            <div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
+            <span className="text-[11px] font-bold text-apple-ink-muted uppercase tracking-wider">System Security</span>
+            <div className="p-2 bg-slate-100 text-slate-700 rounded-xl border border-slate-200">
               <ShieldAlert className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Protected</div>
-          <div className="text-xs text-slate-500 mt-1">Audit Trail & RBAC Active</div>
+          <div className="text-2xl sm:text-3xl font-black text-apple-ink mt-2">Protected</div>
+          <div className="text-xs text-apple-ink-muted mt-1 font-medium">Audit Trail &amp; RBAC Active</div>
         </div>
       </div>
 
       {/* Two Column Layout: Quick Actions & Audit Stream */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Core Modules */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="border-l-4 border-[#7a0c16] pl-3 py-0.5">
-            <h2 className="text-base font-bold text-slate-900">
-              Core Modules & Services
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-apple-card p-6 sm:p-7 space-y-5">
+          <div className="border-l-4 border-portal-maroon pl-3.5 py-0.5">
+            <h2 className="text-base font-black text-apple-ink">
+              Core Modules &amp; Services
             </h2>
+            <p className="text-xs text-apple-ink-muted mt-0.5">
+              Quick access to administrative workflows
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href="/excel-import"
-              className="group p-4 rounded-lg border border-slate-200 hover:border-[#7a0c16] hover:shadow-xs transition-all bg-slate-50/60 hover:bg-white"
+              className="group p-5 rounded-2xl border border-slate-200/80 hover:border-portal-maroon hover:shadow-apple-hover transition-all bg-slate-50/50 hover:bg-white"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2 bg-rose-50 text-[#7a0c16] rounded-md group-hover:bg-[#7a0c16] group-hover:text-white transition-colors">
-                  <FileSpreadsheet className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-rose-50 text-portal-maroon rounded-xl group-hover:bg-portal-maroon group-hover:text-white transition-colors shadow-apple-subtle">
+                  <FileSpreadsheet className="w-5 h-5" />
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#7a0c16] transition-colors" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-portal-maroon group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Excel Data Ingestion</h3>
-              <p className="text-xs text-slate-600 mt-1">
+              <h3 className="font-bold text-sm text-apple-ink">Excel Data Ingestion</h3>
+              <p className="text-xs text-apple-ink-muted mt-1 leading-relaxed">
                 Upload, validate, and stage student enrollment sheets (.xlsx, .csv).
               </p>
             </Link>
 
             <Link
               href="/students"
-              className="group p-4 rounded-lg border border-slate-200 hover:border-[#7a0c16] hover:shadow-xs transition-all bg-slate-50/60 hover:bg-white"
+              className="group p-5 rounded-2xl border border-slate-200/80 hover:border-portal-maroon hover:shadow-apple-hover transition-all bg-slate-50/50 hover:bg-white"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2 bg-amber-50 text-amber-700 rounded-md group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                  <Users className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-amber-50 text-amber-700 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-apple-subtle">
+                  <Users className="w-5 h-5" />
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-700 transition-colors" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-700 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Student Directory</h3>
-              <p className="text-xs text-slate-600 mt-1">
+              <h3 className="font-bold text-sm text-apple-ink">Student Directory</h3>
+              <p className="text-xs text-apple-ink-muted mt-1 leading-relaxed">
                 Search, filter, edit, and create candidate records.
               </p>
             </Link>
 
             <Link
               href="/admit-cards"
-              className="group p-4 rounded-lg border border-slate-200 hover:border-[#7a0c16] hover:shadow-xs transition-all bg-slate-50/60 hover:bg-white"
+              className="group p-5 rounded-2xl border border-slate-200/80 hover:border-portal-maroon hover:shadow-apple-hover transition-all bg-slate-50/50 hover:bg-white"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2 bg-rose-50 text-[#7a0c16] rounded-md group-hover:bg-[#7a0c16] group-hover:text-white transition-colors">
-                  <FileCheck className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-rose-50 text-portal-maroon rounded-xl group-hover:bg-portal-maroon group-hover:text-white transition-colors shadow-apple-subtle">
+                  <FileCheck className="w-5 h-5" />
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#7a0c16] transition-colors" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-portal-maroon group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Admit Cards & Hall Tickets</h3>
-              <p className="text-xs text-slate-600 mt-1">
+              <h3 className="font-bold text-sm text-apple-ink">Admit Cards &amp; Hall Tickets</h3>
+              <p className="text-xs text-apple-ink-muted mt-1 leading-relaxed">
                 Generate and download individual or batch ZIP admit cards.
               </p>
             </Link>
 
             <Link
               href="/whatsapp"
-              className="group p-4 rounded-lg border border-slate-200 hover:border-[#7a0c16] hover:shadow-xs transition-all bg-slate-50/60 hover:bg-white"
+              className="group p-5 rounded-2xl border border-slate-200/80 hover:border-portal-maroon hover:shadow-apple-hover transition-all bg-slate-50/50 hover:bg-white"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2 bg-emerald-50 text-emerald-700 rounded-md group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                  <Calendar className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-apple-subtle">
+                  <Calendar className="w-5 h-5" />
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-bold text-sm text-slate-900">WhatsApp Messaging Desk</h3>
-              <p className="text-xs text-slate-600 mt-1">
+              <h3 className="font-bold text-sm text-apple-ink">WhatsApp Messaging Desk</h3>
+              <p className="text-xs text-apple-ink-muted mt-1 leading-relaxed">
                 Dispatch exam alerts, admit card links, and reminders via WhatsApp.
               </p>
             </Link>
@@ -242,27 +256,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Audit Log Stream */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between border-l-4 border-[#7a0c16] pl-3 py-0.5">
-            <h2 className="text-base font-bold text-slate-900">Recent Activity</h2>
-            <Link href="/audit-logs" className="text-xs text-[#7a0c16] font-semibold hover:underline">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-apple-card p-6 sm:p-7 space-y-4">
+          <div className="flex items-center justify-between border-l-4 border-portal-maroon pl-3.5 py-0.5">
+            <div>
+              <h2 className="text-base font-black text-apple-ink">Recent Activity</h2>
+              <p className="text-xs text-apple-ink-muted">Operator audit stream</p>
+            </div>
+            <Link href="/audit-logs" className="text-xs text-portal-maroon font-bold hover:underline">
               View All
             </Link>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 pt-2">
             {recentLogs.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-4">No recent activity recorded.</p>
+              <p className="text-xs text-apple-ink-muted italic py-6 text-center">No recent activity recorded.</p>
             ) : (
               recentLogs.map((log) => (
-                <div key={log.eventId} className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs space-y-1">
-                  <div className="flex items-center justify-between font-bold text-slate-800">
+                <div key={log.eventId} className="p-3.5 bg-slate-50/70 hover:bg-slate-100/80 rounded-xl border border-slate-200/70 text-xs space-y-1 transition-colors shadow-apple-subtle">
+                  <div className="flex items-center justify-between font-bold text-apple-ink">
                     <span className="truncate">{log.action}</span>
-                    <span className="text-[10px] text-slate-500 font-normal">
+                    <span className="text-[10px] text-apple-ink-muted font-mono font-normal">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-600 truncate">
+                  <div className="text-[11px] text-apple-ink-muted truncate font-mono">
                     Actor: {log.actorEmail}
                   </div>
                 </div>

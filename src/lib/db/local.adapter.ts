@@ -526,7 +526,7 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     const regPattern = new RegExp(`^${pfx}${yr}(\\d+)$`, 'i');
     for (const s of this.data.students) {
       const match = s.registrationNumber ? s.registrationNumber.match(regPattern) : null;
-      if (match && match[1].length === String(nextSeq).length) {
+      if (match) {
         const num = parseInt(match[1], 10);
         if (!isNaN(num) && num >= nextSeq) {
           nextSeq = num + 1;

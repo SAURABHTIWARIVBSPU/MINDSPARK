@@ -81,14 +81,14 @@ async function generateMasterDeliverable() {
       'School / College': s.school_or_college || s['School / College'] || '',
       'Class': cls,
       'Event Category': comp,
-      'Examination Date': '01 Nov 2026 (Sunday)',
+      'Examination Date': sched.examDate || '01 Nov 2026 (Sunday)',
       'Reporting Time': sched.reportingTime,
       'Examination Time': sched.examTime,
       'Shift / Batch': sched.batchInfo,
       'Campus / Venue': sched.venueMain,
       'Specific Hall / Room': sched.venueDetail,
       'Admit Card Status': sched.isHold ? 'ON HOLD (SCHEDULE PENDING)' : 'ELIGIBLE & SCHEDULED',
-      'Eligibility Notes': sched.isHold ? sched.holdReason : 'Approved for official examination',
+      'Eligibility Notes': sched.isHold ? sched.holdReason : (sched.luckyDrawNotice ? `Approved | ${sched.luckyDrawNotice}` : 'Approved for official examination'),
       'WhatsApp Status': s.whatsapp_status || s['WhatsApp Status'] || 'NOT_SENT'
     };
   });
@@ -229,8 +229,8 @@ async function generateMasterDeliverable() {
 
   const admitCardSummaryRows = [
     { 'Metric': 'Total Registered Candidates in Master Registry', 'Value': totalStudents, 'Percentage': '100.0%', 'Remarks': 'Verified across all Candidate Data Batches (1 to 8)' },
-    { 'Metric': 'Active Eligible Candidates (Scheduled for Admit Cards)', 'Value': eligibleCount, 'Percentage': `${((eligibleCount / totalStudents) * 100).toFixed(1)}%`, 'Remarks': 'Across 15 Active Competitions (33 Shifts)' },
-    { 'Metric': 'Candidates on Hold (Blocked from Admit Cards)', 'Value': holdCount, 'Percentage': `${((holdCount / totalStudents) * 100).toFixed(1)}%`, 'Remarks': 'Junior Scientist (411), Online Quiz Grad (662), Essay Writing Grad (129), Pending Review (15)' },
+    { 'Metric': 'Active Eligible Candidates (Scheduled for Admit Cards)', 'Value': eligibleCount, 'Percentage': `${((eligibleCount / totalStudents) * 100).toFixed(1)}%`, 'Remarks': 'Across all 18 Active Competitions (Junior Scientist, Online Quiz Grad, and Essay Writing now scheduled)' },
+    { 'Metric': 'Candidates on Hold (Blocked from Admit Cards)', 'Value': holdCount, 'Percentage': `${((holdCount / totalStudents) * 100).toFixed(1)}%`, 'Remarks': 'Only Unassigned / Pending Administrative Review candidates on hold' },
     { 'Metric': 'Duplicate Registration Numbers Detected', 'Value': 0, 'Percentage': '0.0%', 'Remarks': 'Zero duplicate registration numbers across DB and Master Registry' },
     { 'Metric': 'Total Examination Shifts Configured', 'Value': shiftRows.length, 'Percentage': '-', 'Remarks': 'Strict 1-hour durations with 30-min reporting windows' },
     { 'Metric': 'Release Gate & Security Status', 'Value': 'LIVE & PROTECTED', 'Percentage': '-', 'Remarks': 'Supabase RLS active, IP rate limiting enforced (60 req/min), PIN/DOB lockout active' }

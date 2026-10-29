@@ -134,15 +134,14 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
   },
   {
     key: 'JUNIOR_SCIENTIST',
-    title: 'Junior Scientist [ON HOLD]',
+    title: 'Junior Scientist',
     category: 'Middle (Class 6-8)',
     eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'],
     defaultClass: '6',
-    isHold: true,
-    holdReason: 'ON HOLD: Model evaluation pending prior to hall ticket release per committee directive.',
-    examSlot: 'SCHEDULE ON HOLD',
-    reportingTime: 'PENDING ANNOUNCEMENT',
-    venue: 'VACANT ROOM 1st FLOOR (PENDING EVALUATION)'
+    isHold: false,
+    examSlot: '09:00 AM - 07:00 PM (SHIFTS 1-9, 50 PER SHIFT)',
+    reportingTime: '08:30 AM',
+    venue: 'MEENA SHAH PUBLIC SCHOOL - MSPS GROUND'
   },
   {
     key: 'YOUNG_INNOVATORS',
@@ -186,26 +185,24 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
   },
   {
     key: 'ONLINE_QUIZ_GRADUATION',
-    title: 'Online Quiz (Graduation) [ON HOLD]',
+    title: 'Online Quiz (Graduation)',
     category: 'Higher Ed (Graduation)',
     eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'],
     defaultClass: 'GRADUATION',
-    isHold: true,
-    holdReason: 'ON HOLD: Scheduled after university semester exams per committee directive.',
-    examSlot: 'SCHEDULE ON HOLD',
-    reportingTime: 'PENDING ANNOUNCEMENT',
-    venue: 'MSITM 1st FLOOR (POST-SEMESTER DATES)'
+    isHold: false,
+    examSlot: '09:00 AM - 02:00 PM (BATCHES 1-4, 180 PER BATCH)',
+    reportingTime: '08:30 AM',
+    venue: 'MSITM CAMPUS - MSITM LAB'
   },
   {
     key: 'ESSAY_WRITING_GRADUATION',
-    title: 'Essay Writing (Graduation) [ON HOLD]',
+    title: 'Essay Writing (Graduation)',
     category: 'Higher Ed (Graduation)',
     eligibleClasses: ['GRADUATION', 'B.SC', 'B.A', 'B.COM', 'BBA', 'BCA', 'B.TECH', 'COLLEGE'],
     defaultClass: 'GRADUATION',
-    isHold: true,
-    holdReason: 'ON HOLD: Topic and submission schedule to be released separately.',
-    examSlot: 'SCHEDULE ON HOLD',
-    reportingTime: 'PENDING ANNOUNCEMENT',
-    venue: 'MSITM LT2, LT3, LT4 (PENDING ANNOUNCEMENT)'
+    isHold: false,
+    examSlot: '04:00 PM - 05:00 PM (ALL BATCHES SIMULTANEOUS)',
+    reportingTime: '03:30 PM',
+    venue: 'MSITM CAMPUS - MSITM LT-2, LT-3 & LT-4'
   }
 ];

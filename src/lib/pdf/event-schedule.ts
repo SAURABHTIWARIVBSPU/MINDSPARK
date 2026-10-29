@@ -4,6 +4,7 @@ import path from 'path';
 export interface EventScheduleDetail {
   eventName: string;
   className: string;
+  examDate?: string;
   rawTiming: string;
   reportingTime: string;
   examTime: string;
@@ -14,6 +15,7 @@ export interface EventScheduleDetail {
   isHold: boolean;
   holdReason?: string;
   candidateRank?: number;
+  luckyDrawNotice?: string;
 }
 
 // Canonical schedule rules extracted directly from Events Deatails.xlsx
@@ -142,10 +144,25 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
   JUNIOR_SCIENTIST: {
     eventTitle: 'Junior Scientist',
     classMatch: 'CLASSES 6 & 8',
+    timing: '09:00 AM ONWARDS',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
-    venueDetail: 'VACANT ROOM 1st FLOOR',
-    isHold: true,
-    holdReason: 'HOLD (DO NOT GENERATE ADMIT CARD FOR THIS - SCHEDULE PENDING)'
+    venueDetail: 'MSPS GROUND',
+    examDate: '01 Nov 2026 (Sunday)',
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '08:30 AM', exam: '09:00 AM - 10:00 AM (SHIFT 1)' },
+      { shiftNum: 2, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (SHIFT 2)' },
+      { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (SHIFT 3)' },
+      { shiftNum: 4, reporting: '11:30 AM', exam: '12:00 PM - 01:00 PM (SHIFT 4)' },
+      // Strict 1:00 PM - 2:00 PM Lunch Break
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (SHIFT 5)' },
+      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (SHIFT 6)' },
+      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (SHIFT 7)' },
+      { shiftNum: 8, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (SHIFT 8)' },
+      { shiftNum: 9, reporting: '05:30 PM', exam: '06:00 PM - 07:00 PM (SHIFT 9)' },
+    ],
+    shiftCapacity: 50,
+    isHold: false
   },
   FIRELESS_COOKING: {
     eventTitle: 'Fireless Cooking',
@@ -231,18 +248,34 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
   ESSAY_WRITING_GRADUATION: {
     eventTitle: 'Essay Writing',
     classMatch: 'GRADUATION',
+    timing: '04:00 PM - 05:00 PM',
+    reportingTime: '03:30 PM',
+    examTime: '04:00 PM - 05:00 PM',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
-    venueDetail: 'MSITM LT2, LT3, LT4',
-    isHold: true,
-    holdReason: 'HOLD (DO NOT GENERATE ADMIT CARD FOR THIS - SCHEDULE PENDING)'
+    venueDetail: 'MSITM LT-2, LT-3 & LT-4',
+    examDate: '01 Nov 2026 (Sunday)',
+    batchMode: 'ALL_IN_ONE',
+    capacity: 200,
+    isHold: false,
+    luckyDrawNotice: 'COMPULSORY EVENT: Graduation Lucky Draw on Sunday, 01 November 2026 at 09:00 AM Sharp at MSITM Campus.'
   },
   ONLINE_QUIZ_GRADUATION: {
     eventTitle: 'Online Quiz',
     classMatch: 'GRADUATION',
+    timing: '09:00 AM ONWARDS',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
-    venueDetail: 'MSITM 1st FLOOR',
-    isHold: true,
-    holdReason: 'HOLD (DO NOT GENERATE ADMIT CARD FOR THIS - SCHEDULE PENDING)'
+    venueDetail: 'MSITM LAB',
+    examDate: '02 Nov 2026 (Monday)',
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '08:30 AM', exam: '09:00 AM - 10:00 AM (BATCH 1)' },
+      { shiftNum: 2, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (BATCH 2)' },
+      { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (BATCH 3)' },
+      { shiftNum: 4, reporting: '12:30 PM', exam: '01:00 PM - 02:00 PM (BATCH 4)' },
+    ],
+    shiftCapacity: 180,
+    isHold: false,
+    luckyDrawNotice: 'COMPULSORY EVENT: Graduation Lucky Draw on Sunday, 01 November 2026 at 09:00 AM Sharp at MSITM Campus.'
   },
   PENDING_REVIEW: {
     eventTitle: 'Event Allocation Pending',
@@ -388,6 +421,7 @@ export function getStudentEventSchedule(
     return {
       eventName: competitionName || 'Mindspark Competition',
       className: className || 'General',
+      examDate: alloc.examDate || '01-Nov-2026',
       rawTiming: alloc.examTime,
       reportingTime: alloc.reportingTime,
       examTime: alloc.examTime,
@@ -398,12 +432,14 @@ export function getStudentEventSchedule(
       isHold: alloc.isHold,
       holdReason: alloc.holdReason,
       candidateRank: alloc.seatNumber,
+      luckyDrawNotice: alloc.luckyDrawNotice,
     };
   }
 
   return {
     eventName: rule.eventTitle,
     className: rule.classMatch,
+    examDate: alloc.examDate || rule.examDate || '01-Nov-2026',
     rawTiming: alloc.examTime,
     reportingTime: alloc.reportingTime,
     examTime: alloc.examTime,
@@ -414,5 +450,6 @@ export function getStudentEventSchedule(
     isHold: alloc.isHold,
     holdReason: alloc.holdReason || rule.holdReason,
     candidateRank: alloc.seatNumber,
+    luckyDrawNotice: alloc.luckyDrawNotice || rule.luckyDrawNotice,
   };
 }

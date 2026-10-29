@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
           phone: student.phone,
         },
         schedule: {
-          examDate: settings.examDate || '01-Nov-2026',
+          examDate: eventSchedule.examDate || settings.examDate || '01-Nov-2026',
           reportingTime: eventSchedule.reportingTime || settings.reportingTime,
           examTime: eventSchedule.examTime || settings.examTime,
           batchInfo: eventSchedule.batchInfo,
@@ -175,6 +175,7 @@ export async function POST(req: NextRequest) {
           competitionTitle: settings.competitionTitle,
           contactPhone: settings.contactPhone,
           contactEmail: settings.contactEmail,
+          luckyDrawNotice: eventSchedule.luckyDrawNotice,
         },
       },
       {
