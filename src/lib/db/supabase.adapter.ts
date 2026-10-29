@@ -302,7 +302,7 @@ export class SupabaseAdapter implements IDatabaseAdapter {
         status: studentData.status || 'ACTIVE',
         whatsapp_status: studentData.whatsappStatus || 'NOT_SENT',
         whatsapp_sent_at: studentData.whatsappSentAt || null,
-        source_import_id: studentData.sourceImportId || null,
+        source_import_id: studentData.sourceImportId || (String(studentData.createdBy || '').toUpperCase().startsWith('ADMIN_PANEL') ? 'ADMIN_PANEL' : null),
         created_at: now,
         created_by: studentData.createdBy || 'system',
         updated_at: now,
@@ -952,6 +952,17 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     const historyMap = loadStudentHistoryMap();
     const hist = historyMap[row.student_id];
 
+    let registrationSource: 'ADMIN_PANEL' | 'EXCEL_IMPORT' | 'PUBLIC_REGISTRATION' | 'SYSTEM_BATCH' = 'SYSTEM_BATCH';
+    if (row.source_import_id === 'ADMIN_PANEL' || String(row.created_by || '').toUpperCase().startsWith('ADMIN_PANEL')) {
+      registrationSource = 'ADMIN_PANEL';
+    } else if (
+      (row.source_import_id && String(row.source_import_id).startsWith('import_')) ||
+      String(row.created_by || '').toLowerCase().includes('excel') ||
+      String(row.created_by || '').toLowerCase().includes('batch')
+    ) {
+      registrationSource = 'EXCEL_IMPORT';
+    }
+
     return {
       studentId: row.student_id,
       registrationNumber: row.registration_number,
@@ -972,6 +983,7 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       lastGroupLink: hist?.lastGroupLink,
       messageHistory: hist?.messageHistory || [],
       sourceImportId: row.source_import_id,
+      registrationSource,
       createdAt: row.created_at,
       createdBy: row.created_by,
       updatedAt: row.updated_at,

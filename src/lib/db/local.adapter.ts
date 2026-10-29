@@ -316,10 +316,13 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     }
 
     const now = new Date().toISOString();
+    const isFromAdmin = studentData.sourceImportId === 'ADMIN_PANEL' || String(studentData.createdBy || '').toUpperCase().startsWith('ADMIN_PANEL');
     const student: Student = {
       ...studentData,
       studentId: `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       registrationNumber: regNo,
+      sourceImportId: studentData.sourceImportId || (isFromAdmin ? 'ADMIN_PANEL' : undefined),
+      registrationSource: studentData.registrationSource || (isFromAdmin ? 'ADMIN_PANEL' : 'SYSTEM_BATCH'),
       createdAt: now,
       updatedAt: now,
       dataVersion: 1,

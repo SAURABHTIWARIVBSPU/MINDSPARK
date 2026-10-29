@@ -67,6 +67,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || '127.0.0.1';
+    const userAgent = req.headers.get('user-agent') || 'admin-console';
+    const adminProvenance = `ADMIN_PANEL:${user!.email || user!.uid}`;
+
     const db = getDb();
     const student = await db.createStudent({
       registrationNumber: validated.registrationNumber || '',
@@ -78,23 +82,34 @@ export async function POST(req: NextRequest) {
       className: validated.className.toUpperCase(),
       competitionName: eligibility.canonicalCompetition,
       status: validated.status,
-      createdBy: user!.uid,
-      updatedBy: user!.uid,
+      sourceImportId: 'ADMIN_PANEL',
+      registrationSource: 'ADMIN_PANEL',
+      createdBy: adminProvenance,
+      updatedBy: adminProvenance,
     });
 
     await db.addAuditLog({
       actorUid: user!.uid,
       actorEmail: user!.email,
-      action: 'STUDENT_CREATED',
+      action: 'STUDENT_REGISTERED_ADMIN_PANEL',
       targetType: 'STUDENT',
       targetId: student.studentId,
       details: {
+        registrationSource: 'ADMIN_PANEL',
         registrationNumber: student.registrationNumber,
         name: student.name,
+        fatherName: student.fatherName,
+        phone: student.phone,
         competitionName: student.competitionName,
         className: student.className,
+        schoolOrCollege: student.schoolOrCollege,
+        registeredByEmail: user!.email,
+        registeredByRole: user!.role,
+        clientIp,
+        userAgent,
         isHold: eligibility.isHold,
         holdReason: eligibility.holdReason,
+        registeredAt: new Date().toISOString(),
       },
     });
 

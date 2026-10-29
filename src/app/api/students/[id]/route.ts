@@ -52,6 +52,10 @@ export async function PUT(
       );
     }
 
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || '127.0.0.1';
+    const userAgent = req.headers.get('user-agent') || 'admin-console';
+    const adminProvenance = `ADMIN_PANEL:${user!.email || user!.uid}`;
+
     const db = getDb();
     const updated = await db.updateStudent(id, {
       registrationNumber: validated.registrationNumber,
@@ -63,17 +67,26 @@ export async function PUT(
       className: validated.className.toUpperCase(),
       competitionName: eligibility.canonicalCompetition,
       status: validated.status,
-      updatedBy: user!.uid,
+      updatedBy: adminProvenance,
     });
 
     await db.addAuditLog({
       actorUid: user!.uid,
       actorEmail: user!.email,
-      action: 'STUDENT_UPDATED',
+      action: 'STUDENT_UPDATED_ADMIN_PANEL',
       targetType: 'STUDENT',
       targetId: id,
       details: {
+        source: 'ADMIN_PANEL',
         registrationNumber: updated.registrationNumber,
+        name: updated.name,
+        competitionName: updated.competitionName,
+        className: updated.className,
+        editorEmail: user!.email,
+        editorRole: user!.role,
+        clientIp,
+        userAgent,
+        updatedAt: new Date().toISOString(),
       },
     });
 

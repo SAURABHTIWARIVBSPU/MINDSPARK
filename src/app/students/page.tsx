@@ -344,7 +344,16 @@ export default function StudentsPage() {
                 students.map((student) => (
                   <tr key={student.studentId} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4 font-bold font-mono text-[#7a0c16]">
-                      {student.registrationNumber}
+                      <div>{student.registrationNumber}</div>
+                      {student.registrationSource === 'ADMIN_PANEL' || student.sourceImportId === 'ADMIN_PANEL' || student.createdBy?.toUpperCase().startsWith('ADMIN_PANEL') ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 mt-1">
+                          🛡️ Admin Panel
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-medium text-slate-400 mt-1">
+                          📂 Excel Ingest
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4 font-semibold text-slate-900">
                       {student.name}
@@ -486,9 +495,16 @@ export default function StudentsPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
             <div className="bg-[#7a0c16] p-4 text-white flex items-center justify-between border-b-2 border-amber-500">
-              <h3 className="font-bold text-sm text-white">
-                {editingStudent ? `Edit Candidate Record (${editingStudent.registrationNumber})` : 'New Student Registration'}
-              </h3>
+              <div>
+                <h3 className="font-bold text-sm text-white">
+                  {editingStudent ? `Edit Candidate Record (${editingStudent.registrationNumber})` : 'New Student Registration'}
+                </h3>
+                {editingStudent && (
+                  <p className="text-[10px] text-amber-200 mt-0.5">
+                    Origin: {editingStudent.registrationSource === 'ADMIN_PANEL' || editingStudent.sourceImportId === 'ADMIN_PANEL' || editingStudent.createdBy?.toUpperCase().startsWith('ADMIN_PANEL') ? '🛡️ Admin Panel Registration' : '📂 Batch Excel Ingestion'} | Created By: {editingStudent.createdBy || 'System'}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-amber-200 hover:text-white"

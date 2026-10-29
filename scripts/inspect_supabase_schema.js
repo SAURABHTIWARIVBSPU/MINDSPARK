@@ -34,6 +34,9 @@ async function run() {
     console.log('students row keys:', Object.keys(sData[0]));
     console.log('sample student row:', sData[0]);
   }
+
+  const { data: sampleSources } = await c.from('students').select('source_import_id, created_by').limit(5);
+  console.log('Sample sources:', sampleSources);
 }
 
 run();

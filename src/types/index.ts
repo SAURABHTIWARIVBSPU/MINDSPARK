@@ -135,6 +135,7 @@ export interface Student {
   lastGroupLink?: string;
   messageHistory?: StudentMessageRecord[];
   sourceImportId?: string;
+  registrationSource?: 'ADMIN_PANEL' | 'EXCEL_IMPORT' | 'PUBLIC_REGISTRATION' | 'SYSTEM_BATCH';
   createdAt: string;
   createdBy: string;
   updatedAt: string;
