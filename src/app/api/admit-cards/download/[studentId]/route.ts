@@ -25,6 +25,20 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
+    // Enforce Committee HOLD Directive: Do not issue confirmed admit cards for ON_HOLD programs
+    const { getStudentEventSchedule } = await import('@/lib/pdf/event-schedule');
+    const schedule = getStudentEventSchedule(student.competitionName, student.className, student.registrationNumber);
+    if (schedule.isHold) {
+      return NextResponse.json(
+        {
+          error: `Admit card issuance locked: ${schedule.holdReason || 'Event schedule is currently ON HOLD per Committee Directive.'}`,
+          status: 'ON_HOLD',
+          event: schedule.eventName,
+        },
+        { status: 403 }
+      );
+    }
+
     const storage = getStorageAdapter();
     const cardRecord = await db.getAdmitCardByStudentId(studentId);
     const expectedHash = computeStudentDataHash(student, ADMIT_CARD_TEMPLATE_VERSION);

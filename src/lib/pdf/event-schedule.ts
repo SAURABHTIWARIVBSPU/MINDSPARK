@@ -298,19 +298,29 @@ export function resolveEventKey(competitionName?: string, className?: string): s
   return 'PENDING_REVIEW';
 }
 
+import { allocateStudentToBatch } from '@/lib/allocation/seating-engine';
+
 // In-memory cache for deterministic rank of candidates in their respective competitions
 let candidateRankCache: Map<string, number> | null = null;
+let eventCandidateCountCache: Map<string, number> | null = null;
 
-function getCandidateRankMap(): Map<string, number> {
-  if (candidateRankCache) return candidateRankCache;
+function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<string, number> } {
+  if (candidateRankCache && eventCandidateCountCache) {
+    return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
+  }
+
   candidateRankCache = new Map();
+  eventCandidateCountCache = new Map();
 
   try {
-    const snapPath = path.resolve('.data', 'master_students_4887_snapshot.json');
-    if (fs.existsSync(snapPath)) {
-      const snap = JSON.parse(fs.readFileSync(snapPath, 'utf8'));
+    const snap5752 = path.resolve('.data', 'master_students_5752_snapshot.json');
+    const snap4887 = path.resolve('.data', 'master_students_4887_snapshot.json');
+    const activePath = fs.existsSync(snap5752) ? snap5752 : snap4887;
+
+    if (fs.existsSync(activePath)) {
+      const snap = JSON.parse(fs.readFileSync(activePath, 'utf8'));
       const groups = new Map<string, any[]>();
-      
+
       for (const s of snap.students) {
         const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
         const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
@@ -319,7 +329,8 @@ function getCandidateRankMap(): Map<string, number> {
         groups.get(key)!.push(s);
       }
 
-      for (const [, students] of groups.entries()) {
+      for (const [key, students] of groups.entries()) {
+        eventCandidateCountCache.set(key, students.length);
         students.forEach((s, idx) => {
           const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
           if (reg && candidateRankCache) {
@@ -332,12 +343,20 @@ function getCandidateRankMap(): Map<string, number> {
     console.warn('Rank cache build fallback:', err);
   }
 
-  return candidateRankCache;
+  return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
+}
+
+export function getCandidateRankMap(): Map<string, number> {
+  return loadCandidateCaches().rankMap;
+}
+
+export function getEventCandidateCountMap(): Map<string, number> {
+  return loadCandidateCaches().countMap;
 }
 
 /**
  * Calculates candidate's exact Reporting Time, Exam Time, Shift, and Allocated Venue
- * taking into account event timing, multi-shift batches, and venue locations.
+ * taking into account event timing, multi-shift batches, room capacity limits, and seating rules.
  */
 export function getStudentEventSchedule(
   competitionName: string,
@@ -346,89 +365,54 @@ export function getStudentEventSchedule(
 ): EventScheduleDetail {
   const key = resolveEventKey(competitionName, className);
   const rule = EVENT_SCHEDULE_RULES[key];
+  const { rankMap, countMap } = loadCandidateCaches();
 
   let candidateIndex = 0;
   if (typeof candidateIndexOrRegNo === 'string') {
     const cleanReg = candidateIndexOrRegNo.trim().toUpperCase();
-    const rankMap = getCandidateRankMap();
     if (rankMap.has(cleanReg)) {
       candidateIndex = Math.max(0, rankMap.get(cleanReg)! - 1);
     } else {
-      const digits = cleanReg.replace(/\D/g, '');
-      candidateIndex = digits ? parseInt(digits.slice(-3), 10) : 0;
+      // Newly created candidate not in snapshot: rank sequentially after existing enrolled count
+      const existingCount = countMap.get(key) || 0;
+      candidateIndex = existingCount;
     }
   } else if (typeof candidateIndexOrRegNo === 'number') {
     candidateIndex = Math.max(0, candidateIndexOrRegNo);
   }
 
+  // Use the authoritative deterministic seating engine
+  const alloc = allocateStudentToBatch(competitionName, className, candidateIndex);
+
   if (!rule) {
     return {
       eventName: competitionName || 'Mindspark Competition',
       className: className || 'General',
-      rawTiming: '10:00 AM',
-      reportingTime: '09:30 AM',
-      examTime: '10:00 AM ONWARDS',
-      venueMain: 'MEENA SHAH PUBLIC SCHOOL',
-      venueDetail: 'MSPS CAMPUS',
-      batchInfo: 'BATCH 1',
+      rawTiming: alloc.examTime,
+      reportingTime: alloc.reportingTime,
+      examTime: alloc.examTime,
+      venueMain: alloc.venueMain,
+      venueDetail: alloc.venueDetail,
+      batchInfo: alloc.batchName,
       incharges: '',
-      isHold: false,
-      candidateRank: candidateIndex + 1
+      isHold: alloc.isHold,
+      holdReason: alloc.holdReason,
+      candidateRank: alloc.seatNumber,
     };
   }
 
-  if (rule.isHold) {
-    return {
-      eventName: rule.eventTitle,
-      className: rule.classMatch,
-      rawTiming: 'HOLD',
-      reportingTime: 'PENDING',
-      examTime: 'SCHEDULE PENDING (ON HOLD)',
-      venueMain: rule.venueMain,
-      venueDetail: rule.venueDetail,
-      batchInfo: 'HOLD',
-      incharges: '',
-      isHold: true,
-      holdReason: rule.holdReason,
-      candidateRank: candidateIndex + 1
-    };
-  }
-
-  if (rule.batchMode === 'SHIFTS' && rule.shifts && rule.shifts.length > 0) {
-    const shiftCap = rule.shiftCapacity || 90;
-    const shiftIndex = Math.min(
-      Math.floor(candidateIndex / shiftCap),
-      rule.shifts.length - 1
-    );
-    const assignedShift = rule.shifts[shiftIndex];
-
-    return {
-      eventName: rule.eventTitle,
-      className: rule.classMatch,
-      rawTiming: rule.timing || assignedShift.exam,
-      reportingTime: assignedShift.reporting,
-      examTime: assignedShift.exam,
-      venueMain: rule.venueMain,
-      venueDetail: rule.venueDetail,
-      batchInfo: `BATCH ${assignedShift.shiftNum}`,
-      incharges: '',
-      isHold: false,
-      candidateRank: candidateIndex + 1
-    };
-  }
-
-  // Single Batch
   return {
     eventName: rule.eventTitle,
     className: rule.classMatch,
-    rawTiming: rule.timing,
-    reportingTime: rule.reportingTime,
-    examTime: rule.timing,
-    venueMain: rule.venueMain,
-    venueDetail: rule.venueDetail,
-    batchInfo: 'ALL IN ONE BATCH',
+    rawTiming: alloc.examTime,
+    reportingTime: alloc.reportingTime,
+    examTime: alloc.examTime,
+    venueMain: alloc.venueMain,
+    venueDetail: alloc.venueDetail,
+    batchInfo: alloc.batchName,
     incharges: '',
-    isHold: false,
-    candidateRank: candidateIndex + 1
+    isHold: alloc.isHold,
+    holdReason: alloc.holdReason || rule.holdReason,
+    candidateRank: alloc.seatNumber,
   };
 }

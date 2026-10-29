@@ -55,6 +55,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 2. Real-Time Venue & Batch Capacity Check
+    if (eligibility.schedule.isHold && eligibility.schedule.holdReason?.includes('maximum venue capacity')) {
+      return NextResponse.json(
+        {
+          error: eligibility.schedule.holdReason,
+          status: 'OVER_CAPACITY_BLOCKED',
+          eventKey: eligibility.eventKey
+        },
+        { status: 409 }
+      );
+    }
+
     const db = getDb();
     const student = await db.createStudent({
       registrationNumber: validated.registrationNumber || '',

@@ -53,10 +53,40 @@ export default function StudentsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+  const [capacityData, setCapacityData] = useState<any>(null);
+  const [loadingCapacity, setLoadingCapacity] = useState(false);
+
+  const fetchCapacity = async () => {
+    setLoadingCapacity(true);
+    try {
+      const res = await fetch('/api/students/capacity');
+      if (res.ok) {
+        const data = await res.json();
+        setCapacityData(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingCapacity(false);
+    }
+  };
 
   const selectedComp = APPROVED_COMPETITIONS.find(
     (c) => c.title.toUpperCase() === (formData.competitionName || '').toUpperCase() || c.key === formData.competitionName
   ) || APPROVED_COMPETITIONS.find((c) => (formData.competitionName || '').toUpperCase().includes(c.title.toUpperCase()));
+
+  const selectedMetric = capacityData?.metrics?.find(
+    (m: any) =>
+      m.title.toUpperCase() === (formData.competitionName || '').toUpperCase() ||
+      m.eventKey === selectedComp?.key
+  );
+  const isSelectedProgramFull = Boolean(
+    selectedMetric &&
+    !selectedMetric.isHold &&
+    selectedMetric.availableSeats === 0 &&
+    !editingStudent
+  );
 
   const handleCompetitionChange = (compTitle: string) => {
     const comp = APPROVED_COMPETITIONS.find(c => c.title === compTitle || c.key === compTitle);
@@ -73,6 +103,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(setSettings).catch(() => {});
+    fetchCapacity();
   }, []);
 
   useEffect(() => {
@@ -202,13 +233,26 @@ export default function StudentsPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4 text-amber-300" />
-          <span>New Registration</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              fetchCapacity();
+              setIsCapacityModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition-colors shadow-2xs"
+          >
+            <Users className="w-4 h-4 text-slate-600" />
+            <span>Shift & Seating Roster</span>
+          </button>
+
+          <button
+            onClick={handleOpenCreate}
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4 text-amber-300" />
+            <span>New Registration</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -657,6 +701,52 @@ export default function StudentsPage() {
                         ⚠️ {selectedComp.holdReason}
                       </div>
                     )}
+
+                    {/* Live Seating & Batch Availability */}
+                    {selectedMetric && !selectedMetric.isHold && (
+                      <div className="col-span-2 pt-2 border-t border-slate-200">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-bold text-slate-700">Seating & Batch Availability:</span>
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                              isSelectedProgramFull
+                                ? 'bg-red-100 text-red-800 border border-red-300'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            }`}
+                          >
+                            {isSelectedProgramFull
+                              ? '⛔ ALL BATCHES FULL'
+                              : `🟢 ${selectedMetric.availableSeats} of ${selectedMetric.totalProgramCapacity} Seats Available`}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          {selectedMetric.batches?.map((b: any) => (
+                            <div
+                              key={b.batchNumber}
+                              className={`flex items-center justify-between p-1.5 rounded text-[11px] border ${
+                                b.isFull
+                                  ? 'bg-slate-50 text-slate-400 border-slate-200'
+                                  : 'bg-white text-slate-800 border-emerald-200 shadow-2xs'
+                              }`}
+                            >
+                              <span className="font-medium">
+                                Batch {b.batchNumber}: {b.examTime}
+                              </span>
+                              <span className={b.isFull ? 'font-bold text-slate-400' : 'font-bold text-emerald-700'}>
+                                {b.isFull ? 'FULL' : `${b.freeSeats} free`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {isSelectedProgramFull && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs font-semibold">
+                            ⚠️ Maximum venue seating capacity reached. No additional students can be registered for this program.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -671,13 +761,166 @@ export default function StudentsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50"
+                  disabled={submitting || isSelectedProgramFull}
+                  className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Saving...' : editingStudent ? 'Update Details' : 'Save Registration'}
+                  {submitting ? 'Saving...' : isSelectedProgramFull ? 'Batch Full' : editingStudent ? 'Update Details' : 'Save Registration'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Real-Time Seating & Shift Capacity Modal */}
+      {isCapacityModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in-50 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Users className="w-5 h-5 text-amber-400" />
+                  Mind Spark 2026 — Seating Plan & Shift Roster
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Live database metrics showing shift capacities, enrolled candidates, and available seats.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCapacityModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Campus Summary Cards */}
+            {capacityData?.summary && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-slate-50 border-b border-slate-200 text-xs">
+                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 font-bold block uppercase">Total Registered</span>
+                  <span className="text-lg font-black text-slate-900">{capacityData.summary.totalEnrolled}</span>
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 font-bold block uppercase">Confirmed Active</span>
+                  <span className="text-lg font-black text-emerald-700">{capacityData.summary.totalAllocatedActive}</span>
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 font-bold block uppercase">Total Shift Capacity</span>
+                  <span className="text-lg font-black text-slate-800">{capacityData.summary.totalActiveCapacity}</span>
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] text-slate-500 font-bold block uppercase">Available Seats</span>
+                  <span className="text-lg font-black text-blue-700">{capacityData.summary.totalAvailableSeats}</span>
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-slate-500 font-bold block uppercase">On Hold (Pending)</span>
+                  <span className="text-lg font-black text-amber-700">{capacityData.summary.totalHold}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Roster Table */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingCapacity ? (
+                <div className="py-12 text-center text-slate-400">Loading seating and batch allocation metrics...</div>
+              ) : (
+                <div className="space-y-4">
+                  {capacityData?.metrics?.map((m: any) => (
+                    <div
+                      key={m.eventKey}
+                      className={`p-3 rounded-lg border transition-all ${
+                        m.isHold
+                          ? 'bg-amber-50/50 border-amber-200'
+                          : m.status === 'OVER_CAPACITY' || m.availableSeats === 0
+                          ? 'bg-red-50/40 border-red-200'
+                          : 'bg-white border-slate-200 shadow-2xs'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-current/10">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-slate-900 text-sm">{m.title}</h4>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+                              {m.classGroup}
+                            </span>
+                            {m.isHold ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                ⚠️ ON HOLD
+                              </span>
+                            ) : m.status === 'OVER_CAPACITY' || m.availableSeats === 0 ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
+                                ⛔ FULL
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                🟢 {m.availableSeats} SEATS FREE
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-slate-500 mt-0.5 block">📍 {m.venue}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs font-mono">
+                          <div>
+                            <span className="text-slate-400 text-[10px] block">ENROLLED</span>
+                            <span className="font-bold text-slate-800">{m.allocatedCount}</span>
+                          </div>
+                          {!m.isHold && (
+                            <>
+                              <div>
+                                <span className="text-slate-400 text-[10px] block">CAPACITY</span>
+                                <span className="font-bold text-slate-800">{m.totalProgramCapacity}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 text-[10px] block">AVAILABLE</span>
+                                <span className="font-bold text-emerald-700">{m.availableSeats}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Batches Breakdown */}
+                      {m.batches && m.batches.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                          {m.batches.map((b: any) => (
+                            <div
+                              key={b.batchNumber}
+                              className={`p-2 rounded border text-[11px] flex items-center justify-between ${
+                                b.isFull ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-white text-slate-800 border-emerald-200 shadow-2xs'
+                              }`}
+                            >
+                              <div>
+                                <span className="font-bold block">Batch {b.batchNumber}</span>
+                                <span className="text-[10px] text-slate-500">{b.examTime}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className={b.isFull ? 'font-bold text-red-600 block' : 'font-bold text-emerald-700 block'}>
+                                  {b.isFull ? 'FULL' : `${b.freeSeats} free`}
+                                </span>
+                                <span className="text-[10px] text-slate-400">{b.allocated}/{b.capacity}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-100 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setIsCapacityModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-colors"
+              >
+                Close Roster
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,0 +1,146 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { getDb, resetDbInstance } from '@/lib/db';
+import { allocateStudentToBatch, calculateShiftWiseMetrics } from '@/lib/allocation/seating-engine';
+import { PROGRAM_SEATING_RULES } from '@/lib/allocation/seating-rules';
+import { getStudentEventSchedule, resolveEventKey } from '@/lib/pdf/event-schedule';
+
+describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
+  beforeEach(() => {
+    resetDbInstance();
+  });
+
+  describe('1. Batch-Wise Progression & Full-Batch Rollover', () => {
+    it('allocates candidate 0 to Batch 1 of Clay Champs', () => {
+      const alloc = allocateStudentToBatch('Clay Champs', '1', 0);
+      expect(alloc.status).toBe('CONFIRMED');
+      expect(alloc.batchNumber).toBe(1);
+      expect(alloc.examTime).toContain('10:00 AM - 11:00 AM (BATCH 1)');
+      expect(alloc.reportingTime).toBe('09:30 AM');
+      expect(alloc.seatNumber).toBe(1);
+      expect(alloc.venueDetail).toBe('MSPS MUSIC ROOM');
+    });
+
+    it('allocates candidate 49 to Batch 1 and candidate 50 to Batch 2 when Batch 1 is full', () => {
+      // Index 49 (50th student) -> Batch 1 (Capacity 50)
+      const alloc49 = allocateStudentToBatch('Clay Champs', '1', 49);
+      expect(alloc49.batchNumber).toBe(1);
+      expect(alloc49.seatNumber).toBe(50);
+      expect(alloc49.batchSeatIndex).toBe(50);
+
+      // Index 50 (51st student) -> Rollover to Batch 2 (Capacity 50)
+      const alloc50 = allocateStudentToBatch('Clay Champs', '1', 50);
+      expect(alloc50.batchNumber).toBe(2);
+      expect(alloc50.examTime).toContain('11:00 AM - 12:00 PM (BATCH 2)');
+      expect(alloc50.reportingTime).toBe('10:30 AM');
+      expect(alloc50.seatNumber).toBe(51);
+      expect(alloc50.batchSeatIndex).toBe(1);
+    });
+
+    it('advances sequentially through Batches 1 to 5 for Fireless Cooking', () => {
+      // Fireless Cooking: Batch 1 (120), Batch 2 (120), Batch 3 (120), Batch 4 (120), Batch 5 (200)
+      const b1 = allocateStudentToBatch('Fireless Cooking', '6', 0);
+      expect(b1.batchNumber).toBe(1);
+      expect(b1.examTime).toContain('09:00 AM - 10:00 AM');
+
+      const b2 = allocateStudentToBatch('Fireless Cooking', '6', 120);
+      expect(b2.batchNumber).toBe(2);
+      expect(b2.examTime).toContain('10:00 AM - 11:00 AM');
+
+      const b3 = allocateStudentToBatch('Fireless Cooking', '7', 240);
+      expect(b3.batchNumber).toBe(3);
+      expect(b3.examTime).toContain('11:00 AM - 12:00 PM');
+
+      const b4 = allocateStudentToBatch('Fireless Cooking', '8', 360);
+      expect(b4.batchNumber).toBe(4);
+      expect(b4.examTime).toContain('12:00 PM - 01:00 PM');
+
+      const b5 = allocateStudentToBatch('Fireless Cooking', '8', 480);
+      expect(b5.batchNumber).toBe(5);
+      expect(b5.examTime).toContain('02:00 PM - 03:00 PM');
+    });
+  });
+
+  describe('2. Hard Venue Capacity Limit & Overbooking Prevention', () => {
+    it('blocks allocation when all batches of Young Innovators are 100% full', () => {
+      // Young Innovators: Batches 1-3 (40 each) + Batch 4 (50) = Total 170
+      const atMax = allocateStudentToBatch('Young Innovators', '9', 169);
+      expect(atMax.status).toBe('CONFIRMED');
+      expect(atMax.batchNumber).toBe(4);
+
+      // Beyond total venue capacity:
+      const beyondMax = allocateStudentToBatch('Young Innovators', '9', 170);
+      expect(beyondMax.status).toBe('OVER_CAPACITY_BLOCKED');
+      expect(beyondMax.canIssueAdmitCard).toBe(false);
+      expect(beyondMax.holdReason).toContain('reached maximum venue capacity');
+    });
+  });
+
+  describe('3. HOLD Status Enforcement', () => {
+    it('strictly locks admit card issuance for Junior Scientist', () => {
+      const alloc = allocateStudentToBatch('Junior Scientist', '7', 10);
+      expect(alloc.isHold).toBe(true);
+      expect(alloc.status).toBe('ON_HOLD');
+      expect(alloc.canIssueAdmitCard).toBe(false);
+      expect(alloc.examTime).toContain('ON HOLD');
+    });
+
+    it('strictly locks admit card issuance for Online Quiz (Graduation)', () => {
+      const alloc = allocateStudentToBatch('Online Quiz', 'GRADUATION', 5);
+      expect(alloc.isHold).toBe(true);
+      expect(alloc.status).toBe('ON_HOLD');
+      expect(alloc.canIssueAdmitCard).toBe(false);
+      expect(alloc.holdReason).toContain('semester exams');
+    });
+
+    it('strictly locks admit card issuance for Essay Writing (Graduation)', () => {
+      const alloc = allocateStudentToBatch('Essay Writing', 'GRADUATION', 0);
+      expect(alloc.isHold).toBe(true);
+      expect(alloc.status).toBe('ON_HOLD');
+      expect(alloc.canIssueAdmitCard).toBe(false);
+    });
+  });
+
+  describe('4. Anti-Double Allocation Invariant', () => {
+    it('guarantees a student receives exactly one shift, batch, and venue', () => {
+      const sched = getStudentEventSchedule('Online Quiz', '10', 'MS261100001');
+      expect(sched.batchInfo).toBeTruthy();
+      expect(sched.examTime).toBeTruthy();
+      expect(sched.venueMain).toBe('MEENA SHAH PUBLIC SCHOOL');
+      expect(sched.candidateRank).toBeGreaterThan(0);
+    });
+
+    it('ensures distinct candidates receive unique sequential ranks within the same event', () => {
+      const sched1 = getStudentEventSchedule('Clay Champs', '1', 0);
+      const sched2 = getStudentEventSchedule('Clay Champs', '1', 1);
+
+      expect(sched1.candidateRank).toBe(1);
+      expect(sched2.candidateRank).toBe(2);
+      expect(sched1.candidateRank).not.toEqual(sched2.candidateRank);
+    });
+  });
+
+  describe('5. Shift-Wise Metrics & Real-Time Remaining Capacity', () => {
+    it('correctly aggregates student counts and available seats across shifts', () => {
+      const sampleStudents = [
+        { competition_name: 'Colour by Number', class_name: 'NURSERY' },
+        { competition_name: 'Colour by Number', class_name: 'NURSERY' },
+        { competition_name: 'Clay Champs', class_name: '1' },
+        { competition_name: 'Junior Scientist', class_name: '7' },
+      ];
+
+      const metrics = calculateShiftWiseMetrics(sampleStudents);
+      expect(metrics.length).toBeGreaterThan(0);
+
+      const cbn = metrics.find((m) => m.eventKey === 'COLOUR_BY_NUMBER');
+      expect(cbn).toBeDefined();
+      expect(cbn?.allocatedCount).toBe(2);
+      expect(cbn?.availableSeats).toBe(200 - 2);
+      expect(cbn?.status).toBe('SEATS_AVAILABLE');
+
+      const js = metrics.find((m) => m.eventKey === 'JUNIOR_SCIENTIST');
+      expect(js).toBeDefined();
+      expect(js?.isHold).toBe(true);
+      expect(js?.status).toBe('ON_HOLD');
+    });
+  });
+});
