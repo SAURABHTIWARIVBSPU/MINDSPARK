@@ -57,14 +57,30 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Check for any missing registration numbers in master
-  const masterRegs = new Set(masterRows.map(r => String(r['Registration Number'] || '').trim().toUpperCase()));
+  // 3. Check for any missing registration numbers in master & Your Reg/NO prefix
+  let invalidPrefixCount = 0;
+  const masterRegs = new Set();
+  masterRows.forEach(r => {
+    const rawVal = String(r['Registration Number'] || '').trim();
+    if (!rawVal.startsWith('Your Reg/NO:')) {
+      invalidPrefixCount++;
+    }
+    const clean = rawVal.replace(/^Your Reg\/NO:\s*/i, '').trim().toUpperCase();
+    masterRegs.add(clean);
+  });
+
   const missingFromMaster = [...dbRegSet].filter(r => !masterRegs.has(r));
   if (missingFromMaster.length > 0) {
     console.error(`❌ Missing from Master Roster:`, missingFromMaster);
     process.exit(1);
   } else {
     console.log(`    ✓ Zero registration numbers missing from Master Roster! (5,752 / 5,752 matched)`);
+  }
+
+  if (invalidPrefixCount === 0) {
+    console.log(`    ✓ 100% of rows in Master Roster have Column C prefixed with 'Your Reg/NO:  MS...'!`);
+  } else {
+    console.warn(`    ⚠️ ${invalidPrefixCount} rows missing 'Your Reg/NO:' prefix in Master!`);
   }
 
   // 4. Audit all individual programme files
@@ -89,18 +105,21 @@ async function main() {
       console.warn(`    ⚠️ Warning: File ${f} A1 is '${a1}', expected 'number'`);
     }
 
-    // Check for duplicate roll numbers within this file
+    // Check for duplicate roll numbers & Your Reg/NO: prefix within this file
     const fileRolls = new Set();
     let dupInFile = 0;
+    let missingPrefixInFile = 0;
     rows.forEach(r => {
-      const reg = String(r['Registration Number'] || '').trim().toUpperCase();
+      const rawVal = String(r['Registration Number'] || '').trim();
+      if (!rawVal.startsWith('Your Reg/NO:')) missingPrefixInFile++;
+      const reg = rawVal.replace(/^Your Reg\/NO:\s*/i, '').trim().toUpperCase();
       if (fileRolls.has(reg)) dupInFile++;
       fileRolls.add(reg);
       individualRegs.add(reg);
     });
 
     fileBreakdowns.push({ file: f, rows: rows.length, dupInFile, a1Header: a1 });
-    console.log(`    ✓ ${f.padEnd(46)}: ${String(rows.length).padStart(4)} rows (Header A1: '${a1}')`);
+    console.log(`    ✓ ${f.padEnd(46)}: ${String(rows.length).padStart(4)} rows | A1: '${a1}' | Prefix Check: ${missingPrefixInFile === 0 ? '✅ 100% Your Reg/NO:' : '❌ ' + missingPrefixInFile + ' missing'}`);
   }
 
   console.log('\n================================================================================');
