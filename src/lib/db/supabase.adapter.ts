@@ -16,6 +16,7 @@ import {
   SystemSettings,
   User,
 } from '@/types';
+import { normalizePhone, matchesDob } from '../excel/normalizer';
 
 function getExtendedSettingsPath(): string {
   const dir = path.join(process.cwd(), '.data');
@@ -253,11 +254,11 @@ export class SupabaseAdapter implements IDatabaseAdapter {
       .neq('status', 'ARCHIVED');
 
     if (existingCandidates && existingCandidates.length > 0) {
-      const match = existingCandidates.find(
-        (c) =>
-          (cleanPhone && c.phone === cleanPhone) ||
-          (studentData.dateOfBirth && c.date_of_birth === studentData.dateOfBirth)
-      );
+      const match = existingCandidates.find((c) => {
+        const phoneMatch = cleanPhone && normalizePhone(c.phone) === cleanPhone;
+        const dobMatch = studentData.dateOfBirth && matchesDob(c.date_of_birth, studentData.dateOfBirth);
+        return phoneMatch || dobMatch;
+      });
 
       if (match) {
         throw new Error(

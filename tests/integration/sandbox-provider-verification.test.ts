@@ -241,7 +241,7 @@ describe('Real Provider Sandbox Verification Suite — Meta, ICPaaS, and Fencing
       const studentDelivered: Student = {
         studentId: `std_inv_${Date.now()}_del`,
         registrationNumber: `MS26_${Date.now()}_802`,
-        name: 'DELIVERED CANDIDATE',
+        name: `DELIVERED CANDIDATE ${Date.now()}`,
         fatherName: 'FATHER',
         dateOfBirth: '2008-01-01',
         phone: '9876543211',
@@ -260,7 +260,7 @@ describe('Real Provider Sandbox Verification Suite — Meta, ICPaaS, and Fencing
       const studentUncertain: Student = {
         studentId: `std_inv_${Date.now()}_unc`,
         registrationNumber: `MS26_${Date.now()}_803`,
-        name: 'UNCERTAIN CANDIDATE',
+        name: `UNCERTAIN CANDIDATE ${Date.now()}`,
         fatherName: 'FATHER',
         dateOfBirth: '2008-01-01',
         phone: '9876543212',
@@ -297,7 +297,7 @@ describe('Real Provider Sandbox Verification Suite — Meta, ICPaaS, and Fencing
       const studentSent: Student = {
         studentId: `std_reset_${Date.now()}_sent`,
         registrationNumber: `MS26_${Date.now()}_804`,
-        name: 'SENT CANDIDATE',
+        name: `SENT CANDIDATE ${Date.now()}`,
         fatherName: 'FATHER',
         dateOfBirth: '2008-01-01',
         phone: '9876543213',
@@ -505,7 +505,7 @@ describe('Real Provider Sandbox Verification Suite — Meta, ICPaaS, and Fencing
       const student: Student = {
         studentId,
         registrationNumber: 'MS2611899',
-        name: 'RECONCILIATION CANDIDATE',
+        name: `RECONCILIATION CANDIDATE ${Date.now()}`,
         fatherName: 'FATHER',
         dateOfBirth: '2008-01-01',
         phone: '9876543210',

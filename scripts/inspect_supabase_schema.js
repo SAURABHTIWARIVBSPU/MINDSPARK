@@ -17,11 +17,15 @@ async function run() {
     console.log('system_settings row data:', data[0]);
   }
 
-  const { data: aData, count: aCount, error: aError } = await c.from('admit_cards').select('*', { count: 'exact' }).limit(5);
+  const { data: aData, count: aCount, error: aError } = await c.from('admit_cards').select('*', { count: 'exact' }).limit(1);
   if (aError) {
     console.error('Error fetching admit_cards:', aError);
   } else {
     console.log('admit_cards count in Supabase:', aCount);
+    if (aData && aData.length > 0) {
+      console.log('admit_cards row keys:', Object.keys(aData[0]));
+      console.log('admit_cards sample row:', aData[0]);
+    }
   }
 
   const { data: sData, count: sCount } = await c.from('students').select('*', { count: 'exact' }).limit(1);

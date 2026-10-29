@@ -12,11 +12,11 @@ describe('WhatsApp Bulk Messaging & Status Management Integration', () => {
     db = getDb();
 
     const rand = Math.floor(Math.random() * 899 + 100);
-    // Create 2 test students
+    // Create 2 test students with unique names for test run isolation
     await db.createStudent({
       registrationNumber: `WA${Date.now().toString().slice(-3)}${rand}01`,
-      name: 'TEST CANDIDATE ONE',
-      fatherName: 'FATHER ONE',
+      name: `TEST CANDIDATE ONE ${Date.now()}_${rand}`,
+      fatherName: `FATHER ONE ${Date.now()}_${rand}`,
       dateOfBirth: '2008-01-01',
       phone: '9876543210',
       schoolOrCollege: 'TEST ACADEMY',
@@ -29,8 +29,8 @@ describe('WhatsApp Bulk Messaging & Status Management Integration', () => {
 
     await db.createStudent({
       registrationNumber: `WA${Date.now().toString().slice(-3)}${rand}02`,
-      name: 'TEST CANDIDATE TWO',
-      fatherName: 'FATHER TWO',
+      name: `TEST CANDIDATE TWO ${Date.now()}_${rand}`,
+      fatherName: `FATHER TWO ${Date.now()}_${rand}`,
       dateOfBirth: '2008-02-02',
       phone: '9876543211',
       schoolOrCollege: 'TEST ACADEMY',

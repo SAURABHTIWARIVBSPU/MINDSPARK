@@ -15,6 +15,7 @@ import {
   SystemSettings,
   User,
 } from '@/types';
+import { normalizePhone, matchesDob } from '../excel/normalizer';
 
 interface DatabaseSchema {
   users: User[];
@@ -276,6 +277,33 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
   async createStudent(
     studentData: Omit<Student, 'studentId' | 'createdAt' | 'updatedAt' | 'dataVersion'>
   ): Promise<Student> {
+    const cleanName = studentData.name.trim().toUpperCase();
+    const cleanFather = studentData.fatherName.trim().toUpperCase();
+    const cleanPhone = studentData.phone ? studentData.phone.replace(/\D/g, '').slice(-10) : '';
+
+    // 1. Strict Duplicate Candidate Check: Prevent duplicate registrations of the same human student
+    const existingCandidates = this.data.students.filter((s) => {
+      if (s.status === 'VOID' || s.status === 'ARCHIVED') return false;
+      return (
+        s.name.trim().toUpperCase() === cleanName &&
+        s.fatherName.trim().toUpperCase() === cleanFather
+      );
+    });
+
+    if (existingCandidates.length > 0) {
+      const match = existingCandidates.find((c) => {
+        const phoneMatch = cleanPhone && normalizePhone(c.phone) === cleanPhone;
+        const dobMatch = studentData.dateOfBirth && matchesDob(c.dateOfBirth, studentData.dateOfBirth);
+        return phoneMatch || dobMatch;
+      });
+
+      if (match) {
+        throw new Error(
+          `DUPLICATE REGISTRATION CONFLICT: Candidate '${cleanName}' (Father: '${cleanFather}') is already registered under Registration No. ${match.registrationNumber} in event '${match.competitionName}' (Status: ${match.status}). A student cannot receive two simultaneous registrations or allotments.`
+        );
+      }
+    }
+
     let regNo = studentData.registrationNumber?.trim();
     if (!regNo) {
       regNo = await this.allocateNextRegistrationNumber();
