@@ -357,18 +357,11 @@ export class SupabaseAdapter implements IDatabaseAdapter {
 
     if (error) throw new Error(`Supabase update student error: ${error.message}`);
 
-    // Invalidate stale admit card in database if program, class, or student details changed
-    if (
-      updates.competitionName !== undefined ||
-      updates.className !== undefined ||
-      updates.name !== undefined ||
-      updates.status !== undefined
-    ) {
-      try {
-        await this.client.from('admit_cards').delete().eq('student_id', studentId);
-      } catch (cardErr) {
-        console.warn('Admit card invalidation note:', cardErr);
-      }
+    // Invalidate stale admit card in database unconditionally so all particulars refresh
+    try {
+      await this.client.from('admit_cards').delete().eq('student_id', studentId);
+    } catch (cardErr) {
+      console.warn('Admit card invalidation note:', cardErr);
     }
 
     return this.mapRowToStudent(data);
@@ -698,6 +691,11 @@ export class SupabaseAdapter implements IDatabaseAdapter {
 
     if (error) throw new Error(`Supabase save admit card error: ${error.message}`);
     return this.mapRowToAdmitCard(data);
+  }
+
+  async deleteAdmitCardByStudentId(studentId: string): Promise<boolean> {
+    const { error } = await this.client.from('admit_cards').delete().eq('student_id', studentId);
+    return !error;
   }
 
   // --- Admit Card Jobs ---

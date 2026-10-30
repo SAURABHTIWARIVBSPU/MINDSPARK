@@ -444,6 +444,17 @@ export function registerCandidateInRankCache(
   const key = resolveEventKey(competitionName, className);
   const cleanReg = registrationNumber.trim().toUpperCase();
 
+  // If candidate already has an allocated rank for this event, PRESERVE it permanently!
+  if (rankMap.has(`${key}:${cleanReg}`)) {
+    return rankMap.get(`${key}:${cleanReg}`)!;
+  }
+  if (rankMap.has(cleanReg)) {
+    const existingRank = rankMap.get(cleanReg)!;
+    rankMap.set(`${key}:${cleanReg}`, existingRank);
+    return existingRank;
+  }
+
+  // Newly enrolled candidate: rank sequentially after existing enrolled count
   const currentCount = countMap.get(key) || 0;
   const newRank = currentCount + 1;
 
@@ -452,6 +463,32 @@ export function registerCandidateInRankCache(
   rankMap.set(`${key}:${cleanReg}`, newRank);
 
   return newRank;
+}
+
+export function transferCandidateRank(
+  oldRegNo: string,
+  newRegNo: string,
+  competitionName?: string,
+  className?: string
+): void {
+  const { rankMap } = loadCandidateCaches();
+  const cleanOld = oldRegNo.trim().toUpperCase();
+  const cleanNew = newRegNo.trim().toUpperCase();
+  if (cleanOld === cleanNew) return;
+
+  const key = competitionName && className ? resolveEventKey(competitionName, className) : '';
+  const existingRank = (key ? rankMap.get(`${key}:${cleanOld}`) : null) || rankMap.get(cleanOld);
+  if (existingRank) {
+    rankMap.set(cleanNew, existingRank);
+    if (key) {
+      rankMap.set(`${key}:${cleanNew}`, existingRank);
+    }
+  }
+
+  const authMap = getAuthoritativeDispatchedMap();
+  if (authMap[cleanOld]) {
+    authMap[cleanNew] = { ...authMap[cleanOld], regNo: cleanNew, reg: cleanNew };
+  }
 }
 
 export function invalidateCandidateRankCache(): void {
@@ -490,21 +527,25 @@ export function getStudentEventSchedule(
     const authMap = getAuthoritativeDispatchedMap();
     if (authMap[cleanReg]) {
       const auth = authMap[cleanReg];
-      return {
-        eventName: rule ? rule.eventTitle : (competitionName || 'Mindspark Competition'),
-        className: rule ? rule.classMatch : (className || 'General'),
-        examDate: officialExamDate,
-        rawTiming: auth.examTime,
-        reportingTime: auth.reportingTime,
-        examTime: auth.examTime,
-        venueMain: auth.venueMain || 'MEENA SHAH PUBLIC SCHOOL',
-        venueDetail: auth.venueDetail || (rule ? rule.venueDetail : 'MSPS CAMPUS'),
-        batchInfo: auth.batchInfo,
-        incharges: '',
-        isHold: false,
-        candidateRank: 1,
-        luckyDrawNotice: rule ? rule.luckyDrawNotice : undefined,
-      };
+      const authKey = resolveEventKey(auth.competitionName || auth.eventCategory || '', auth.className || auth.classGrade || '');
+      // Only return authoritative dispatch if student event category has not been altered
+      if (!key || key === 'PENDING_REVIEW' || !authKey || authKey === key || authKey === 'PENDING_REVIEW') {
+        return {
+          eventName: rule ? rule.eventTitle : (competitionName || 'Mindspark Competition'),
+          className: rule ? rule.classMatch : (className || 'General'),
+          examDate: officialExamDate,
+          rawTiming: auth.examTime,
+          reportingTime: auth.reportingTime,
+          examTime: auth.examTime,
+          venueMain: auth.venueMain || 'MEENA SHAH PUBLIC SCHOOL',
+          venueDetail: auth.venueDetail || (rule ? rule.venueDetail : 'MSPS CAMPUS'),
+          batchInfo: auth.batchInfo,
+          incharges: '',
+          isHold: false,
+          candidateRank: 1,
+          luckyDrawNotice: rule ? rule.luckyDrawNotice : undefined,
+        };
+      }
     }
 
     if (rankMap.has(`${key}:${cleanReg}`)) {
@@ -536,9 +577,10 @@ export function getStudentEventSchedule(
     const cleanReg = candidateIndexOrRegNo.trim().toUpperCase();
     if (cleanReg && cleanReg !== 'PREVIEW') {
       const authMap = getAuthoritativeDispatchedMap();
-      if (!authMap[cleanReg]) {
+      if (!authMap[cleanReg] || (authMap[cleanReg] && authMap[cleanReg].eventKey !== key)) {
         authMap[cleanReg] = {
           regNo: cleanReg,
+          eventKey: key,
           eventCategory: rule ? rule.eventTitle : competitionName,
           classGrade: rule ? rule.classMatch : className,
           examDate: officialExamDate,

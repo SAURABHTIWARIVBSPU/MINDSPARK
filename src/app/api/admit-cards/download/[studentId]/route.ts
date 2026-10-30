@@ -96,6 +96,9 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="${safeFileName}"`,
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (err: any) {

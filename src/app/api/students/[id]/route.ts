@@ -4,7 +4,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { StudentFormSchema } from '@/lib/validation/student.schema';
 import { validateStudentEligibility } from '@/lib/validation/eligibility';
-import { registerCandidateInRankCache } from '@/lib/pdf/event-schedule';
+import { registerCandidateInRankCache, transferCandidateRank, resolveEventKey } from '@/lib/pdf/event-schedule';
+import { getStorageAdapter } from '@/lib/storage';
 
 export async function GET(
   req: NextRequest,
@@ -38,6 +39,13 @@ export async function PUT(
     assertPermission(user, 'students.update');
 
     const { id } = await params;
+    const db = getDb();
+    const existingStudent = await db.getStudentById(id);
+
+    if (!existingStudent) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
     const body = await req.json();
     const validated = StudentFormSchema.parse(body);
 
@@ -69,7 +77,19 @@ export async function PUT(
     const userAgent = req.headers.get('user-agent') || 'admin-console';
     const adminProvenance = `ADMIN_PANEL:${user!.email || user!.uid}`;
 
-    const db = getDb();
+    // 1. Immediately invalidate old admit card and remove previous physical PDF file from storage
+    const oldCard = await db.getAdmitCardByStudentId(id);
+    if (oldCard?.fileId) {
+      try {
+        const storage = getStorageAdapter();
+        await storage.deleteFile(oldCard.fileId);
+      } catch (storageErr) {
+        console.warn('Old admit card storage file deletion warning:', storageErr);
+      }
+    }
+    await db.deleteAdmitCardByStudentId(id);
+
+    // 2. Perform atomic student update
     const updated = await db.updateStudent(id, {
       registrationNumber: validated.registrationNumber,
       name: validated.name.toUpperCase(),
@@ -103,7 +123,24 @@ export async function PUT(
       },
     });
 
-    registerCandidateInRankCache(updated.competitionName, updated.className, updated.registrationNumber);
+    // 3. Timing & Schedule Permanence Guarantee:
+    // Only re-rank if event program/grade actually changed.
+    // Never re-rank or alter shifts for edits to Name, Father, DOB, Phone, or School!
+    const oldEventKey = resolveEventKey(existingStudent.competitionName, existingStudent.className);
+    const newEventKey = resolveEventKey(updated.competitionName, updated.className);
+    const eventChanged = oldEventKey !== newEventKey;
+
+    if (eventChanged) {
+      registerCandidateInRankCache(updated.competitionName, updated.className, updated.registrationNumber);
+    } else if (existingStudent.registrationNumber !== updated.registrationNumber) {
+      transferCandidateRank(
+        existingStudent.registrationNumber,
+        updated.registrationNumber,
+        updated.competitionName,
+        updated.className
+      );
+    }
+
     return NextResponse.json({ success: true, student: updated });
   } catch (err: any) {
     const status = err.message?.includes('Unauthorized') ? 403 : 400;

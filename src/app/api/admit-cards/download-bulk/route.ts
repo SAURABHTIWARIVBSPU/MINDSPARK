@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { getDb } from '@/lib/db';
 import { getStorageAdapter } from '@/lib/storage';
-import { generateAdmitCardPdf } from '@/lib/pdf/template';
+import { generateAdmitCardPdf, computeStudentDataHash, ADMIT_CARD_TEMPLATE_VERSION } from '@/lib/pdf/template';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,14 +38,37 @@ export async function POST(req: NextRequest) {
 
     for (const student of safeSlice) {
       const cardRecord = cardMap.get(student.studentId);
+      const expectedHash = computeStudentDataHash(student, ADMIT_CARD_TEMPLATE_VERSION);
       let pdfBytes: Uint8Array | null = null;
 
-      if (cardRecord?.fileId) {
-        pdfBytes = await storage.getFile(cardRecord.fileId);
+      if (cardRecord?.fileId && cardRecord.sourceDataHash === expectedHash && cardRecord.status === 'READY') {
+        try {
+          pdfBytes = await storage.getFile(cardRecord.fileId);
+        } catch {
+          pdfBytes = null;
+        }
       }
 
       if (!pdfBytes) {
         pdfBytes = await generateAdmitCardPdf(student, settings);
+        try {
+          const fileName = `AdmitCard_${student.registrationNumber}_${student.name.replace(/\s+/g, '_')}.pdf`;
+          const { fileId, storageType } = await storage.saveFile(fileName, pdfBytes, 'application/pdf');
+          const now = new Date().toISOString();
+          await db.saveAdmitCard({
+            studentId: student.studentId,
+            registrationNumber: student.registrationNumber,
+            fileId,
+            storageType,
+            templateVersion: ADMIT_CARD_TEMPLATE_VERSION,
+            sourceDataHash: expectedHash,
+            status: 'READY',
+            generatedAt: now,
+            updatedAt: now,
+          });
+        } catch (cacheErr) {
+          console.warn('Admit card bulk cache save warning:', cacheErr);
+        }
       }
 
       const fileName = `${student.registrationNumber}_${student.name.replace(/\s+/g, '_')}.pdf`;
@@ -70,6 +93,9 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="MindSpark_AdmitCards_${new Date().toISOString().split('T')[0]}.zip"`,
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (err: any) {

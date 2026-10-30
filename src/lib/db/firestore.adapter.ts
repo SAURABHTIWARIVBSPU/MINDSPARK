@@ -98,6 +98,10 @@ export class FirestoreAdapter implements IDatabaseAdapter {
     throw new Error('Firestore adapter requires production Firebase Admin credentials');
   }
 
+  async deleteAdmitCardByStudentId(studentId: string): Promise<boolean> {
+    throw new Error('Firestore adapter requires production Firebase Admin credentials');
+  }
+
   async getAdmitCardJobs(): Promise<AdmitCardJob[]> {
     throw new Error('Firestore adapter requires production Firebase Admin credentials');
   }

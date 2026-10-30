@@ -12,7 +12,7 @@ describe('Security & Authorization Verification (Production Standards)', () => {
     if (!existing) {
       await db.createStudent({
         registrationNumber: 'MS211001',
-        name: 'MEENAKSHI GUPTA',
+        name: 'SECURITY TEST STUDENT',
         fatherName: 'RAKESH KUMAR GUPTA',
         dateOfBirth: '2008-05-31',
         phone: '7007440076',

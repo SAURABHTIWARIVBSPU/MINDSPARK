@@ -362,6 +362,13 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     };
 
     this.data.students[idx] = updated;
+
+    // Invalidate any existing admit card record so updated student particulars reflect immediately
+    const cardIdx = this.data.admitCards.findIndex((c) => c.studentId === studentId);
+    if (cardIdx !== -1) {
+      this.data.admitCards.splice(cardIdx, 1);
+    }
+
     this.persist();
     return updated;
   }
@@ -586,6 +593,16 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
     }
     this.persist();
     return card;
+  }
+
+  async deleteAdmitCardByStudentId(studentId: string): Promise<boolean> {
+    const idx = this.data.admitCards.findIndex((c) => c.studentId === studentId);
+    if (idx !== -1) {
+      this.data.admitCards.splice(idx, 1);
+      this.persist();
+      return true;
+    }
+    return false;
   }
 
   // --- Admit Card Jobs ---

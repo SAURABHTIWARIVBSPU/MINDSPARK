@@ -139,25 +139,25 @@ async function generateMasterDeliverable() {
       SourceFile: 'CAndidate_data-6.xlsx (Nursery)',
       Sheet: 'NURSERY ',
       Row: 'Rows 2 - 85',
-      RegistrationNo: 'MS261103118 - MS261105024 (71 Candidates)',
+      RegistrationNo: 'MS261105137 - MS261105207 (71 Candidates)',
       StudentName: 'Zohan, Ashraf Ali, Anya Goel, etc.',
       FatherName: 'Various',
       Class: 'NURSERY',
       Competition: 'COLOUR BY NUMBER',
-      ActionTaken: 'RECONCILED & RESTORED',
-      Reason: 'Restored 71 Nursery candidates from artificial IDs (MS261105137-5207) to their authentic pre-printed IDs (MS261103118-5024) discovered in Timestamp column. Freed up 5137-5207 for official school registrations.'
+      ActionTaken: 'RESTORED TO ORIGINAL ALLOCATION',
+      Reason: 'Authoritative restoration: Returned all 71 Nursery candidates to their original allocated registration numbers MS261105137 to MS261105207.'
     },
     {
       SourceFile: 'Admin Portal (Web Registrations)',
       Sheet: 'Live Supabase Portal',
       Row: 'Manual Web Entries',
-      RegistrationNo: 'MS261106050, MS261106051, MS261106052',
+      RegistrationNo: 'MS261105208, MS261105209, MS261105210',
       StudentName: 'Ali Hasan Khan, Ali Haider Khan, Mohmmad Hussam',
       FatherName: 'Javed Khan, Javed Khan, Mohammad Firoz',
       Class: '4, NURSERY, LKG',
       Competition: 'BATTLE OF BRAINS, COLOUR BY NUMBER, JOINTS THE DOTS',
-      ActionTaken: 'REASSIGNED & PRESERVED',
-      Reason: 'Preserved real portal registrations, shifting them to MS261106050-6052 so that Sir Syed Montessori official pre-printed numbers MS261105208-5210 (Ilma, Samayra, Daniya) are honored.'
+      ActionTaken: 'RESTORED TO ORIGINAL ALLOCATION',
+      Reason: 'Authoritative restoration: Preserved and restored original registration numbers for Ali Hasan Khan (5208), Ali Haider Khan (5209), Mohmmad Hussam (5210). Reassigned incoming Sir Syed candidates to vacant sequence MS261106319-6390.'
     },
     {
       SourceFile: 'Candidate_data-7.xlsx',

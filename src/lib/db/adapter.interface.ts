@@ -82,6 +82,7 @@ export interface IDatabaseAdapter {
   getAdmitCards(): Promise<AdmitCard[]>;
   getAdmitCardByStudentId(studentId: string): Promise<AdmitCard | null>;
   saveAdmitCard(admitCard: AdmitCard): Promise<AdmitCard>;
+  deleteAdmitCardByStudentId(studentId: string): Promise<boolean>;
 
   // Admit Card Jobs
   getAdmitCardJobs(): Promise<AdmitCardJob[]>;
