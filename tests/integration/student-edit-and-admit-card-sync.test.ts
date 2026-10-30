@@ -6,6 +6,7 @@ import {
   getStudentEventSchedule,
   registerCandidateInRankCache,
   transferCandidateRank,
+  reallocateCandidateEvent,
   resolveEventKey,
 } from '@/lib/pdf/event-schedule';
 import {
@@ -255,5 +256,100 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
 
     const pdfBuffer = await downloadResAfter.arrayBuffer();
     expect(pdfBuffer.byteLength).toBeGreaterThan(1000);
+  });
+  it('Permanently fixes competition change blunder: ALFISHA MS261105482 switched from Online Quiz to Essay Writing receives legitimate 03:30 PM reporting and 04:00 PM exam time', async () => {
+    // MS261105482 baseline: Online Quiz (Graduation) rank 629
+    // Admin switches competition to Essay Writing (Graduation)
+    const schedule = reallocateCandidateEvent(
+      'MS261105482',
+      'Online Quiz',
+      'GRADUATION',
+      'Essay Writing',
+      'GRADUATION'
+    );
+
+    // Official timetable verification:
+    // ESSAY_WRITING_GRADUATION is strictly on Sunday 01 Nov 2026, Batch 1: 04:00 PM - 05:00 PM, Reporting 03:30 PM
+    expect(schedule.examDate).toBe('01 Nov 2026 (Sunday)');
+    expect(schedule.reportingTime).toBe('03:30 PM');
+    expect(schedule.examTime).toContain('04:00 PM - 05:00 PM');
+    expect(schedule.batchInfo).toContain('Batch 1');
+    expect(schedule.venueMain).toBe('MEENA SHAH PUBLIC SCHOOL');
+    expect(schedule.venueDetail).toBe('MSITM LT-2, LT-3 & LT-4');
+    expect(schedule.isHold).toBe(false);
+
+    // Verify subsequent lookup returns the exact same locked schedule (never 06:30 PM, never Batch 4)
+    const directLookup = getStudentEventSchedule('Essay Writing', 'GRADUATION', 'MS261105482');
+    expect(directLookup.reportingTime).toBe('03:30 PM');
+    expect(directLookup.examTime).toContain('04:00 PM - 05:00 PM');
+    expect(directLookup.batchInfo).toContain('Batch 1');
+  });
+
+  it('E2E Admin PUT switches candidate from Online Quiz to Essay Writing and downloads updated admit card with 03:30 PM reporting time', async () => {
+    const { PUT: studentPutHandler } = await import('@/app/api/students/[id]/route');
+    const { GET: admitCardDownloadHandler } = await import('@/app/api/admit-cards/download/[studentId]/route');
+    const sessionModule = await import('@/lib/auth/session');
+    const { vi } = await import('vitest');
+
+    const adminUser = await db.getUserByEmail('superadmin@mindspark.edu.in');
+    vi.spyOn(sessionModule, 'getCurrentUser').mockResolvedValue(adminUser);
+
+    const ts = Date.now();
+    const candidate = await db.createStudent({
+      registrationNumber: `MS26ALF${ts.toString().slice(-4)}`,
+      name: `ALFISHA TEST ${ts}`,
+      fatherName: `RAFEEQ ${ts}`,
+      dateOfBirth: '2005-04-12',
+      phone: '7985171291',
+      schoolOrCollege: 'MSITM COLLEGE',
+      className: 'GRADUATION',
+      competitionName: 'Online Quiz',
+      status: 'ACTIVE',
+      createdBy: 'admin',
+      updatedBy: 'admin',
+    });
+
+    // 1. Initial admit card in Online Quiz
+    const dl1 = await admitCardDownloadHandler(
+      new NextRequest(`http://localhost:3000/api/admit-cards/download/${candidate.studentId}`),
+      { params: Promise.resolve({ studentId: candidate.studentId }) }
+    );
+    expect(dl1.status).toBe(200);
+
+    // 2. Admin switches competition to Essay Writing
+    const putRes = await studentPutHandler(
+      new NextRequest(`http://localhost:3000/api/students/${candidate.studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registrationNumber: candidate.registrationNumber,
+          name: candidate.name,
+          fatherName: candidate.fatherName,
+          dateOfBirth: candidate.dateOfBirth,
+          phone: candidate.phone,
+          schoolOrCollege: candidate.schoolOrCollege,
+          className: 'GRADUATION',
+          competitionName: 'Essay Writing',
+          status: 'ACTIVE',
+        }),
+      }),
+      { params: Promise.resolve({ id: candidate.studentId }) }
+    );
+    expect(putRes.status).toBe(200);
+
+    // 3. Download fresh admit card after edit
+    const dl2 = await admitCardDownloadHandler(
+      new NextRequest(`http://localhost:3000/api/admit-cards/download/${candidate.studentId}`),
+      { params: Promise.resolve({ studentId: candidate.studentId }) }
+    );
+    expect(dl2.status).toBe(200);
+    const pdfBytes = await dl2.arrayBuffer();
+    expect(pdfBytes.byteLength).toBeGreaterThan(1000);
+
+    // Verify schedule for this candidate
+    const finalSchedule = getStudentEventSchedule('Essay Writing', 'GRADUATION', candidate.registrationNumber);
+    expect(finalSchedule.reportingTime).toBe('03:30 PM');
+    expect(finalSchedule.examTime).toContain('04:00 PM - 05:00 PM');
+    expect(finalSchedule.batchInfo).toContain('Batch 1');
   });
 });

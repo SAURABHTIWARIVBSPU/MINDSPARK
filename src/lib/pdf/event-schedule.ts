@@ -444,25 +444,55 @@ export function registerCandidateInRankCache(
   const key = resolveEventKey(competitionName, className);
   const cleanReg = registrationNumber.trim().toUpperCase();
 
-  // If candidate already has an allocated rank for this event, PRESERVE it permanently!
+  // If candidate already has an allocated rank for THIS specific event, PRESERVE it permanently!
   if (rankMap.has(`${key}:${cleanReg}`)) {
     return rankMap.get(`${key}:${cleanReg}`)!;
   }
-  if (rankMap.has(cleanReg)) {
-    const existingRank = rankMap.get(cleanReg)!;
-    rankMap.set(`${key}:${cleanReg}`, existingRank);
-    return existingRank;
-  }
 
-  // Newly enrolled candidate: rank sequentially after existing enrolled count
+  // Newly enrolled candidate in this event: rank sequentially after existing enrolled count in this event
   const currentCount = countMap.get(key) || 0;
   const newRank = currentCount + 1;
 
   countMap.set(key, newRank);
-  rankMap.set(cleanReg, newRank);
   rankMap.set(`${key}:${cleanReg}`, newRank);
+  rankMap.set(cleanReg, newRank);
 
   return newRank;
+}
+
+export function reallocateCandidateEvent(
+  registrationNumber: string,
+  oldCompetitionName: string,
+  oldClassName: string,
+  newCompetitionName: string,
+  newClassName: string
+): EventScheduleDetail {
+  const cleanReg = registrationNumber.trim().toUpperCase();
+  const oldKey = resolveEventKey(oldCompetitionName, oldClassName);
+  const newKey = resolveEventKey(newCompetitionName, newClassName);
+  const { rankMap, countMap } = loadCandidateCaches();
+
+  // 1. Clean up old event bindings and cached dispatched schedule
+  if (oldKey) {
+    rankMap.delete(`${oldKey}:${cleanReg}`);
+  }
+  const authMap = getAuthoritativeDispatchedMap();
+  delete authMap[cleanReg];
+
+  // 2. Allocate into new event sequentially (if not already allocated in new event)
+  let newRank: number;
+  if (rankMap.has(`${newKey}:${cleanReg}`)) {
+    newRank = rankMap.get(`${newKey}:${cleanReg}`)!;
+  } else {
+    const currentCount = countMap.get(newKey) || 0;
+    newRank = currentCount + 1;
+    countMap.set(newKey, newRank);
+    rankMap.set(`${newKey}:${cleanReg}`, newRank);
+    rankMap.set(cleanReg, newRank);
+  }
+
+  // 3. Compute and cache authoritative schedule for new event
+  return getStudentEventSchedule(newCompetitionName, newClassName, cleanReg);
 }
 
 export function transferCandidateRank(
@@ -528,8 +558,10 @@ export function getStudentEventSchedule(
     if (authMap[cleanReg]) {
       const auth = authMap[cleanReg];
       const authKey = resolveEventKey(auth.competitionName || auth.eventCategory || '', auth.className || auth.classGrade || '');
-      // Only return authoritative dispatch if student event category has not been altered
-      if (!key || key === 'PENDING_REVIEW' || !authKey || authKey === key || authKey === 'PENDING_REVIEW') {
+      // If student was switched to another competition, immediately purge stale cache
+      if (authKey && authKey !== 'PENDING_REVIEW' && authKey !== key) {
+        delete authMap[cleanReg];
+      } else if (!key || key === 'PENDING_REVIEW' || !authKey || authKey === key || authKey === 'PENDING_REVIEW') {
         return {
           eventName: rule ? rule.eventTitle : (competitionName || 'Mindspark Competition'),
           className: rule ? rule.classMatch : (className || 'General'),
@@ -550,10 +582,8 @@ export function getStudentEventSchedule(
 
     if (rankMap.has(`${key}:${cleanReg}`)) {
       candidateIndex = Math.max(0, rankMap.get(`${key}:${cleanReg}`)! - 1);
-    } else if (rankMap.has(cleanReg)) {
-      candidateIndex = Math.max(0, rankMap.get(cleanReg)! - 1);
     } else {
-      // Newly created candidate not in snapshot: rank sequentially after existing enrolled count
+      // Newly created or transferred candidate not in snapshot for this event: rank sequentially
       const existingCount = countMap.get(key) || 0;
       candidateIndex = existingCount;
 
@@ -561,8 +591,8 @@ export function getStudentEventSchedule(
       if (cleanReg && cleanReg !== 'PREVIEW') {
         const newRank = existingCount + 1;
         countMap.set(key, newRank);
-        rankMap.set(cleanReg, newRank);
         rankMap.set(`${key}:${cleanReg}`, newRank);
+        rankMap.set(cleanReg, newRank);
       }
     }
   } else if (typeof candidateIndexOrRegNo === 'number') {

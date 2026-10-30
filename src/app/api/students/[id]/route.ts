@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { StudentFormSchema } from '@/lib/validation/student.schema';
 import { validateStudentEligibility } from '@/lib/validation/eligibility';
-import { registerCandidateInRankCache, transferCandidateRank, resolveEventKey } from '@/lib/pdf/event-schedule';
+import { registerCandidateInRankCache, transferCandidateRank, reallocateCandidateEvent, resolveEventKey } from '@/lib/pdf/event-schedule';
 import { getStorageAdapter } from '@/lib/storage';
 
 export async function GET(
@@ -131,7 +131,13 @@ export async function PUT(
     const eventChanged = oldEventKey !== newEventKey;
 
     if (eventChanged) {
-      registerCandidateInRankCache(updated.competitionName, updated.className, updated.registrationNumber);
+      reallocateCandidateEvent(
+        updated.registrationNumber,
+        existingStudent.competitionName,
+        existingStudent.className,
+        updated.competitionName,
+        updated.className
+      );
     } else if (existingStudent.registrationNumber !== updated.registrationNumber) {
       transferCandidateRank(
         existingStudent.registrationNumber,

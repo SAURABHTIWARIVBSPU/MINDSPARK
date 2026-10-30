@@ -153,6 +153,17 @@ export function getExpandedBatchesForEvent(
   // Keep adding dynamic batches until cumulative capacity exceeds required count
   while (cumulative <= requiredCandidateCount) {
     const nextBatch = generateNextBatch(rule, batches);
+    const times = nextBatch.examTime.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/gi);
+    const startMins = times ? parseTime12h(times[0]) : 0;
+    // Strict institutional guard: No competition (except Junior Scientist) may be scheduled
+    // at or after 6:00 PM (18:00) into the night. Expand nominal room capacity rather than night shifts.
+    if (startMins >= 18 * 60 && rule.eventKey !== 'JUNIOR_SCIENTIST') {
+      for (const b of batches) {
+        b.maxCapacity += 50;
+        cumulative += 50;
+      }
+      continue;
+    }
     batches.push(nextBatch);
     cumulative += nextBatch.maxCapacity;
   }
