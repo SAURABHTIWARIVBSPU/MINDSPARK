@@ -492,9 +492,10 @@ export default function StudentsPage() {
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
-            <div className="bg-[#7a0c16] p-4 text-white flex items-center justify-between border-b-2 border-amber-500">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in-50 duration-200">
+            {/* Modal Header (Sticky Top) */}
+            <div className="shrink-0 bg-[#7a0c16] px-5 py-3.5 text-white flex items-center justify-between border-b-2 border-amber-500">
               <div>
                 <h3 className="font-bold text-sm text-white">
                   {editingStudent ? `Edit Candidate Record (${editingStudent.registrationNumber})` : 'New Student Registration'}
@@ -506,19 +507,23 @@ export default function StudentsPage() {
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-amber-200 hover:text-white"
+                className="p-1 rounded text-amber-200 hover:text-white hover:bg-[#5c000b] transition-colors cursor-pointer"
+                title="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-              {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                  {formError}
-                </div>
-              )}
+            {/* Form Container (Scrollable Body + Sticky Footer) */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
+                {formError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                    {formError}
+                  </div>
+                )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -797,19 +802,21 @@ export default function StudentsPage() {
                   </div>
                 </div>
               )}
+              </div>
 
-              <div className="pt-4 flex justify-end space-x-2 border-t border-slate-100">
+              {/* Modal Footer (Sticky Bottom) */}
+              <div className="shrink-0 px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2.5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || isSelectedProgramFull}
-                  className="px-4 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2 bg-[#7a0c16] hover:bg-[#5c000b] text-white rounded-lg font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed text-xs transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   {submitting ? 'Saving...' : isSelectedProgramFull ? 'Batch Full' : editingStudent ? 'Update Details' : 'Save Registration'}
                 </button>
