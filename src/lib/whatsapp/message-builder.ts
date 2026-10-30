@@ -301,7 +301,7 @@ export const UNIVERSAL_TEMPLATES: WhatsAppTemplateDef[] = [
       `⏰ *Reporting Time:* {reporting_time}\n` +
       `📍 *Venue:* {venue}\n\n` +
       `📥 *Download your Admit Card:* {admit_card_url}\n\n` +
-      `Please print in A4 format and bring your original School ID.\n` +
+      `Please carry 2 printed copies of your Admit Card, 2 passport-size photographs, and your original School/College ID.\n` +
       `Helpdesk: {contact_phone}`,
   },
   {
@@ -319,9 +319,10 @@ export const UNIVERSAL_TEMPLATES: WhatsAppTemplateDef[] = [
       `📍 *Venue:* {venue}\n` +
       `📋 *Registration No:* {reg_no}\n\n` +
       `⚠️ Mandatory Checklist:\n` +
-      `1. Printed Admit Card\n` +
-      `2. School Identity Card\n` +
-      `3. Blue/Black Ballpoint pen\n\n` +
+      `1. 2 Printed Copies of Admit Card\n` +
+      `2. 2 Passport-size Photographs\n` +
+      `3. Original School/College Photo ID Card\n` +
+      `4. Blue/Black Ballpoint pen\n\n` +
       `In case of any difficulty, call {contact_phone}. Good luck!`,
   },
   {

@@ -577,7 +577,7 @@ export default function StudentPortalHomePage() {
                   </div>
 
                   <div className="border border-slate-300 rounded-lg p-3 bg-slate-50/60 text-[11px] text-slate-800 space-y-1.5 leading-relaxed">
-                    <p>1. The candidate must bring this printed admit card and original school/college photo ID card.</p>
+                    <p>1. Candidate must bring 2 printed copies of this Admit Card, 2 passport-size photographs & original school/college Photo ID card.</p>
                     <p>2. Candidates must report at the examination venue strictly before the designated reporting time.</p>
                     <p>3. Possession of mobile phones, smart watches, calculators or any electronic equipment is strictly banned.</p>
                     <p>4. Any impersonation, unfair means, or indiscipline will result in immediate cancellation of candidature.</p>

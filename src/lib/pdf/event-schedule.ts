@@ -330,10 +330,18 @@ export function resolveEventKey(competitionName?: string, className?: string): s
 }
 
 import { allocateStudentToBatch } from '@/lib/allocation/seating-engine';
+import authoritativeDispatchedData from '@/lib/allocation/authoritative-dispatched-schedules.json';
 
 // In-memory cache for deterministic rank of candidates in their respective competitions
 let candidateRankCache: Map<string, number> | null = null;
 let eventCandidateCountCache: Map<string, number> | null = null;
+let authoritativeDispatchedMap: Record<string, any> | null = null;
+
+function getAuthoritativeDispatchedMap(): Record<string, any> {
+  if (authoritativeDispatchedMap) return authoritativeDispatchedMap;
+  authoritativeDispatchedMap = (authoritativeDispatchedData as Record<string, any>) || {};
+  return authoritativeDispatchedMap;
+}
 
 function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<string, number> } {
   if (candidateRankCache && eventCandidateCountCache) {
@@ -447,6 +455,7 @@ export function registerCandidateInRankCache(
 export function invalidateCandidateRankCache(): void {
   candidateRankCache = null;
   eventCandidateCountCache = null;
+  authoritativeDispatchedMap = null;
 }
 
 export function getCandidateRankMap(): Map<string, number> {
@@ -470,9 +479,32 @@ export function getStudentEventSchedule(
   const rule = EVENT_SCHEDULE_RULES[key];
   const { rankMap, countMap } = loadCandidateCaches();
 
+  const isOnlineQuizGraduation = key === 'ONLINE_QUIZ_GRADUATION';
+  const officialExamDate = isOnlineQuizGraduation ? '02 Nov 2026 (Monday)' : '01 Nov 2026 (Sunday)';
+
   let candidateIndex = 0;
   if (typeof candidateIndexOrRegNo === 'string') {
     const cleanReg = candidateIndexOrRegNo.trim().toUpperCase();
+    const authMap = getAuthoritativeDispatchedMap();
+    if (authMap[cleanReg]) {
+      const auth = authMap[cleanReg];
+      return {
+        eventName: rule ? rule.eventTitle : (competitionName || 'Mindspark Competition'),
+        className: rule ? rule.classMatch : (className || 'General'),
+        examDate: officialExamDate,
+        rawTiming: auth.examTime,
+        reportingTime: auth.reportingTime,
+        examTime: auth.examTime,
+        venueMain: auth.venueMain || 'MEENA SHAH PUBLIC SCHOOL',
+        venueDetail: auth.venueDetail || (rule ? rule.venueDetail : 'MSPS CAMPUS'),
+        batchInfo: auth.batchInfo,
+        incharges: '',
+        isHold: false,
+        candidateRank: 1,
+        luckyDrawNotice: rule ? rule.luckyDrawNotice : undefined,
+      };
+    }
+
     if (rankMap.has(`${key}:${cleanReg}`)) {
       candidateIndex = Math.max(0, rankMap.get(`${key}:${cleanReg}`)! - 1);
     } else if (rankMap.has(cleanReg)) {
@@ -496,11 +528,6 @@ export function getStudentEventSchedule(
 
   // Use the authoritative deterministic seating engine
   const alloc = allocateStudentToBatch(competitionName, className, candidateIndex);
-
-  // STRICT RULE: Only ONLINE_QUIZ_GRADUATION is on 02 Nov 2026.
-  // ALL other 17 competitions without exception are strictly on 01 Nov 2026.
-  const isOnlineQuizGraduation = key === 'ONLINE_QUIZ_GRADUATION';
-  const officialExamDate = isOnlineQuizGraduation ? '02 Nov 2026 (Monday)' : '01 Nov 2026 (Sunday)';
 
   if (!rule) {
     return {
