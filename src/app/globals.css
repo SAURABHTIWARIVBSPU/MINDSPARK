@@ -3,137 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --background: #101827;
-  --foreground: #F4F7FC;
-  --header-background: #172338;
-  --card-background: #1C2A3D;
-  --elevated-surface: #24344A;
-  --color-primary: #78AFFF;
-  --color-primary-hover: #60A5FA;
-  --color-primary-active: #3B82F6;
-  --color-destructive: #F08088;
-  --color-destructive-hover: #E06C75;
-  --color-border: #3B4B60;
-  --color-text-primary: #F4F7FC;
-  --color-text-secondary: #C2CDDC;
-  --color-text-muted: #A7B5C8;
-}
-
-html {
-  scroll-behavior: smooth;
-  color-scheme: dark;
+  --background: #f4f6f9;
+  --foreground: #0f172a;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle, dark scrollbars */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #101827;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3B4B60;
-  border-radius: 9999px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4B5E78;
+  background: #94a3b8;
 }
 
-/* Header utility */
-.header-navy {
-  background-color: #172338;
-  border-bottom: 1px solid #3B4B60;
-}
-
-/* Glass-header dark alias */
-.glass-header {
-  background-color: #172338;
-  border-bottom: 1px solid #3B4B60;
-}
-
-/* Reusable Semantic Component Styles */
-@layer components {
-  /* Button Variants */
-  .btn-apple-primary,
-  .btn-primary {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0F172A] text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
-  }
-
-  .btn-apple-secondary,
-  .btn-secondary {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#24344A] hover:bg-[#2A3F5B] active:bg-[#1E2E42] border border-[#3B4B60] text-[#F4F7FC] text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
-  }
-
-  .btn-apple-destructive,
-  .btn-destructive {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#F08088] hover:bg-[#E06C75] active:bg-[#DC2626] text-[#0F172A] text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F08088] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
-  }
-
-  .btn-apple-ghost,
-  .btn-ghost {
-    @apply inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 hover:bg-[#24344A] text-[#C2CDDC] hover:text-[#F4F7FC] text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF];
-  }
-
-  /* Form Input State */
-  .input-apple,
-  .input-dark {
-    @apply w-full bg-[#101827] border border-[#3B4B60] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-[#F4F7FC] placeholder-[#A7B5C8] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all disabled:bg-[#1C2A3D] disabled:text-[#A7B5C8]/50;
-  }
-
-  /* Status Badges */
-  .badge-apple-blue,
-  .badge-blue {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#263D59] text-[#78AFFF] border border-[#3B4B60];
-  }
-
-  .badge-apple-red,
-  .badge-red {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3D2428] text-[#F08088] border border-[#5A2E33];
-  }
-
-  .badge-apple-emerald,
-  .badge-green {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#1C3A2E] text-[#34D399] border border-[#235841];
-  }
-
-  .badge-apple-amber,
-  .badge-amber {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3B2F17] text-[#FBBF24] border border-[#59441B];
-  }
-
-  .badge-apple-neutral,
-  .badge-neutral {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#24344A] text-[#C2CDDC] border border-[#3B4B60];
-  }
-
-  /* Calm Dark Card */
-  .card-apple,
-  .card-dark {
-    @apply bg-[#1C2A3D] rounded-2xl border border-[#3B4B60] shadow-md;
-  }
-
-  /* Dialog Sheet */
-  .dialog-apple,
-  .dialog-dark {
-    @apply bg-[#24344A] rounded-2xl border border-[#3B4B60] shadow-2xl max-h-[88vh] flex flex-col overflow-hidden text-[#F4F7FC];
-  }
-}
-
-/* Print Styles: Strictly preserve Candidate Admit Slip single-page A4 print */
+/* Print Styles: Ensure only the Candidate Admit Slip prints and eliminates 4-page homepage bloat */
 @media print {
+  /* Page setup for clean A4 printing */
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 12mm;
   }
 
   body {
@@ -164,7 +66,6 @@ body {
     border-radius: 8px !important;
     box-shadow: none !important;
     background: #ffffff !important;
-    color: #0f172a !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -179,3 +80,4 @@ body {
     display: none !important;
   }
 }
+
