@@ -98,7 +98,9 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     batchMode: 'SHIFTS',
     shifts: [
       { shiftNum: 1, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (BATCH 1)' },
-      { shiftNum: 2, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 2)' }
+      { shiftNum: 2, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 2)' },
+      { shiftNum: 3, reporting: '12:00 PM', exam: '12:30 PM - 01:30 PM (BATCH 3)' },
+      { shiftNum: 4, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 4)' }
     ],
     shiftCapacity: 200,
     isHold: false
@@ -110,8 +112,12 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     reportingTime: '02:30 PM',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
     venueDetail: 'MSPS 1st FLOOR',
-    batchMode: 'ALL_IN_ONE',
-    capacity: 250,
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 1)' },
+      { shiftNum: 2, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 2)' }
+    ],
+    capacity: 300,
     isHold: false
   },
   BATTLE_OF_BRAINS: {
@@ -121,8 +127,13 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     reportingTime: '01:30 PM',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
     venueDetail: 'MSPS 1st FLOOR',
-    batchMode: 'ALL_IN_ONE',
-    capacity: 300,
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 1)' },
+      { shiftNum: 2, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 2)' },
+      { shiftNum: 3, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 3)' }
+    ],
+    capacity: 380,
     isHold: false
   },
   POSTER_ARTIST: {
@@ -134,7 +145,8 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     batchMode: 'SHIFTS',
     shifts: [
       { shiftNum: 1, reporting: '02:00 PM', exam: '02:30 PM - 03:30 PM (BATCH 1)' },
-      { shiftNum: 2, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 2)' }
+      { shiftNum: 2, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 2)' },
+      { shiftNum: 3, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (BATCH 3)' }
     ],
     shiftCapacity: 200,
     isHold: false
@@ -158,6 +170,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (SHIFT 7)' },
       { shiftNum: 8, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (SHIFT 8)' },
       { shiftNum: 9, reporting: '05:30 PM', exam: '06:00 PM - 07:00 PM (SHIFT 9)' },
+      { shiftNum: 10, reporting: '06:30 PM', exam: '07:00 PM - 08:00 PM (SHIFT 10)' },
     ],
     shiftCapacity: 50,
     isHold: false
@@ -175,7 +188,9 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (BATCH 3)' },
       { shiftNum: 4, reporting: '11:30 AM', exam: '12:00 PM - 01:00 PM (BATCH 4)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' }
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
+      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
+      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
     ],
     shiftCapacity: 120,
     isHold: false
@@ -192,7 +207,8 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 2, reporting: '11:30 AM', exam: '12:00 PM - 01:00 PM (BATCH 2)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break
       { shiftNum: 3, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 3)' },
-      { shiftNum: 4, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 4)' }
+      { shiftNum: 4, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 4)' },
+      { shiftNum: 5, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 5)' }
     ],
     shiftCapacity: 40,
     isHold: false
@@ -209,7 +225,9 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 3, reporting: '10:00 AM', exam: '10:30 AM - 11:30 AM (BATCH 3)' },
       { shiftNum: 4, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 4)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break as per Excel remarks
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' }
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
+      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
+      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
     ],
     shiftCapacity: 90,
     isHold: false
@@ -221,8 +239,12 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     reportingTime: '03:30 PM',
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
     venueDetail: 'MSPS 1st FLOOR',
-    batchMode: 'ALL_IN_ONE',
-    capacity: 150,
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 1)' },
+      { shiftNum: 2, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (BATCH 2)' }
+    ],
+    capacity: 200,
     isHold: false
   },
   ONLINE_QUIZ_11_12: {
@@ -238,7 +260,8 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 4, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 4)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break
       { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
-      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' }
+      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
+      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
     ],
     shiftCapacity: 180,
     isHold: false
@@ -252,7 +275,11 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     venueMain: 'MEENA SHAH PUBLIC SCHOOL',
     venueDetail: 'MSITM LT-2, LT-3 & LT-4',
     examDate: '01 Nov 2026 (Sunday)',
-    batchMode: 'ALL_IN_ONE',
+    batchMode: 'SHIFTS',
+    shifts: [
+      { shiftNum: 1, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 1)' },
+      { shiftNum: 2, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (BATCH 2)' }
+    ],
     capacity: 200,
     isHold: false,
     luckyDrawNotice: 'COMPULSORY EVENT: Graduation Lucky Draw on Sunday, 01 November 2026 at 09:00 AM Sharp at MSITM Campus.'
@@ -270,6 +297,8 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 2, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (BATCH 2)' },
       { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (BATCH 3)' },
       { shiftNum: 4, reporting: '12:30 PM', exam: '01:00 PM - 02:00 PM (BATCH 4)' },
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
+      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' }
     ],
     shiftCapacity: 180,
     isHold: false,
@@ -386,6 +415,32 @@ function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<st
               candidateRankCache.set(`${key}:${reg}`, idx + 1);
             }
           });
+        }
+
+        // Incorporate any active candidates registered via Admin Panel into the rank cache
+        try {
+          const dbPath = path.resolve('.data', 'mind_spark_db.json');
+          if (fs.existsSync(dbPath)) {
+            const dbContent = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+            if (Array.isArray(dbContent.students)) {
+              for (const s of dbContent.students) {
+                if (s.status === 'ARCHIVED' || s.status === 'INACTIVE') continue;
+                const reg = String(s.registrationNumber || '').trim().toUpperCase();
+                const cat = String(s.competitionName || '').trim().toUpperCase();
+                const cls = String(s.className || '').trim().toUpperCase();
+                const key = resolveEventKey(cat, cls);
+                if (reg && !candidateRankCache.has(reg)) {
+                  const currentCount = eventCandidateCountCache.get(key) || 0;
+                  const newRank = currentCount + 1;
+                  eventCandidateCountCache.set(key, newRank);
+                  candidateRankCache.set(reg, newRank);
+                  candidateRankCache.set(`${key}:${reg}`, newRank);
+                }
+              }
+            }
+          }
+        } catch {
+          // silent fallback
         }
 
         return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };

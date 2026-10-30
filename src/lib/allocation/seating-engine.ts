@@ -74,6 +74,91 @@ export interface NextBatchAllotment {
   holdReason?: string;
 }
 
+function parseTime12h(timeStr: string): number {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return 9 * 60;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function formatTime12h(minutesFromMidnight: number): string {
+  let m = minutesFromMidnight % (24 * 60);
+  let hours = Math.floor(m / 60);
+  const mins = m % 60;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  const hh = hours.toString().padStart(2, '0');
+  const mm = mins.toString().padStart(2, '0');
+  return `${hh}:${mm} ${period}`;
+}
+
+export function generateNextBatch(rule: ProgramSeatingRule, existingBatches: BatchDefinition[]): BatchDefinition {
+  const lastBatch = existingBatches[existingBatches.length - 1];
+  const nextBatchNumber = (lastBatch?.batchNumber || existingBatches.length) + 1;
+  const isShiftType = existingBatches.some(b => b.batchName.toLowerCase().includes('shift') || b.examTime.toLowerCase().includes('shift'));
+
+  let prevEndMinutes = 15 * 60; // 3:00 PM fallback
+  if (lastBatch) {
+    const times = lastBatch.examTime.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/gi);
+    if (times && times.length >= 2) {
+      prevEndMinutes = parseTime12h(times[1]);
+    } else if (times && times.length === 1) {
+      prevEndMinutes = parseTime12h(times[0]) + 60;
+    }
+  }
+
+  // Account for 1:00 PM - 2:00 PM lunch interval
+  let nextStartMinutes = prevEndMinutes;
+  if (nextStartMinutes === 13 * 60) {
+    nextStartMinutes = 14 * 60;
+  }
+
+  const nextEndMinutes = nextStartMinutes + 60;
+  const reportingMinutes = Math.max(7 * 60, nextStartMinutes - 30);
+
+  const startTimeStr = formatTime12h(nextStartMinutes);
+  const endTimeStr = formatTime12h(nextEndMinutes);
+  const reportingTimeStr = formatTime12h(reportingMinutes);
+
+  const labelPrefix = isShiftType ? 'Shift' : 'Batch';
+  const batchName = `${labelPrefix} ${nextBatchNumber}`;
+  const examTime = `${startTimeStr} - ${endTimeStr} (${labelPrefix.toUpperCase()} ${nextBatchNumber})`;
+
+  const capacity = lastBatch?.maxCapacity || 100;
+
+  return {
+    batchNumber: nextBatchNumber,
+    batchName,
+    reportingTime: reportingTimeStr,
+    examTime,
+    duration: '1 Hour',
+    nominalCapacity: capacity,
+    maxCapacity: capacity,
+  };
+}
+
+export function getExpandedBatchesForEvent(
+  rule: ProgramSeatingRule,
+  requiredCandidateCount: number = 0
+): BatchDefinition[] {
+  const batches = [...rule.batches];
+  let cumulative = batches.reduce((sum, b) => sum + b.maxCapacity, 0);
+
+  // Keep adding dynamic batches until cumulative capacity exceeds required count
+  while (cumulative <= requiredCandidateCount) {
+    const nextBatch = generateNextBatch(rule, batches);
+    batches.push(nextBatch);
+    cumulative += nextBatch.maxCapacity;
+  }
+
+  return batches;
+}
+
 /**
  * Deterministically retrieves the exact next available batch and its verified timings
  * for a program given the current number of enrolled active students.
@@ -126,40 +211,20 @@ export function getNextAvailableBatchForEvent(
     };
   }
 
-  const totalCapacity = rule.batches.reduce((sum, b) => sum + b.maxCapacity, 0);
-  const availableSeats = Math.max(0, totalCapacity - currentAllocatedCount);
+  const isOnlineQuizGrad = eventKey === 'ONLINE_QUIZ_GRADUATION';
+  const officialExamDate = isOnlineQuizGrad ? '02 Nov 2026' : '01 Nov 2026';
 
-  // If candidate count reached or exceeded total venue capacity
-  if (currentAllocatedCount >= totalCapacity) {
-    return {
-      status: 'ALL_BATCHES_FULL',
-      eventKey,
-      canonicalTitle: rule.canonicalTitle,
-      isFull: true,
-      totalCapacity,
-      allocatedCount: currentAllocatedCount,
-      availableSeats: 0,
-      batchNumber: 0,
-      batchName: 'CAPACITY REACHED',
-      reportingTime: 'N/A',
-      examTime: 'ALL BATCHES FULL (CAPACITY REACHED)',
-      examDate: rule.examDate || '01-Nov-2026',
-      venueMain: rule.venueMain,
-      venueDetail: rule.venueDetail,
-      luckyDrawNotice: rule.luckyDrawNotice,
-      holdReason: `Program '${rule.canonicalTitle}' has reached maximum venue capacity (${totalCapacity} seats across ${rule.batches.length} batches). No additional seats available in ${rule.venueDetail}.`,
-    };
-  }
+  // Expand batches dynamically so event NEVER runs out of capacity
+  const batches = getExpandedBatchesForEvent(rule, currentAllocatedCount);
+  const totalCapacity = batches.reduce((sum, b) => sum + b.maxCapacity, 0);
+  const availableSeats = Math.max(0, totalCapacity - currentAllocatedCount);
 
   // Iterate through batches to find the first batch that is not full
   let cumulative = 0;
-  for (const batch of rule.batches) {
-    const prevCumulative = cumulative;
+  for (const batch of batches) {
     cumulative += batch.maxCapacity;
 
     if (currentAllocatedCount < cumulative) {
-      const batchAllocated = currentAllocatedCount - prevCumulative;
-      const batchFree = batch.maxCapacity - batchAllocated;
       return {
         status: 'CONFIRMED',
         eventKey,
@@ -172,7 +237,7 @@ export function getNextAvailableBatchForEvent(
         batchName: batch.batchName,
         reportingTime: batch.reportingTime,
         examTime: batch.examTime,
-        examDate: rule.examDate || '01-Nov-2026',
+        examDate: officialExamDate,
         venueMain: rule.venueMain,
         venueDetail: rule.venueDetail,
         luckyDrawNotice: rule.luckyDrawNotice,
@@ -180,20 +245,20 @@ export function getNextAvailableBatchForEvent(
     }
   }
 
-  // Fallback if all full
+  const lastBatch = batches[batches.length - 1];
   return {
-    status: 'ALL_BATCHES_FULL',
+    status: 'CONFIRMED',
     eventKey,
     canonicalTitle: rule.canonicalTitle,
-    isFull: true,
+    isFull: false,
     totalCapacity,
     allocatedCount: currentAllocatedCount,
-    availableSeats: 0,
-    batchNumber: 0,
-    batchName: 'CAPACITY REACHED',
-    reportingTime: 'N/A',
-    examTime: 'ALL BATCHES FULL',
-    examDate: rule.examDate || '01-Nov-2026',
+    availableSeats: lastBatch.maxCapacity,
+    batchNumber: lastBatch.batchNumber,
+    batchName: lastBatch.batchName,
+    reportingTime: lastBatch.reportingTime,
+    examTime: lastBatch.examTime,
+    examDate: officialExamDate,
     venueMain: rule.venueMain,
     venueDetail: rule.venueDetail,
     luckyDrawNotice: rule.luckyDrawNotice,
@@ -250,15 +315,19 @@ export function allocateStudentToBatch(
     };
   }
 
+  const isOnlineQuizGrad = eventKey === 'ONLINE_QUIZ_GRADUATION';
+  const officialExamDate = isOnlineQuizGrad ? '02 Nov 2026' : '01 Nov 2026';
+
+  // Expand batches dynamically so candidate is ALWAYS allocated into a valid batch
+  const batches = getExpandedBatchesForEvent(rule, candidateZeroIndex);
+
   // Calculate cumulative capacity across batches
   let cumulative = 0;
-  for (const batch of rule.batches) {
+  for (const batch of batches) {
     const prevCumulative = cumulative;
     cumulative += batch.maxCapacity;
 
     if (candidateZeroIndex < cumulative) {
-      const isOnlineQuizGrad = eventKey === 'ONLINE_QUIZ_GRADUATION';
-      const officialExamDate = isOnlineQuizGrad ? '02 Nov 2026' : '01 Nov 2026';
       return {
         isHold: false,
         status: 'CONFIRMED',
@@ -277,21 +346,22 @@ export function allocateStudentToBatch(
     }
   }
 
-  // If candidate index exceeds total capacity of all batches
-  const totalCap = rule.batches.reduce((acc, b) => acc + b.maxCapacity, 0);
+  // Fallback to latest batch (should never occur with dynamic expansion)
+  const lastBatch = batches[batches.length - 1];
   return {
-    isHold: true,
-    status: 'OVER_CAPACITY_BLOCKED',
-    holdReason: `Program '${rule.canonicalTitle}' has reached maximum venue capacity (${totalCap} seats across ${rule.batches.length} batches). No additional seats available in ${rule.venueDetail}.`,
-    batchNumber: 0,
-    batchName: 'CAPACITY_REACHED',
-    reportingTime: 'N/A',
-    examTime: 'CAPACITY REACHED - ON WAITLIST',
+    isHold: false,
+    status: 'CONFIRMED',
+    examDate: officialExamDate,
+    luckyDrawNotice: rule.luckyDrawNotice,
+    batchNumber: lastBatch.batchNumber,
+    batchName: lastBatch.batchName,
+    reportingTime: lastBatch.reportingTime,
+    examTime: lastBatch.examTime,
     venueMain: rule.venueMain,
     venueDetail: rule.venueDetail,
     seatNumber: candidateZeroIndex + 1,
-    canIssueAdmitCard: false,
-    warning: 'VENUE_FULL',
+    batchSeatIndex: 1,
+    canIssueAdmitCard: true,
   };
 }
 
@@ -335,11 +405,13 @@ export function calculateShiftWiseMetrics(
       continue;
     }
 
-    const totalProgramCapacity = rule.batches.reduce((sum, b) => sum + b.maxCapacity, 0);
+    // Always expand batches so an open batch is available
+    const batches = getExpandedBatchesForEvent(rule, allocatedCount);
+    const totalProgramCapacity = batches.reduce((sum, b) => sum + b.maxCapacity, 0);
     const availableSeats = Math.max(0, totalProgramCapacity - allocatedCount);
 
     let runningOffset = 0;
-    const batchSummaries = rule.batches.map((batch) => {
+    const batchSummaries = batches.map((batch) => {
       const batchStart = runningOffset;
       const batchEnd = runningOffset + batch.maxCapacity;
       runningOffset = batchEnd;
@@ -366,8 +438,8 @@ export function calculateShiftWiseMetrics(
       reportingTime: nextBatchInfo.reportingTime,
       examTime: nextBatchInfo.examTime,
       examDate: nextBatchInfo.examDate,
-      capacity: rule.batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0,
-      allocated: (rule.batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0) - (batchSummaries.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.freeSeats || 0),
+      capacity: batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0,
+      allocated: (batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0) - (batchSummaries.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.freeSeats || 0),
       freeSeats: batchSummaries.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.freeSeats || 0,
     } : null;
 
@@ -383,7 +455,7 @@ export function calculateShiftWiseMetrics(
       totalProgramCapacity,
       allocatedCount,
       availableSeats,
-      status: allocatedCount > totalProgramCapacity ? 'OVER_CAPACITY' : (availableSeats === 0 ? 'FULL' : 'SEATS_AVAILABLE'),
+      status: 'SEATS_AVAILABLE',
       nextAvailableBatch,
       batches: batchSummaries,
     });

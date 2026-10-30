@@ -62,18 +62,19 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
     });
   });
 
-  describe('2. Hard Venue Capacity Limit & Overbooking Prevention', () => {
-    it('blocks allocation when all batches of Young Innovators are 100% full', () => {
+  describe('2. Automatic Batch Rollover & Capacity Expansion', () => {
+    it('automatically allocates student to new Batch 5 when previous batches are filled', () => {
       // Young Innovators: Batches 1-3 (40 each) + Batch 4 (50) = Total 170
       const atMax = allocateStudentToBatch('Young Innovators', '9', 169);
       expect(atMax.status).toBe('CONFIRMED');
       expect(atMax.batchNumber).toBe(4);
 
-      // Beyond total venue capacity:
+      // Beyond previous capacity, system seamlessly allocates to Batch 5
       const beyondMax = allocateStudentToBatch('Young Innovators', '9', 170);
-      expect(beyondMax.status).toBe('OVER_CAPACITY_BLOCKED');
-      expect(beyondMax.canIssueAdmitCard).toBe(false);
-      expect(beyondMax.holdReason).toContain('reached maximum venue capacity');
+      expect(beyondMax.status).toBe('CONFIRMED');
+      expect(beyondMax.canIssueAdmitCard).toBe(true);
+      expect(beyondMax.batchNumber).toBe(5);
+      expect(beyondMax.examTime).toContain('BATCH 5');
     });
   });
 
@@ -149,7 +150,7 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
       const cbn = metrics.find((m) => m.eventKey === 'COLOUR_BY_NUMBER');
       expect(cbn).toBeDefined();
       expect(cbn?.allocatedCount).toBe(2);
-      expect(cbn?.availableSeats).toBe(200 - 2);
+      expect(cbn?.availableSeats).toBe(cbn!.totalProgramCapacity - 2);
       expect(cbn?.status).toBe('SEATS_AVAILABLE');
 
       const js = metrics.find((m) => m.eventKey === 'JUNIOR_SCIENTIST');
@@ -190,12 +191,13 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
       expect(b4.examTime).toContain('01:00 PM - 02:00 PM');
       expect(b4.reportingTime).toBe('12:30 PM');
 
-      // Capacity Reached (720 seats full)
-      const full = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 720);
-      expect(full.status).toBe('ALL_BATCHES_FULL');
-      expect(full.isFull).toBe(true);
-      expect(full.availableSeats).toBe(0);
-      expect(full.holdReason).toContain('reached maximum venue capacity');
+      // Dynamic Rollover: when 720 seats are full, automatically opens Batch 5
+      const b5 = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 720);
+      expect(b5.status).toBe('CONFIRMED');
+      expect(b5.isFull).toBe(false);
+      expect(b5.batchNumber).toBe(5);
+      expect(b5.examTime).toContain('BATCH 5');
+      expect(b5.availableSeats).toBeGreaterThan(0);
     });
 
     it('guarantees allocated batch information is 100% identical between admit card and WhatsApp dispatch', () => {
@@ -227,6 +229,18 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
       expect(msg).toContain(`Exam Time: ${sched.examTime}`);
       expect(msg).toContain(`Reporting: ${sched.reportingTime}`);
       expect(msg).toContain(`Date: ${sched.examDate}`);
+    });
+
+    it('seamlessly generates new batches on the fly when candidate volume exceeds predefined batches', () => {
+      // Predefined Battle of Brains has 3 batches (1,140 seats).
+      // Allocation for candidate index 1200 dynamically generates Batch 4:
+      const dynBatch = allocateStudentToBatch('Battle of Brains', '5', 1200);
+      expect(dynBatch.status).toBe('CONFIRMED');
+      expect(dynBatch.canIssueAdmitCard).toBe(true);
+      expect(dynBatch.batchNumber).toBe(4);
+      expect(dynBatch.examTime).toContain('BATCH 4');
+      expect(dynBatch.venueDetail).toBe('MSPS 1st FLOOR');
+      expect(dynBatch.examDate).toBe('01 Nov 2026');
     });
   });
 });
