@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 
 export interface EventScheduleDetail {
   eventName: string;
@@ -345,38 +343,110 @@ function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<st
   candidateRankCache = new Map();
   eventCandidateCountCache = new Map();
 
+  if (typeof window !== 'undefined') {
+    return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
+  }
+
   try {
-    const snap5752 = path.resolve('.data', 'master_students_5752_snapshot.json');
-    const snap4887 = path.resolve('.data', 'master_students_4887_snapshot.json');
-    const activePath = fs.existsSync(snap5752) ? snap5752 : snap4887;
+    const fs = require('fs');
+    const path = require('path');
 
-    if (fs.existsSync(activePath)) {
-      const snap = JSON.parse(fs.readFileSync(activePath, 'utf8'));
-      const groups = new Map<string, any[]>();
+    // Try 1: Authoritative Master Excel Registry (6,046 verified candidates)
+    try {
+      const masterExcelPath = path.resolve('Master_All_Students_Registry.xlsx');
+      if (fs.existsSync(masterExcelPath)) {
+        const XLSX = require('xlsx');
+        const wb = XLSX.readFile(masterExcelPath, { sheetRows: 10000 });
+        const ws = wb.Sheets['Master All Students'] || wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws);
 
-      for (const s of snap.students) {
-        const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
-        const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
-        const key = resolveEventKey(cat, cls);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(s);
+        const groups = new Map<string, any[]>();
+        for (const s of rows) {
+          const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
+          const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
+          const key = resolveEventKey(cat, cls);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(s);
+        }
+
+        for (const [key, students] of groups.entries()) {
+          eventCandidateCountCache.set(key, students.length);
+          students.forEach((s, idx) => {
+            const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
+            if (reg && candidateRankCache) {
+              candidateRankCache.set(reg, idx + 1); // 1-based rank
+              candidateRankCache.set(`${key}:${reg}`, idx + 1);
+            }
+          });
+        }
+
+        return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
       }
-
-      for (const [key, students] of groups.entries()) {
-        eventCandidateCountCache.set(key, students.length);
-        students.forEach((s, idx) => {
-          const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
-          if (reg && candidateRankCache) {
-            candidateRankCache.set(reg, idx + 1); // 1-based rank
-          }
-        });
-      }
+    } catch (excelErr) {
+      console.warn('Master Excel cache load fallback:', excelErr);
     }
-  } catch (err) {
-    console.warn('Rank cache build fallback:', err);
+
+    // Try 2: JSON Snapshots (.data/master_students_5752_snapshot.json or .data/master_students_4887_snapshot.json)
+    try {
+      const snap5752 = path.resolve('.data', 'master_students_5752_snapshot.json');
+      const snap4887 = path.resolve('.data', 'master_students_4887_snapshot.json');
+      const activePath = fs.existsSync(snap5752) ? snap5752 : snap4887;
+
+      if (fs.existsSync(activePath)) {
+        const snap = JSON.parse(fs.readFileSync(activePath, 'utf8'));
+        const groups = new Map<string, any[]>();
+
+        for (const s of snap.students) {
+          const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
+          const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
+          const key = resolveEventKey(cat, cls);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(s);
+        }
+
+        for (const [key, students] of groups.entries()) {
+          eventCandidateCountCache.set(key, students.length);
+          students.forEach((s, idx) => {
+            const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
+            if (reg && candidateRankCache) {
+              candidateRankCache.set(reg, idx + 1); // 1-based rank
+              candidateRankCache.set(`${key}:${reg}`, idx + 1);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Rank cache build fallback:', err);
+    }
+  } catch (outerErr) {
+    console.warn('Node environment check fallback:', outerErr);
   }
 
   return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
+}
+
+export function registerCandidateInRankCache(
+  competitionName: string,
+  className: string,
+  registrationNumber: string
+): number {
+  const { rankMap, countMap } = loadCandidateCaches();
+  const key = resolveEventKey(competitionName, className);
+  const cleanReg = registrationNumber.trim().toUpperCase();
+
+  const currentCount = countMap.get(key) || 0;
+  const newRank = currentCount + 1;
+
+  countMap.set(key, newRank);
+  rankMap.set(cleanReg, newRank);
+  rankMap.set(`${key}:${cleanReg}`, newRank);
+
+  return newRank;
+}
+
+export function invalidateCandidateRankCache(): void {
+  candidateRankCache = null;
+  eventCandidateCountCache = null;
 }
 
 export function getCandidateRankMap(): Map<string, number> {
@@ -403,12 +473,22 @@ export function getStudentEventSchedule(
   let candidateIndex = 0;
   if (typeof candidateIndexOrRegNo === 'string') {
     const cleanReg = candidateIndexOrRegNo.trim().toUpperCase();
-    if (rankMap.has(cleanReg)) {
+    if (rankMap.has(`${key}:${cleanReg}`)) {
+      candidateIndex = Math.max(0, rankMap.get(`${key}:${cleanReg}`)! - 1);
+    } else if (rankMap.has(cleanReg)) {
       candidateIndex = Math.max(0, rankMap.get(cleanReg)! - 1);
     } else {
       // Newly created candidate not in snapshot: rank sequentially after existing enrolled count
       const existingCount = countMap.get(key) || 0;
       candidateIndex = existingCount;
+
+      // Auto-cache this registration so subsequent calls for this student in this session get the exact same rank
+      if (cleanReg && cleanReg !== 'PREVIEW') {
+        const newRank = existingCount + 1;
+        countMap.set(key, newRank);
+        rankMap.set(cleanReg, newRank);
+        rankMap.set(`${key}:${cleanReg}`, newRank);
+      }
     }
   } else if (typeof candidateIndexOrRegNo === 'number') {
     candidateIndex = Math.max(0, candidateIndexOrRegNo);

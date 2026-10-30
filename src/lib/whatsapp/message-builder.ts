@@ -1,5 +1,6 @@
 import { Student, SystemSettings, WhatsAppGroupLinkItem } from '@/types';
 import { normalizePhone } from '@/lib/excel/normalizer';
+import { getStudentEventSchedule } from '@/lib/pdf/event-schedule';
 
 export type WhatsAppTemplateId =
   | 'REGISTRATION_CONFIRMATION'
@@ -833,6 +834,29 @@ export function renderMessageTemplate(
     : `https://mindspark.edu.in/admit-card?regNo=${encodeURIComponent(student.registrationNumber)}`;
 
   const resolvedGroupLink = getCategoryGroupLink(student.competitionName, settings, student.className);
+  const sched = getStudentEventSchedule(
+    student.competitionName || '',
+    student.className || '',
+    student.registrationNumber
+  );
+
+  const verifiedReportingTime =
+    sched.reportingTime && sched.reportingTime !== 'PENDING' && sched.reportingTime !== 'N/A'
+      ? sched.reportingTime
+      : (settings?.reportingTime || '09:00 AM');
+  const verifiedExamTime =
+    !sched.isHold && sched.examTime && !sched.examTime.includes('PENDING')
+      ? sched.examTime
+      : (settings?.examTime || '10:00 AM');
+  const verifiedExamDate =
+    !sched.isHold && sched.examDate
+      ? sched.examDate.replace(/-/g, ' ')
+      : (settings?.examDate || '01 Nov 2026');
+  const verifiedBatch = sched.batchInfo || 'Batch 1';
+  const verifiedVenue =
+    !sched.isHold && sched.venueDetail && sched.venueDetail !== 'ADMINISTRATION OFFICE'
+      ? `${sched.venueMain} - ${sched.venueDetail}`
+      : (settings?.venue || 'MEENA SHAH PUBLIC SCHOOL');
 
   const replacements: Record<string, string> = {
     // Standard curly brace tags
@@ -847,9 +871,15 @@ export function renderMessageTemplate(
     '{class_name}': student.className || '',
     '{competition}': student.competitionName || settings?.competitionTitle || 'Mind Spark Competition',
     '{competition_name}': student.competitionName || settings?.competitionTitle || 'Mind Spark Competition',
-    '{exam_date}': settings?.examDate || '01 Nov 2026',
-    '{reporting_time}': settings?.reportingTime || '09:00 AM',
-    '{venue}': settings?.venue || 'MSITM DEGREE COLLEGE GONDA',
+    '{exam_date}': verifiedExamDate,
+    '{reporting_time}': verifiedReportingTime,
+    '{exam_time}': verifiedExamTime,
+    '{timing}': verifiedExamTime,
+    '{shift}': verifiedBatch,
+    '{shift_batch}': verifiedBatch,
+    '{batch}': verifiedBatch,
+    '{batch_name}': verifiedBatch,
+    '{venue}': verifiedVenue,
     '{contact_phone}': settings?.contactPhone || '8707744749',
     '{contact_email}': settings?.contactEmail || 'admissions@mindspark.edu.in',
     '{admit_card_url}': admitCardUrl,
@@ -857,6 +887,7 @@ export function renderMessageTemplate(
     '{group_link}': resolvedGroupLink,
     '{dob}': student.dateOfBirth || '',
     '{date_of_birth}': student.dateOfBirth || '',
+    '{lucky_draw_notice}': sched.luckyDrawNotice || '',
 
     // Bracket placeholder tags specified in prompt
     '[REGISTRATION_NUMBER]': student.registrationNumber || '',
@@ -869,9 +900,12 @@ export function renderMessageTemplate(
     '[COMPETITION]': student.competitionName || '',
     '[DOB]': student.dateOfBirth || '',
     '[DATE_OF_BIRTH]': student.dateOfBirth || '',
-    '[VENUE]': settings?.venue || 'MSITM DEGREE COLLEGE GONDA',
-    '[EXAM_DATE]': settings?.examDate || '01 Nov 2026',
-    '[REPORTING_TIME]': settings?.reportingTime || '09:00 AM',
+    '[VENUE]': verifiedVenue,
+    '[EXAM_DATE]': verifiedExamDate,
+    '[REPORTING_TIME]': verifiedReportingTime,
+    '[EXAM_TIME]': verifiedExamTime,
+    '[BATCH]': verifiedBatch,
+    '[SHIFT]': verifiedBatch,
   };
 
   let rendered = templateText;

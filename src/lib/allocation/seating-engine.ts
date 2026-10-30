@@ -31,6 +31,18 @@ export interface ShiftWiseSummary {
   allocatedCount: number;
   availableSeats: number;
   status: 'SEATS_AVAILABLE' | 'FULL' | 'ON_HOLD' | 'OVER_CAPACITY';
+  examDate?: string;
+  luckyDrawNotice?: string;
+  nextAvailableBatch?: {
+    batchNumber: number;
+    batchName: string;
+    reportingTime: string;
+    examTime: string;
+    examDate: string;
+    capacity: number;
+    allocated: number;
+    freeSeats: number;
+  } | null;
   batches: Array<{
     batchNumber: number;
     batchName: string;
@@ -41,6 +53,151 @@ export interface ShiftWiseSummary {
     freeSeats: number;
     isFull: boolean;
   }>;
+}
+
+export interface NextBatchAllotment {
+  status: 'CONFIRMED' | 'ALL_BATCHES_FULL' | 'ON_HOLD';
+  eventKey: string;
+  canonicalTitle: string;
+  isFull: boolean;
+  totalCapacity: number;
+  allocatedCount: number;
+  availableSeats: number;
+  batchNumber: number;
+  batchName: string;
+  reportingTime: string;
+  examTime: string;
+  examDate: string;
+  venueMain: string;
+  venueDetail: string;
+  luckyDrawNotice?: string;
+  holdReason?: string;
+}
+
+/**
+ * Deterministically retrieves the exact next available batch and its verified timings
+ * for a program given the current number of enrolled active students.
+ */
+export function getNextAvailableBatchForEvent(
+  competitionName: string,
+  className: string,
+  currentAllocatedCount: number
+): NextBatchAllotment {
+  const eventKey = resolveEventKey(competitionName, className);
+  const rule = PROGRAM_SEATING_RULES[eventKey];
+
+  if (!rule || eventKey === 'PENDING_REVIEW') {
+    return {
+      status: 'ON_HOLD',
+      eventKey: 'PENDING_REVIEW',
+      canonicalTitle: competitionName || 'Pending Review',
+      isFull: false,
+      totalCapacity: 0,
+      allocatedCount: currentAllocatedCount,
+      availableSeats: 0,
+      batchNumber: 0,
+      batchName: 'PENDING_REVIEW',
+      reportingTime: 'PENDING',
+      examTime: 'SCHEDULE PENDING (ON HOLD)',
+      examDate: '01-Nov-2026',
+      venueMain: 'MEENA SHAH PUBLIC SCHOOL',
+      venueDetail: 'ADMINISTRATION OFFICE',
+      holdReason: 'Unknown or unallocated competition name. Pending administrative review.',
+    };
+  }
+
+  if (rule.isHold) {
+    return {
+      status: 'ON_HOLD',
+      eventKey,
+      canonicalTitle: rule.canonicalTitle,
+      isFull: false,
+      totalCapacity: 0,
+      allocatedCount: currentAllocatedCount,
+      availableSeats: 0,
+      batchNumber: 0,
+      batchName: 'HOLD',
+      reportingTime: 'PENDING',
+      examTime: 'SCHEDULE PENDING (ON HOLD)',
+      examDate: rule.examDate || '01-Nov-2026',
+      venueMain: rule.venueMain,
+      venueDetail: rule.venueDetail,
+      holdReason: rule.holdReason || 'Event schedule pending committee directive.',
+    };
+  }
+
+  const totalCapacity = rule.batches.reduce((sum, b) => sum + b.maxCapacity, 0);
+  const availableSeats = Math.max(0, totalCapacity - currentAllocatedCount);
+
+  // If candidate count reached or exceeded total venue capacity
+  if (currentAllocatedCount >= totalCapacity) {
+    return {
+      status: 'ALL_BATCHES_FULL',
+      eventKey,
+      canonicalTitle: rule.canonicalTitle,
+      isFull: true,
+      totalCapacity,
+      allocatedCount: currentAllocatedCount,
+      availableSeats: 0,
+      batchNumber: 0,
+      batchName: 'CAPACITY REACHED',
+      reportingTime: 'N/A',
+      examTime: 'ALL BATCHES FULL (CAPACITY REACHED)',
+      examDate: rule.examDate || '01-Nov-2026',
+      venueMain: rule.venueMain,
+      venueDetail: rule.venueDetail,
+      luckyDrawNotice: rule.luckyDrawNotice,
+      holdReason: `Program '${rule.canonicalTitle}' has reached maximum venue capacity (${totalCapacity} seats across ${rule.batches.length} batches). No additional seats available in ${rule.venueDetail}.`,
+    };
+  }
+
+  // Iterate through batches to find the first batch that is not full
+  let cumulative = 0;
+  for (const batch of rule.batches) {
+    const prevCumulative = cumulative;
+    cumulative += batch.maxCapacity;
+
+    if (currentAllocatedCount < cumulative) {
+      const batchAllocated = currentAllocatedCount - prevCumulative;
+      const batchFree = batch.maxCapacity - batchAllocated;
+      return {
+        status: 'CONFIRMED',
+        eventKey,
+        canonicalTitle: rule.canonicalTitle,
+        isFull: false,
+        totalCapacity,
+        allocatedCount: currentAllocatedCount,
+        availableSeats,
+        batchNumber: batch.batchNumber,
+        batchName: batch.batchName,
+        reportingTime: batch.reportingTime,
+        examTime: batch.examTime,
+        examDate: rule.examDate || '01-Nov-2026',
+        venueMain: rule.venueMain,
+        venueDetail: rule.venueDetail,
+        luckyDrawNotice: rule.luckyDrawNotice,
+      };
+    }
+  }
+
+  // Fallback if all full
+  return {
+    status: 'ALL_BATCHES_FULL',
+    eventKey,
+    canonicalTitle: rule.canonicalTitle,
+    isFull: true,
+    totalCapacity,
+    allocatedCount: currentAllocatedCount,
+    availableSeats: 0,
+    batchNumber: 0,
+    batchName: 'CAPACITY REACHED',
+    reportingTime: 'N/A',
+    examTime: 'ALL BATCHES FULL',
+    examDate: rule.examDate || '01-Nov-2026',
+    venueMain: rule.venueMain,
+    venueDetail: rule.venueDetail,
+    luckyDrawNotice: rule.luckyDrawNotice,
+  };
 }
 
 /**
@@ -200,17 +357,32 @@ export function calculateShiftWiseMetrics(
       };
     });
 
+    const nextBatchInfo = getNextAvailableBatchForEvent(rule.canonicalTitle, rule.eligibleClasses[0] || '', allocatedCount);
+    const nextAvailableBatch = nextBatchInfo.status === 'CONFIRMED' ? {
+      batchNumber: nextBatchInfo.batchNumber,
+      batchName: nextBatchInfo.batchName,
+      reportingTime: nextBatchInfo.reportingTime,
+      examTime: nextBatchInfo.examTime,
+      examDate: nextBatchInfo.examDate,
+      capacity: rule.batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0,
+      allocated: (rule.batches.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.maxCapacity || 0) - (batchSummaries.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.freeSeats || 0),
+      freeSeats: batchSummaries.find(b => b.batchNumber === nextBatchInfo.batchNumber)?.freeSeats || 0,
+    } : null;
+
     summaries.push({
       eventKey: key,
       title: rule.canonicalTitle,
       classGroup: rule.classGroup,
       venue: `${rule.venueMain} - ${rule.venueDetail}`,
       isHold: false,
+      examDate: rule.examDate || '01-Nov-2026',
+      luckyDrawNotice: rule.luckyDrawNotice,
       roomMaxCapacity: rule.roomMaxCapacity,
       totalProgramCapacity,
       allocatedCount,
       availableSeats,
       status: allocatedCount > totalProgramCapacity ? 'OVER_CAPACITY' : (availableSeats === 0 ? 'FULL' : 'SEATS_AVAILABLE'),
+      nextAvailableBatch,
       batches: batchSummaries,
     });
   }

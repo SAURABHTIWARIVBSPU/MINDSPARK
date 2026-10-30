@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getDb, resetDbInstance } from '@/lib/db';
-import { allocateStudentToBatch, calculateShiftWiseMetrics } from '@/lib/allocation/seating-engine';
+import { allocateStudentToBatch, calculateShiftWiseMetrics, getNextAvailableBatchForEvent } from '@/lib/allocation/seating-engine';
+import { renderMessageTemplate } from '@/lib/whatsapp/message-builder';
+import { registerCandidateInRankCache } from '@/lib/pdf/event-schedule';
 import { PROGRAM_SEATING_RULES } from '@/lib/allocation/seating-rules';
 import { getStudentEventSchedule, resolveEventKey } from '@/lib/pdf/event-schedule';
 
@@ -155,6 +157,76 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
       expect(js?.isHold).toBe(false);
       expect(js?.status).toBe('SEATS_AVAILABLE');
       expect(js?.venue).toContain('MSPS GROUND');
+    });
+  });
+  describe('6. Next Available Batch & Strict Capacity Lock', () => {
+    it('accurately advances through all 4 batches of Graduation Quiz and locks when full', () => {
+      // Batch 1 (0-179)
+      const b1 = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 0);
+      expect(b1.status).toBe('CONFIRMED');
+      expect(b1.batchNumber).toBe(1);
+      expect(b1.examTime).toContain('09:00 AM - 10:00 AM');
+      expect(b1.reportingTime).toBe('08:30 AM');
+      expect(b1.examDate).toBe('02 Nov 2026');
+
+      // Batch 2 (180-359)
+      const b2 = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 180);
+      expect(b2.status).toBe('CONFIRMED');
+      expect(b2.batchNumber).toBe(2);
+      expect(b2.examTime).toContain('10:00 AM - 11:00 AM');
+      expect(b2.reportingTime).toBe('09:30 AM');
+
+      // Batch 3 (360-539)
+      const b3 = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 360);
+      expect(b3.status).toBe('CONFIRMED');
+      expect(b3.batchNumber).toBe(3);
+      expect(b3.examTime).toContain('11:00 AM - 12:00 PM');
+      expect(b3.reportingTime).toBe('10:30 AM');
+
+      // Batch 4 (540-719)
+      const b4 = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 540);
+      expect(b4.status).toBe('CONFIRMED');
+      expect(b4.batchNumber).toBe(4);
+      expect(b4.examTime).toContain('01:00 PM - 02:00 PM');
+      expect(b4.reportingTime).toBe('12:30 PM');
+
+      // Capacity Reached (720 seats full)
+      const full = getNextAvailableBatchForEvent('Online Quiz', 'GRADUATION', 720);
+      expect(full.status).toBe('ALL_BATCHES_FULL');
+      expect(full.isFull).toBe(true);
+      expect(full.availableSeats).toBe(0);
+      expect(full.holdReason).toContain('reached maximum venue capacity');
+    });
+
+    it('guarantees allocated batch information is 100% identical between admit card and WhatsApp dispatch', () => {
+      const regNo = 'MS26TESTBATCH01';
+      registerCandidateInRankCache('Online Quiz', 'GRADUATION', regNo);
+
+      const sched = getStudentEventSchedule('Online Quiz', 'GRADUATION', regNo);
+      expect(sched.batchInfo).toBeTruthy();
+      expect(sched.examTime).toBeTruthy();
+      expect(sched.reportingTime).toBeTruthy();
+
+      const studentMock: any = {
+        studentId: 'test_std_1',
+        registrationNumber: regNo,
+        name: 'RAHUL VERMA',
+        fatherName: 'SURESH VERMA',
+        className: 'GRADUATION',
+        competitionName: 'Online Quiz (Graduation)',
+        phone: '9876543210'
+      };
+
+      const msg = renderMessageTemplate(
+        'Dear {name}, your Batch is {batch}, Exam Time: {exam_time}, Reporting: {reporting_time}, Date: {exam_date}',
+        studentMock,
+        {} as any
+      );
+
+      expect(msg).toContain(`Batch is ${sched.batchInfo}`);
+      expect(msg).toContain(`Exam Time: ${sched.examTime}`);
+      expect(msg).toContain(`Reporting: ${sched.reportingTime}`);
+      expect(msg).toContain(`Date: ${sched.examDate}`);
     });
   });
 });

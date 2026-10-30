@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { StudentFormSchema } from '@/lib/validation/student.schema';
 import { validateStudentEligibility } from '@/lib/validation/eligibility';
+import { registerCandidateInRankCache } from '@/lib/pdf/event-schedule';
 
 export async function GET(req: NextRequest) {
   try {
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
     const adminProvenance = `ADMIN_PANEL:${user!.email || user!.uid}`;
 
     const db = getDb();
+    // 3. Register candidate in rank cache to reserve sequential rank
     const student = await db.createStudent({
       registrationNumber: validated.registrationNumber || '',
       name: validated.name.toUpperCase(),
@@ -87,6 +89,8 @@ export async function POST(req: NextRequest) {
       createdBy: adminProvenance,
       updatedBy: adminProvenance,
     });
+
+    registerCandidateInRankCache(student.competitionName, student.className, student.registrationNumber);
 
     await db.addAuditLog({
       actorUid: user!.uid,

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertPermission } from '@/lib/auth/permissions';
 import { StudentFormSchema } from '@/lib/validation/student.schema';
 import { validateStudentEligibility } from '@/lib/validation/eligibility';
+import { registerCandidateInRankCache } from '@/lib/pdf/event-schedule';
 
 export async function GET(
   req: NextRequest,
@@ -52,6 +53,18 @@ export async function PUT(
       );
     }
 
+    // Check capacity for updated program
+    if (eligibility.schedule.isHold && eligibility.schedule.holdReason?.includes('maximum venue capacity')) {
+      return NextResponse.json(
+        {
+          error: eligibility.schedule.holdReason,
+          status: 'OVER_CAPACITY_BLOCKED',
+          eventKey: eligibility.eventKey
+        },
+        { status: 409 }
+      );
+    }
+
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || '127.0.0.1';
     const userAgent = req.headers.get('user-agent') || 'admin-console';
     const adminProvenance = `ADMIN_PANEL:${user!.email || user!.uid}`;
@@ -90,6 +103,7 @@ export async function PUT(
       },
     });
 
+    registerCandidateInRankCache(updated.competitionName, updated.className, updated.registrationNumber);
     return NextResponse.json({ success: true, student: updated });
   } catch (err: any) {
     const status = err.message?.includes('Unauthorized') ? 403 : 400;

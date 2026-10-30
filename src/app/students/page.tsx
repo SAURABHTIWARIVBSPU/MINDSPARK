@@ -701,17 +701,40 @@ export default function StudentsPage() {
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] mt-2">
                     <div>
-                      <span className="font-semibold text-slate-600 block">Exam Timing:</span>
-                      <span className="font-medium">{selectedComp.examSlot}</span>
+                      <span className="font-semibold text-slate-600 block">
+                        {editingStudent ? 'Allocated Shift / Batch:' : 'Next Target Batch:'}
+                      </span>
+                      <span className={`font-bold ${isSelectedProgramFull ? 'text-red-700' : 'text-slate-900'}`}>
+                        {selectedMetric?.nextAvailableBatch ? selectedMetric.nextAvailableBatch.batchName : (isSelectedProgramFull ? 'CAPACITY REACHED' : selectedComp.examSlot)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-600 block">Date of Examination:</span>
+                      <span className="font-bold text-[#7a0c16]">
+                        {selectedMetric?.examDate || selectedMetric?.nextAvailableBatch?.examDate || '01-Nov-2026'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-600 block">Exact Exam Timing:</span>
+                      <span className={`font-bold ${isSelectedProgramFull ? 'text-red-700' : 'text-slate-900'}`}>
+                        {selectedMetric?.nextAvailableBatch ? selectedMetric.nextAvailableBatch.examTime : (isSelectedProgramFull ? 'No Seats Available' : selectedComp.examSlot)}
+                      </span>
                     </div>
                     <div>
                       <span className="font-semibold text-slate-600 block">Reporting Window:</span>
-                      <span className="font-medium">{selectedComp.reportingTime}</span>
+                      <span className={`font-bold ${isSelectedProgramFull ? 'text-red-700' : 'text-[#7a0c16]'}`}>
+                        {selectedMetric?.nextAvailableBatch ? selectedMetric.nextAvailableBatch.reportingTime : (isSelectedProgramFull ? 'N/A' : selectedComp.reportingTime)}
+                      </span>
                     </div>
                     <div className="col-span-2">
                       <span className="font-semibold text-slate-600 block">Allotted Venue & Room:</span>
-                      <span className="font-medium">{selectedComp.venue}</span>
+                      <span className="font-medium text-slate-900">{selectedMetric?.venue || selectedComp.venue}</span>
                     </div>
+                    {selectedMetric?.luckyDrawNotice && (
+                      <div className="col-span-2 p-2 bg-amber-50 rounded border border-amber-300 text-amber-950 font-semibold text-[10px]">
+                        🎁 {selectedMetric.luckyDrawNotice}
+                      </div>
+                    )}
                     {selectedComp.isHold && (
                       <div className="col-span-2 p-2 bg-amber-100/80 rounded border border-amber-300 text-amber-900 font-medium">
                         ⚠️ {selectedComp.holdReason}
@@ -737,23 +760,31 @@ export default function StudentsPage() {
                         </div>
 
                         <div className="space-y-1">
-                          {selectedMetric.batches?.map((b: any) => (
-                            <div
-                              key={b.batchNumber}
-                              className={`flex items-center justify-between p-1.5 rounded text-[11px] border ${
-                                b.isFull
-                                  ? 'bg-slate-50 text-slate-400 border-slate-200'
-                                  : 'bg-white text-slate-800 border-emerald-200 shadow-2xs'
-                              }`}
-                            >
-                              <span className="font-medium">
-                                Batch {b.batchNumber}: {b.examTime}
-                              </span>
-                              <span className={b.isFull ? 'font-bold text-slate-400' : 'font-bold text-emerald-700'}>
-                                {b.isFull ? 'FULL' : `${b.freeSeats} free`}
-                              </span>
-                            </div>
-                          ))}
+                          {selectedMetric.batches?.map((b: any) => {
+                            const isNextTarget = !isSelectedProgramFull && b.batchNumber === selectedMetric.nextAvailableBatch?.batchNumber;
+                            return (
+                              <div
+                                key={b.batchNumber}
+                                className={`flex items-center justify-between p-1.5 rounded text-[11px] border transition-all ${
+                                  b.isFull
+                                    ? 'bg-slate-50 text-slate-400 border-slate-200'
+                                    : isNextTarget
+                                    ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold ring-1 ring-emerald-400 shadow-2xs'
+                                    : 'bg-white text-slate-800 border-emerald-200 shadow-2xs'
+                                }`}
+                              >
+                                <span className="flex items-center space-x-1.5 font-medium">
+                                  {isNextTarget && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />}
+                                  <span className={isNextTarget ? 'font-black text-emerald-950' : ''}>
+                                    Batch {b.batchNumber}: {b.examTime}
+                                  </span>
+                                </span>
+                                <span className={b.isFull ? 'font-bold text-slate-400' : isNextTarget ? 'font-black text-emerald-700' : 'font-bold text-emerald-700'}>
+                                  {b.isFull ? 'FULL' : isNextTarget ? `👉 ALLOCATING HERE (${b.freeSeats} free)` : `${b.freeSeats} free`}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {isSelectedProgramFull && (
