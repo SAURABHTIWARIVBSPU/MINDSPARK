@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
         student,
         schedule: {
           eventKey: eligibility.eventKey,
+          examDate: eligibility.schedule.examDate,
           examTime: eligibility.schedule.examTime,
           reportingTime: eligibility.schedule.reportingTime,
           venue: `${eligibility.schedule.venueMain} - ${eligibility.schedule.venueDetail}`,

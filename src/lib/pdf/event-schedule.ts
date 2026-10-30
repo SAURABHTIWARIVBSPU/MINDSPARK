@@ -497,11 +497,16 @@ export function getStudentEventSchedule(
   // Use the authoritative deterministic seating engine
   const alloc = allocateStudentToBatch(competitionName, className, candidateIndex);
 
+  // STRICT RULE: Only ONLINE_QUIZ_GRADUATION is on 02 Nov 2026.
+  // ALL other 17 competitions without exception are strictly on 01 Nov 2026.
+  const isOnlineQuizGraduation = key === 'ONLINE_QUIZ_GRADUATION';
+  const officialExamDate = isOnlineQuizGraduation ? '02 Nov 2026 (Monday)' : '01 Nov 2026 (Sunday)';
+
   if (!rule) {
     return {
       eventName: competitionName || 'Mindspark Competition',
       className: className || 'General',
-      examDate: alloc.examDate || '01-Nov-2026',
+      examDate: officialExamDate,
       rawTiming: alloc.examTime,
       reportingTime: alloc.reportingTime,
       examTime: alloc.examTime,
@@ -519,7 +524,7 @@ export function getStudentEventSchedule(
   return {
     eventName: rule.eventTitle,
     className: rule.classMatch,
-    examDate: alloc.examDate || rule.examDate || '01-Nov-2026',
+    examDate: officialExamDate,
     rawTiming: alloc.examTime,
     reportingTime: alloc.reportingTime,
     examTime: alloc.examTime,

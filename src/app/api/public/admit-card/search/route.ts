@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { matchesDob } from '@/lib/excel/normalizer';
 import { searchRateLimiter, failedDobGuard, getClientIp } from '@/lib/security/rate-limiter';
 import { getAdmitCardReleaseStatus } from '@/lib/admit-card/release-gate';
-import { getStudentEventSchedule } from '@/lib/pdf/event-schedule';
+import { getStudentEventSchedule, resolveEventKey } from '@/lib/pdf/event-schedule';
 
 function formatDobToDmy(raw?: string): string {
   if (!raw) return 'N/A';
@@ -164,7 +164,10 @@ export async function POST(req: NextRequest) {
           phone: student.phone,
         },
         schedule: {
-          examDate: eventSchedule.examDate || settings.examDate || '01-Nov-2026',
+          examDate:
+            resolveEventKey(student.competitionName, student.className) === 'ONLINE_QUIZ_GRADUATION'
+              ? '02- Nov- 2026'
+              : '01- Nov- 2026',
           reportingTime: eventSchedule.reportingTime || settings.reportingTime,
           examTime: eventSchedule.examTime || settings.examTime,
           batchInfo: eventSchedule.batchInfo,

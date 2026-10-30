@@ -711,7 +711,7 @@ export default function StudentsPage() {
                     <div>
                       <span className="font-semibold text-slate-600 block">Date of Examination:</span>
                       <span className="font-bold text-[#7a0c16]">
-                        {selectedMetric?.examDate || selectedMetric?.nextAvailableBatch?.examDate || '01-Nov-2026'}
+                        {(selectedComp?.key === 'ONLINE_QUIZ_GRADUATION' || selectedMetric?.eventKey === 'ONLINE_QUIZ_GRADUATION') ? '02-Nov-2026 (Monday)' : '01-Nov-2026 (Sunday)'}
                       </span>
                     </div>
                     <div>

@@ -257,10 +257,12 @@ export function allocateStudentToBatch(
     cumulative += batch.maxCapacity;
 
     if (candidateZeroIndex < cumulative) {
+      const isOnlineQuizGrad = eventKey === 'ONLINE_QUIZ_GRADUATION';
+      const officialExamDate = isOnlineQuizGrad ? '02 Nov 2026' : '01 Nov 2026';
       return {
         isHold: false,
         status: 'CONFIRMED',
-        examDate: rule.examDate || '01-Nov-2026',
+        examDate: officialExamDate,
         luckyDrawNotice: rule.luckyDrawNotice,
         batchNumber: batch.batchNumber,
         batchName: batch.batchName,
@@ -375,7 +377,7 @@ export function calculateShiftWiseMetrics(
       classGroup: rule.classGroup,
       venue: `${rule.venueMain} - ${rule.venueDetail}`,
       isHold: false,
-      examDate: rule.examDate || '01-Nov-2026',
+      examDate: key === 'ONLINE_QUIZ_GRADUATION' ? '02 Nov 2026' : '01 Nov 2026',
       luckyDrawNotice: rule.luckyDrawNotice,
       roomMaxCapacity: rule.roomMaxCapacity,
       totalProgramCapacity,

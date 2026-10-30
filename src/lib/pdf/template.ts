@@ -3,9 +3,9 @@ import path from 'path';
 import crypto from 'crypto';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { Student, SystemSettings } from '@/types';
-import { getStudentEventSchedule } from './event-schedule';
+import { getStudentEventSchedule, resolveEventKey } from './event-schedule';
 
-export const ADMIT_CARD_TEMPLATE_VERSION = 'v3.4';
+export const ADMIT_CARD_TEMPLATE_VERSION = 'v3.5';
 
 /**
  * Computes a deterministic SHA-256 hash of the student's data and template version.
@@ -290,12 +290,16 @@ function drawBarcode(
     student.registrationNumber
   );
 
-  // Column 1 Clean Overwrite (Date of Examination) if date is 2 Nov 2026
-  if (schedule.examDate && (schedule.examDate.includes('02') || schedule.examDate.includes('2 Nov'))) {
-    page.drawRectangle({ x: 20, y: 390, width: 155, height: 50, color: WHITE });
-    page.drawText('DATE OF EXAMINATION :', { x: 24, y: 422, size: 7.5, font: fontBold, color: DARK });
-    page.drawText('02- Nov- 2026', { x: 24, y: 402, size: 9.0, font: fontBold, color: MAROON });
-  }
+  // Column 1 Clean Overwrite (Date of Examination)
+  // STRICT RULE: Only ONLINE_QUIZ_GRADUATION is on 02- Nov- 2026.
+  // ALL other competitions without exception are strictly on 01- Nov- 2026.
+  const eventKey = resolveEventKey(student.competitionName, student.className);
+  const isOnlineQuizGraduation = eventKey === 'ONLINE_QUIZ_GRADUATION';
+  const officialExamDateText = isOnlineQuizGraduation ? '02- Nov- 2026' : '01- Nov- 2026';
+
+  page.drawRectangle({ x: 20, y: 390, width: 155, height: 50, color: WHITE });
+  page.drawText('DATE OF EXAMINATION :', { x: 24, y: 422, size: 7.5, font: fontBold, color: DARK });
+  page.drawText(officialExamDateText, { x: 24, y: 402, size: 9.0, font: fontBold, color: MAROON });
 
   // Column 2 Clean Overwrite (Reporting Time & Exam Time)
   page.drawRectangle({ x: 180, y: 390, width: 155, height: 50, color: WHITE });
