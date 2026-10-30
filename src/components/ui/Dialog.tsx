@@ -27,13 +27,13 @@ export const Dialog: React.FC<DialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-2xl w-full shadow-apple-sheet border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden ${maxWidthClasses[maxWidth]}`}
+        className={`bg-[#24344A] text-[#F4F7FC] rounded-2xl w-full shadow-2xl border border-[#3B4B60] flex flex-col max-h-[88vh] overflow-hidden ${maxWidthClasses[maxWidth]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -47,17 +47,17 @@ export const DialogHeader: React.FC<{
   description?: string;
   onClose?: () => void;
 }> = ({ title, description, onClose }) => (
-  <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+  <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-[#3B4B60] flex items-start justify-between bg-[#1C2A3D]">
     <div className="space-y-0.5 pr-4">
-      <h3 className="text-base font-bold text-apple-ink tracking-tight">{title}</h3>
-      {description && <p className="text-xs text-slate-500">{description}</p>}
+      <h3 className="text-base font-bold text-[#F4F7FC] tracking-tight">{title}</h3>
+      {description && <p className="text-xs text-[#A7B5C8]">{description}</p>}
     </div>
     {onClose && (
       <button
         type="button"
         onClick={onClose}
         aria-label="Close dialog"
-        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+        className="p-1.5 text-[#A7B5C8] hover:text-[#F4F7FC] hover:bg-[#3B4B60]/50 rounded-full transition-colors cursor-pointer"
       >
         <X className="w-4 h-4" />
       </button>
@@ -70,7 +70,7 @@ export const DialogBody: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
   ...props
 }) => (
-  <div className={`p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 ${className}`} {...props}>
+  <div className={`p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-[#F4F7FC] ${className}`} {...props}>
     {children}
   </div>
 );
@@ -81,7 +81,7 @@ export const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   ...props
 }) => (
   <div
-    className={`px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end space-x-2 ${className}`}
+    className={`px-5 py-3.5 sm:px-6 sm:py-4 border-t border-[#3B4B60] bg-[#1C2A3D] flex items-center justify-end space-x-2 ${className}`}
     {...props}
   >
     {children}

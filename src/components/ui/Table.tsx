@@ -6,7 +6,7 @@ export const TableContainer: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   ...props
 }) => (
   <div
-    className={`w-full overflow-hidden rounded-2xl border border-slate-200/80 shadow-apple-subtle bg-white ${className}`}
+    className={`w-full overflow-hidden rounded-2xl border border-[#3B4B60] shadow-apple-card bg-[#1C2A3D] ${className}`}
     {...props}
   >
     <div className="overflow-x-auto">{children}</div>
@@ -18,7 +18,7 @@ export const Table: React.FC<React.TableHTMLAttributes<HTMLTableElement>> = ({
   children,
   ...props
 }) => (
-  <table className={`w-full text-left text-xs sm:text-sm ${className}`} {...props}>
+  <table className={`w-full text-left text-xs sm:text-sm text-[#F4F7FC] ${className}`} {...props}>
     {children}
   </table>
 );
@@ -28,7 +28,7 @@ export const TableHeader: React.FC<React.HTMLAttributes<HTMLTableSectionElement>
   children,
   ...props
 }) => (
-  <thead className={`bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider ${className}`} {...props}>
+  <thead className={`bg-[#172338] border-b border-[#3B4B60] text-[11px] font-semibold text-[#A7B5C8] uppercase tracking-wider ${className}`} {...props}>
     {children}
   </thead>
 );
@@ -38,7 +38,7 @@ export const TableBody: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> 
   children,
   ...props
 }) => (
-  <tbody className={`divide-y divide-slate-100 ${className}`} {...props}>
+  <tbody className={`divide-y divide-[#3B4B60] ${className}`} {...props}>
     {children}
   </tbody>
 );
@@ -48,7 +48,7 @@ export const TableRow: React.FC<React.HTMLAttributes<HTMLTableRowElement>> = ({
   children,
   ...props
 }) => (
-  <tr className={`hover:bg-slate-50/60 transition-colors ${className}`} {...props}>
+  <tr className={`hover:bg-[#24344A]/50 transition-colors ${className}`} {...props}>
     {children}
   </tr>
 );
@@ -58,7 +58,7 @@ export const TableHead: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> =
   children,
   ...props
 }) => (
-  <th className={`py-3 px-4 font-semibold ${className}`} {...props}>
+  <th className={`py-3 px-4 font-semibold text-[#A7B5C8] ${className}`} {...props}>
     {children}
   </th>
 );
@@ -68,7 +68,7 @@ export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> =
   children,
   ...props
 }) => (
-  <td className={`py-3 px-4 text-slate-800 ${className}`} {...props}>
+  <td className={`py-3 px-4 text-[#F4F7FC] ${className}`} {...props}>
     {children}
   </td>
 );

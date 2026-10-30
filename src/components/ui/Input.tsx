@@ -15,7 +15,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-semibold text-slate-700 tracking-tight"
+            className="block text-xs font-semibold text-[#C2CDDC] tracking-tight"
           >
             {label}
           </label>
@@ -26,20 +26,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           disabled={disabled}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
-          className={`w-full bg-white border rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-apple-subtle transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed focus:outline-none ${
+          className={`w-full bg-[#101827] border rounded-xl px-3.5 py-2 text-xs sm:text-sm text-[#F4F7FC] placeholder:text-[#A7B5C8] shadow-sm transition-all disabled:bg-[#1C2A3D] disabled:text-[#A7B5C8]/50 disabled:cursor-not-allowed focus:outline-none ${
             error
-              ? 'border-apple-red focus:ring-2 focus:ring-apple-red/25 focus:border-apple-red'
-              : 'border-slate-200/90 focus:ring-2 focus:ring-apple-blue/25 focus:border-apple-blue'
+              ? 'border-[#F08088] focus:ring-2 focus:ring-[#F08088]/30 focus:border-[#F08088]'
+              : 'border-[#3B4B60] focus:ring-2 focus:ring-[#78AFFF]/30 focus:border-[#78AFFF]'
           } ${className}`}
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="text-xs text-apple-red font-medium">
+          <p id={`${inputId}-error`} className="text-xs text-[#F08088] font-medium">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={`${inputId}-helper`} className="text-[11px] text-slate-500">
+          <p id={`${inputId}-helper`} className="text-[11px] text-[#A7B5C8]">
             {helperText}
           </p>
         )}

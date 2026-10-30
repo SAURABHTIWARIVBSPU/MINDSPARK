@@ -20,19 +20,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseClasses =
-      'inline-flex items-center justify-center font-medium rounded-full transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99]';
+      'inline-flex items-center justify-center font-medium rounded-full transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827] active:scale-[0.99]';
 
     const variantClasses = {
       primary:
-        'bg-apple-blue hover:bg-apple-blue-hover active:bg-apple-blue-active text-white shadow-apple-subtle focus-visible:ring-apple-blue',
+        'bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0A101D] font-bold shadow-sm focus-visible:ring-[#78AFFF]',
       secondary:
-        'bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-700 shadow-apple-subtle focus-visible:ring-apple-blue',
+        'bg-[#24344A] hover:bg-[#2A3F5B] active:bg-[#1E2E42] border border-[#3B4B60] text-[#F4F7FC] shadow-sm focus-visible:ring-[#78AFFF]',
       destructive:
-        'bg-apple-red hover:bg-apple-red-hover active:bg-apple-red-active text-white shadow-apple-subtle focus-visible:ring-apple-red',
+        'bg-[#F08088] hover:bg-[#E06C75] active:bg-[#DC2626] text-[#0A101D] font-bold shadow-sm focus-visible:ring-[#F08088]',
       outline:
-        'bg-transparent hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-700 focus-visible:ring-apple-blue',
+        'bg-transparent hover:bg-[#24344A] active:bg-[#1E2E42] border border-[#3B4B60] text-[#F4F7FC] focus-visible:ring-[#78AFFF]',
       ghost:
-        'bg-transparent hover:bg-slate-100 active:bg-slate-200/70 text-slate-700 focus-visible:ring-apple-blue',
+        'bg-transparent hover:bg-[#24344A] active:bg-[#1E2E42] text-[#C2CDDC] hover:text-[#F4F7FC] focus-visible:ring-[#78AFFF]',
     };
 
     const sizeClasses = {

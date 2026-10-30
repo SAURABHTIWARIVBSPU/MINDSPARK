@@ -230,12 +230,12 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       {/* Header and Add button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
-        <div className="border-l-4 border-portal-maroon pl-3.5 py-0.5">
-          <h1 className="text-xl sm:text-2xl font-black text-apple-ink tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3B4B60]">
+        <div className="border-l-4 border-[#78AFFF] pl-3.5 py-0.5">
+          <h1 className="text-xl sm:text-2xl font-black text-[#F4F7FC] tracking-tight">
             Student Directory &amp; Management
           </h1>
-          <p className="text-xs text-apple-ink-muted mt-0.5 font-medium">
+          <p className="text-xs text-[#F4F7FC]-muted mt-0.5 font-medium">
             Search, filter, edit, download admit cards, and verify registered candidates ({total.toLocaleString()} records)
           </p>
         </div>
@@ -246,26 +246,26 @@ export default function StudentsPage() {
               fetchCapacity();
               setIsCapacityModalOpen(true);
             }}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full border border-slate-300 transition-all shadow-apple-subtle active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#24344A] hover:bg-[#2A3F5B] text-[#F4F7FC] text-xs font-bold rounded-full border border-[#3B4B60] transition-all shadow-sm active:scale-[0.98] cursor-pointer"
           >
-            <Users className="w-3.5 h-3.5 text-portal-maroon" />
+            <Users className="w-3.5 h-3.5 text-[#78AFFF]" />
             <span>Shift &amp; Seating Roster</span>
           </button>
 
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-portal-maroon hover:bg-portal-maroon-dark text-white text-xs font-bold rounded-full shadow-apple-subtle hover:shadow-apple-card transition-all active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0A101D] text-xs font-bold rounded-full shadow-sm transition-all active:scale-[0.98] cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-amber-300" />
+            <Plus className="w-4 h-4 text-[#0A101D]" />
             <span>New Registration</span>
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-apple-card flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-[#1C2A3D] p-3.5 sm:p-4 rounded-2xl border border-[#3B4B60] shadow-apple-card flex flex-col md:flex-row gap-3 items-center justify-between text-[#F4F7FC]">
         <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
+          <Search className="w-4 h-4 text-[#A7B5C8] absolute left-3.5 top-2.5" />
           <input
             type="text"
             value={search}
@@ -274,7 +274,7 @@ export default function StudentsPage() {
               setPage(1);
             }}
             placeholder="Search Reg No, Name, Mobile, or School..."
-            className="w-full pl-10 pr-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon transition-all"
+            className="w-full pl-10 pr-3.5 py-2 text-xs bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
           />
         </div>
 
@@ -287,7 +287,7 @@ export default function StudentsPage() {
               setPage(1);
             }}
             placeholder="Category Filter"
-            className="text-xs border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon transition-all"
+            className="text-xs bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
           />
 
           <input
@@ -298,7 +298,7 @@ export default function StudentsPage() {
               setPage(1);
             }}
             placeholder="Class Filter"
-            className="text-xs border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon transition-all"
+            className="text-xs bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
           />
 
           {(search || competition || className) && (
@@ -309,7 +309,7 @@ export default function StudentsPage() {
                 setClassName('');
                 setPage(1);
               }}
-              className="text-xs text-portal-maroon hover:underline px-2.5 py-1.5 font-bold cursor-pointer"
+              className="text-xs text-[#78AFFF] hover:underline px-2.5 py-1.5 font-bold cursor-pointer"
             >
               Reset
             </button>
@@ -318,11 +318,11 @@ export default function StudentsPage() {
       </div>
 
       {/* Table & Responsive Cards */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-apple-card overflow-hidden">
+      <div className="bg-[#1C2A3D] rounded-2xl border border-[#3B4B60] shadow-apple-card overflow-hidden text-[#F4F7FC]">
         {/* Desktop View Table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 text-apple-ink font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+            <thead className="bg-slate-50/80 text-[#F4F7FC] font-bold border-b border-[#3B4B60] uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Reg No</th>
                 <th className="py-3 px-4">Candidate Name</th>
@@ -335,10 +335,10 @@ export default function StudentsPage() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#3B4B60]">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-apple-ink-muted">
+                  <td colSpan={9} className="py-12 text-center text-[#F4F7FC]-muted">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-4 h-4 border-2 border-portal-maroon border-t-transparent rounded-full animate-spin" />
                       <span>Loading candidate records...</span>
@@ -347,37 +347,37 @@ export default function StudentsPage() {
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-apple-ink-muted">
+                  <td colSpan={9} className="py-12 text-center text-[#F4F7FC]-muted">
                     No candidate records found. Click &quot;New Registration&quot; or import an Excel file.
                   </td>
                 </tr>
               ) : (
                 students.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-bold font-mono text-portal-maroon">
+                  <tr key={student.studentId} className="hover:bg-[#24344A]/50 transition-colors">
+                    <td className="py-3 px-4 font-bold font-mono text-[#78AFFF]">
                       <div>{student.registrationNumber}</div>
                       {student.registrationSource === 'ADMIN_PANEL' || student.sourceImportId === 'ADMIN_PANEL' || student.createdBy?.toUpperCase().startsWith('ADMIN_PANEL') ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 mt-1">
-                          <ShieldCheck className="w-3 h-3 text-purple-600" /> Admin Panel
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#263D59] text-[#78AFFF] border border-[#3B4B60] mt-1">
+                          <ShieldCheck className="w-3 h-3 text-[#78AFFF]" /> Admin Panel
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium text-slate-500 bg-slate-100 border border-slate-200 mt-1">
-                          <FileSpreadsheet className="w-3 h-3 text-slate-400" /> Excel Ingest
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium text-[#A7B5C8] bg-[#141F30] border border-[#3B4B60] mt-1">
+                          <FileSpreadsheet className="w-3 h-3 text-[#A7B5C8]" /> Excel Ingest
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 font-semibold text-apple-ink">
+                    <td className="py-3 px-4 font-semibold text-[#F4F7FC]">
                       {student.name}
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{student.fatherName}</td>
-                    <td className="py-3 px-4 text-slate-500 font-mono">{formatDobToDmy(student.dateOfBirth)}</td>
-                    <td className="py-3 px-4 text-slate-700 font-mono">{student.phone}</td>
-                    <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={student.schoolOrCollege}>
+                    <td className="py-3 px-4 text-[#C2CDDC]">{student.fatherName}</td>
+                    <td className="py-3 px-4 text-[#A7B5C8] font-mono">{formatDobToDmy(student.dateOfBirth)}</td>
+                    <td className="py-3 px-4 text-[#C2CDDC] font-mono">{student.phone}</td>
+                    <td className="py-3 px-4 text-[#A7B5C8] max-w-[200px] truncate" title={student.schoolOrCollege}>
                       {student.schoolOrCollege}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">{student.className || '-'}</td>
+                    <td className="py-3 px-4 text-[#A7B5C8] font-medium">{student.className || '-'}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full">
+                      <span className="px-2.5 py-0.5 text-[10px] font-bold bg-[#263D59] text-[#78AFFF] border border-[#3B4B60] rounded-full">
                         {student.competitionName}
                       </span>
                     </td>
@@ -388,7 +388,7 @@ export default function StudentsPage() {
                         target="_blank"
                         rel="noreferrer"
                         title="Download Admit Card PDF"
-                        className="p-1.5 inline-block text-slate-500 hover:text-portal-maroon hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 inline-block text-[#A7B5C8] hover:text-[#78AFFF] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <FileText className="w-4 h-4" />
                       </a>
@@ -410,7 +410,7 @@ export default function StudentsPage() {
                       <button
                         onClick={() => handleOpenEdit(student)}
                         title="Edit Student"
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-[#A7B5C8] hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -419,7 +419,7 @@ export default function StudentsPage() {
                       <button
                         onClick={() => handleArchive(student.studentId, student.name)}
                         title="Archive Record"
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-[#A7B5C8] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -432,21 +432,21 @@ export default function StudentsPage() {
         </div>
 
         {/* Mobile Responsive Cards Stream (sm:hidden) */}
-        <div className="sm:hidden divide-y divide-slate-100">
+        <div className="sm:hidden divide-y divide-[#3B4B60]">
           {loading ? (
-            <div className="p-8 text-center text-apple-ink-muted text-xs">
+            <div className="p-8 text-center text-[#F4F7FC]-muted text-xs">
               <div className="w-5 h-5 border-2 border-portal-maroon border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Loading records...
             </div>
           ) : students.length === 0 ? (
-            <div className="p-8 text-center text-apple-ink-muted text-xs">
+            <div className="p-8 text-center text-[#F4F7FC]-muted text-xs">
               No candidate records found.
             </div>
           ) : (
             students.map((student) => (
               <div key={student.studentId} className="p-4 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-portal-maroon bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                  <span className="font-mono text-xs font-bold text-[#78AFFF] bg-[#24344A] px-2.5 py-0.5 rounded-full border border-[#3B4B60]">
                     {student.registrationNumber}
                   </span>
                   <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
@@ -455,24 +455,24 @@ export default function StudentsPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-apple-ink">{student.name}</h4>
-                  <p className="text-xs text-apple-ink-muted truncate">{student.schoolOrCollege || 'Meena Shah Public School'}</p>
+                  <h4 className="text-sm font-bold text-[#F4F7FC]">{student.name}</h4>
+                  <p className="text-xs text-[#F4F7FC]-muted truncate">{student.schoolOrCollege || 'Meena Shah Public School'}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
-                  <div>Father: <span className="font-medium text-slate-900">{student.fatherName || '-'}</span></div>
-                  <div>Class: <span className="font-medium text-slate-900">{student.className || '-'}</span></div>
-                  <div>Contact: <span className="font-mono font-medium text-slate-900">{student.phone || '-'}</span></div>
-                  <div>DOB: <span className="font-mono font-medium text-slate-900">{formatDobToDmy(student.dateOfBirth)}</span></div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[#A7B5C8] pt-1">
+                  <div>Father: <span className="font-medium text-[#F4F7FC]">{student.fatherName || '-'}</span></div>
+                  <div>Class: <span className="font-medium text-[#F4F7FC]">{student.className || '-'}</span></div>
+                  <div>Contact: <span className="font-mono font-medium text-[#F4F7FC]">{student.phone || '-'}</span></div>
+                  <div>DOB: <span className="font-mono font-medium text-[#F4F7FC]">{formatDobToDmy(student.dateOfBirth)}</span></div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-2 border-t border-[#3B4B60]">
                   <div className="flex items-center space-x-1">
                     <a
                       href={`/api/admit-cards/download/${student.studentId}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center space-x-1 px-3 py-1.5 bg-rose-50 text-portal-maroon font-bold text-xs rounded-full border border-rose-200"
+                      className="inline-flex items-center space-x-1 px-3 py-1.5 bg-rose-50 text-[#78AFFF] font-bold text-xs rounded-full border border-rose-200"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>PDF</span>
@@ -483,7 +483,7 @@ export default function StudentsPage() {
                         href={generateWhatsAppLink(student, settings)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center space-x-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-full border border-emerald-200"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 bg-[#1C3A2E] text-[#34D399] font-bold text-xs rounded-full border border-[#235841]"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>Chat</span>
@@ -494,13 +494,13 @@ export default function StudentsPage() {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => handleOpenEdit(student)}
-                      className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg border border-slate-200"
+                      className="p-1.5 text-[#A7B5C8] hover:text-blue-600 rounded-lg border border-[#3B4B60]"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleArchive(student.studentId, student.name)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg border border-slate-200"
+                      className="p-1.5 text-[#A7B5C8] hover:text-red-600 rounded-lg border border-[#3B4B60]"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -512,16 +512,16 @@ export default function StudentsPage() {
         </div>
 
         {/* Pagination footer */}
-        <div className="p-4 border-t border-slate-200/80 bg-slate-50/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-apple-ink-muted">
+        <div className="p-4 border-t border-[#3B4B60]/80 bg-slate-50/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#F4F7FC]-muted">
           <div>
-            Showing <strong className="text-apple-ink">{total === 0 ? 0 : (page - 1) * pageSize + 1}</strong> to{' '}
-            <strong className="text-apple-ink">{Math.min(page * pageSize, total)}</strong> of{' '}
-            <strong className="text-apple-ink">{total.toLocaleString()}</strong> candidates
+            Showing <strong className="text-[#F4F7FC]">{total === 0 ? 0 : (page - 1) * pageSize + 1}</strong> to{' '}
+            <strong className="text-[#F4F7FC]">{Math.min(page * pageSize, total)}</strong> of{' '}
+            <strong className="text-[#F4F7FC]">{total.toLocaleString()}</strong> candidates
           </div>
 
           <div className="flex items-center space-x-2">
             {/* Page Size Selector */}
-            <div className="flex items-center space-x-1.5 text-xs text-apple-ink-muted mr-2">
+            <div className="flex items-center space-x-1.5 text-xs text-[#F4F7FC]-muted mr-2">
               <span className="hidden sm:inline">Per page:</span>
               <select
                 value={pageSize}
@@ -529,7 +529,7 @@ export default function StudentsPage() {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg bg-white text-apple-ink font-medium focus:outline-none focus:ring-2 focus:ring-portal-maroon"
+                className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg bg-white text-[#F4F7FC] font-medium focus:outline-none focus:ring-2 focus:ring-portal-maroon"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -543,7 +543,7 @@ export default function StudentsPage() {
             <button
               onClick={() => setPage(1)}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#3B4B60] bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
               title="First Page"
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -551,20 +551,20 @@ export default function StudentsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#3B4B60] bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
               title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <span className="px-2 font-semibold text-apple-ink whitespace-nowrap">
+            <span className="px-2 font-semibold text-[#F4F7FC] whitespace-nowrap">
               Page {page} of {Math.ceil(total / pageSize) || 1}
             </span>
 
             <button
               onClick={() => setPage((p) => Math.min(Math.ceil(total / pageSize) || 1, p + 1))}
               disabled={page >= (Math.ceil(total / pageSize) || 1)}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#3B4B60] bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
               title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
@@ -572,7 +572,7 @@ export default function StudentsPage() {
             <button
               onClick={() => setPage(Math.ceil(total / pageSize) || 1)}
               disabled={page >= (Math.ceil(total / pageSize) || 1)}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#3B4B60] bg-white hover:bg-slate-100 disabled:opacity-30 transition-colors cursor-pointer"
               title="Last Page"
             >
               <ChevronsRight className="w-4 h-4" />
@@ -584,8 +584,8 @@ export default function StudentsPage() {
       {/* Create / Edit Modal (Strictly Responsive: max-h-[88vh] & flex-col overflow-hidden) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-apple-sheet max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden border border-slate-200/80 animate-in fade-in-50 zoom-in-95 duration-150">
-            <div className="bg-portal-maroon p-5 text-white flex items-center justify-between border-b border-amber-400/20 shrink-0">
+          <div className="bg-white rounded-2xl shadow-apple-sheet max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden border border-[#3B4B60]/80 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="bg-[#172338] p-5 text-[#F4F7FC] flex items-center justify-between border-b border-[#3B4B60] shrink-0">
               <div>
                 <h3 className="font-black text-sm text-white">
                   {editingStudent ? `Edit Candidate Record (${editingStudent.registrationNumber})` : 'New Student Registration'}
@@ -598,7 +598,7 @@ export default function StudentsPage() {
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-amber-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                className="text-[#A7B5C8] hover:text-[#F4F7FC] p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -613,11 +613,11 @@ export default function StudentsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1 flex items-center justify-between">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1 flex items-center justify-between">
                     <span>Registration No</span>
                     {editingStudent ? (
-                      <span className="text-[10px] text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex items-center gap-1">
-                        <Lock className="w-3 h-3 text-slate-400" /> Permanent Roll No
+                      <span className="text-[10px] text-[#A7B5C8] font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-[#3B4B60] flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-[#A7B5C8]" /> Permanent Roll No
                       </span>
                     ) : (
                       <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
@@ -626,8 +626,8 @@ export default function StudentsPage() {
                     )}
                   </label>
                   {editingStudent ? (
-                    <div className="flex items-center px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl font-mono font-bold text-portal-maroon text-xs">
-                      <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                    <div className="flex items-center px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl font-mono font-bold text-[#78AFFF] text-xs">
+                      <Lock className="w-3.5 h-3.5 mr-1.5 text-[#A7B5C8]" />
                       {formData.registrationNumber}
                     </div>
                   ) : (
@@ -642,7 +642,7 @@ export default function StudentsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1">
                     Student Full Name *
                   </label>
                   <input
@@ -650,14 +650,14 @@ export default function StudentsPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon uppercase"
+                    className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] uppercase transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1">
                     Father&apos;s Name *
                   </label>
                   <input
@@ -665,12 +665,12 @@ export default function StudentsPage() {
                     required
                     value={formData.fatherName}
                     onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                    className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon uppercase"
+                    className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] uppercase transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1">
                     Date of Birth (DD-MM-YYYY) *
                   </label>
                   <input
@@ -679,14 +679,14 @@ export default function StudentsPage() {
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     placeholder="DD-MM-YYYY (e.g. 15-08-2015)"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon"
+                    className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1">
                     Mobile Number (10 Digits) *
                   </label>
                   <input
@@ -695,12 +695,12 @@ export default function StudentsPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="e.g. 9876543210"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon"
+                    className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-apple-ink mb-1">
+                  <label className="block font-semibold text-[#F4F7FC] mb-1">
                     Class / Grade *
                   </label>
                   <input
@@ -709,11 +709,11 @@ export default function StudentsPage() {
                     value={formData.className}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                     placeholder="e.g. NURSERY, 5, 12, GRADUATION"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon uppercase font-semibold"
+                    className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] uppercase transition-all font-semibold"
                   />
                   {selectedComp && (
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <span className="text-[10px] text-slate-500 font-medium">Eligible:</span>
+                      <span className="text-[10px] text-[#A7B5C8] font-medium">Eligible:</span>
                       {selectedComp.eligibleClasses.map((cls) => (
                         <button
                           key={cls}
@@ -722,7 +722,7 @@ export default function StudentsPage() {
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
                             formData.className.toUpperCase() === cls
                               ? 'bg-portal-maroon text-white border-portal-maroon'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'
+                              : 'bg-slate-100 text-[#C2CDDC] hover:bg-slate-200 border-slate-300'
                           }`}
                         >
                           {cls}
@@ -734,7 +734,7 @@ export default function StudentsPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-apple-ink mb-1">
+                <label className="block font-semibold text-[#F4F7FC] mb-1">
                   Institution / School / College *
                 </label>
                 <input
@@ -743,18 +743,18 @@ export default function StudentsPage() {
                   value={formData.schoolOrCollege}
                   onChange={(e) => setFormData({ ...formData, schoolOrCollege: e.target.value })}
                   placeholder="e.g. Meena Shah Public School"
-                  className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon uppercase"
+                  className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] uppercase transition-all"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-apple-ink mb-1">
+                <label className="block font-semibold text-[#F4F7FC] mb-1">
                   Competition Program *
                 </label>
                 <select
                   value={formData.competitionName}
                   onChange={(e) => handleCompetitionChange(e.target.value)}
-                  className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon font-semibold text-apple-ink bg-white"
+                  className="w-full p-2.5 bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all font-semibold text-[#F4F7FC] bg-white"
                 >
                   {APPROVED_COMPETITIONS.map((c) => (
                     <option key={c.key} value={c.title}>
@@ -766,10 +766,10 @@ export default function StudentsPage() {
 
               {/* Live Capacity Feedback */}
               {selectedMetric && (
-                <div className="p-3.5 rounded-xl border bg-slate-50 border-slate-200/80 space-y-2">
+                <div className="p-3.5 rounded-xl border bg-slate-50 border-[#3B4B60]/80 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-apple-ink text-xs flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-portal-maroon" />
+                    <span className="font-bold text-[#F4F7FC] text-xs flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#78AFFF]" />
                       {selectedMetric.venue}
                     </span>
                     {selectedMetric.isHold ? (
@@ -789,18 +789,18 @@ export default function StudentsPage() {
                 </div>
               )}
 
-              <div className="pt-4 flex justify-end space-x-2.5 border-t border-slate-100">
+              <div className="pt-4 flex justify-end space-x-2.5 border-t border-[#3B4B60]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-full hover:bg-slate-50 font-semibold cursor-pointer"
+                  className="px-5 py-2.5 border border-slate-300 text-[#C2CDDC] rounded-full hover:bg-slate-50 font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || isSelectedProgramFull}
-                  className="px-5 py-2.5 bg-portal-maroon hover:bg-portal-maroon-dark text-white rounded-full font-bold shadow-apple-subtle disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                  className="px-5 py-2.5 bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0A101D] rounded-full font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
                 >
                   {submitting ? 'Saving...' : isSelectedProgramFull ? 'Batch Full' : editingStudent ? 'Update Details' : 'Save Registration'}
                 </button>
@@ -813,9 +813,9 @@ export default function StudentsPage() {
       {/* Real-Time Seating & Shift Capacity Modal */}
       {isCapacityModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-apple-sheet w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden border border-slate-200/80 animate-in fade-in-50 duration-200">
+          <div className="bg-white rounded-2xl shadow-apple-sheet w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden border border-[#3B4B60]/80 animate-in fade-in-50 duration-200">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-portal-maroon text-white flex items-center justify-between shrink-0 border-b border-amber-400/20">
+            <div className="px-6 py-4 bg-[#172338] text-[#F4F7FC] flex items-center justify-between shrink-0 border-b border-[#3B4B60]">
               <div>
                 <h3 className="text-base sm:text-lg font-black flex items-center gap-2">
                   <Users className="w-5 h-5 text-amber-400" />
@@ -835,25 +835,25 @@ export default function StudentsPage() {
 
             {/* Campus Summary Cards */}
             {capacityData?.summary && (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-slate-50 border-b border-slate-200 text-xs shrink-0">
-                <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-apple-subtle">
-                  <span className="text-[10px] text-apple-ink-muted font-bold block uppercase">Total Registered</span>
-                  <span className="text-lg font-black text-apple-ink tabular-nums">{capacityData.summary.totalEnrolled}</span>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-slate-50 border-b border-[#3B4B60] text-xs shrink-0">
+                <div className="p-3 bg-white rounded-xl border border-[#3B4B60]/80 shadow-apple-subtle">
+                  <span className="text-[10px] text-[#F4F7FC]-muted font-bold block uppercase">Total Registered</span>
+                  <span className="text-lg font-black text-[#F4F7FC] tabular-nums">{capacityData.summary.totalEnrolled}</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-apple-subtle">
-                  <span className="text-[10px] text-apple-ink-muted font-bold block uppercase">Confirmed Active</span>
+                <div className="p-3 bg-white rounded-xl border border-[#3B4B60]/80 shadow-apple-subtle">
+                  <span className="text-[10px] text-[#F4F7FC]-muted font-bold block uppercase">Confirmed Active</span>
                   <span className="text-lg font-black text-emerald-700 tabular-nums">{capacityData.summary.totalAllocatedActive}</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-apple-subtle">
-                  <span className="text-[10px] text-apple-ink-muted font-bold block uppercase">Shift Capacity</span>
-                  <span className="text-lg font-black text-apple-ink tabular-nums">{capacityData.summary.totalActiveCapacity}</span>
+                <div className="p-3 bg-white rounded-xl border border-[#3B4B60]/80 shadow-apple-subtle">
+                  <span className="text-[10px] text-[#F4F7FC]-muted font-bold block uppercase">Shift Capacity</span>
+                  <span className="text-lg font-black text-[#F4F7FC] tabular-nums">{capacityData.summary.totalActiveCapacity}</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-apple-subtle">
-                  <span className="text-[10px] text-apple-ink-muted font-bold block uppercase">Available Seats</span>
+                <div className="p-3 bg-white rounded-xl border border-[#3B4B60]/80 shadow-apple-subtle">
+                  <span className="text-[10px] text-[#F4F7FC]-muted font-bold block uppercase">Available Seats</span>
                   <span className="text-lg font-black text-blue-700 tabular-nums">{capacityData.summary.totalAvailableSeats}</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-apple-subtle col-span-2 sm:col-span-1">
-                  <span className="text-[10px] text-apple-ink-muted font-bold block uppercase">On Hold</span>
+                <div className="p-3 bg-white rounded-xl border border-[#3B4B60]/80 shadow-apple-subtle col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-[#F4F7FC]-muted font-bold block uppercase">On Hold</span>
                   <span className="text-lg font-black text-amber-700 tabular-nums">{capacityData.summary.totalHold}</span>
                 </div>
               </div>
@@ -862,7 +862,7 @@ export default function StudentsPage() {
             {/* Roster Table */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {loadingCapacity ? (
-                <div className="py-12 text-center text-apple-ink-muted">Loading seating and batch allocation metrics...</div>
+                <div className="py-12 text-center text-[#F4F7FC]-muted">Loading seating and batch allocation metrics...</div>
               ) : (
                 <div className="space-y-4">
                   {capacityData?.metrics?.map((m: any) => (
@@ -873,14 +873,14 @@ export default function StudentsPage() {
                           ? 'bg-amber-50/50 border-amber-200'
                           : m.status === 'OVER_CAPACITY' || m.availableSeats === 0
                           ? 'bg-red-50/40 border-red-200'
-                          : 'bg-white border-slate-200/80 shadow-apple-subtle'
+                          : 'bg-white border-[#3B4B60]/80 shadow-apple-subtle'
                       }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#3B4B60]">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-apple-ink text-sm">{m.title}</h4>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            <h4 className="font-bold text-[#F4F7FC] text-sm">{m.title}</h4>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-[#C2CDDC] border border-[#3B4B60]">
                               {m.classGroup}
                             </span>
                             {m.isHold ? (
@@ -897,24 +897,24 @@ export default function StudentsPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-apple-ink-muted mt-1 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-portal-maroon" /> {m.venue}
+                          <span className="text-xs text-[#F4F7FC]-muted mt-1 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#78AFFF]" /> {m.venue}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-4 text-xs font-mono">
                           <div>
-                            <span className="text-apple-ink-muted text-[10px] block font-sans">ENROLLED</span>
-                            <span className="font-bold text-apple-ink">{m.allocatedCount}</span>
+                            <span className="text-[#F4F7FC]-muted text-[10px] block font-sans">ENROLLED</span>
+                            <span className="font-bold text-[#F4F7FC]">{m.allocatedCount}</span>
                           </div>
                           {!m.isHold && (
                             <>
                               <div>
-                                <span className="text-apple-ink-muted text-[10px] block font-sans">CAPACITY</span>
-                                <span className="font-bold text-apple-ink">{m.totalProgramCapacity}</span>
+                                <span className="text-[#F4F7FC]-muted text-[10px] block font-sans">CAPACITY</span>
+                                <span className="font-bold text-[#F4F7FC]">{m.totalProgramCapacity}</span>
                               </div>
                               <div>
-                                <span className="text-apple-ink-muted text-[10px] block font-sans">AVAILABLE</span>
+                                <span className="text-[#F4F7FC]-muted text-[10px] block font-sans">AVAILABLE</span>
                                 <span className="font-bold text-emerald-700">{m.availableSeats}</span>
                               </div>
                             </>
@@ -929,18 +929,18 @@ export default function StudentsPage() {
                             <div
                               key={b.batchNumber}
                               className={`p-2.5 rounded-xl border text-[11px] flex items-center justify-between ${
-                                b.isFull ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-white text-slate-800 border-emerald-200 shadow-apple-subtle'
+                                b.isFull ? 'bg-slate-50 text-[#A7B5C8] border-[#3B4B60]' : 'bg-white text-slate-800 border-emerald-200 shadow-apple-subtle'
                               }`}
                             >
                               <div>
-                                <span className="font-bold block text-apple-ink">Batch {b.batchNumber}</span>
-                                <span className="text-[10px] text-apple-ink-muted">{b.examTime}</span>
+                                <span className="font-bold block text-[#F4F7FC]">Batch {b.batchNumber}</span>
+                                <span className="text-[10px] text-[#F4F7FC]-muted">{b.examTime}</span>
                               </div>
                               <div className="text-right">
                                 <span className={b.isFull ? 'font-bold text-red-600 block' : 'font-bold text-emerald-700 block'}>
                                   {b.isFull ? 'FULL' : `${b.freeSeats} free`}
                                 </span>
-                                <span className="text-[10px] text-apple-ink-muted font-mono">{b.allocated}/{b.capacity}</span>
+                                <span className="text-[10px] text-[#F4F7FC]-muted font-mono">{b.allocated}/{b.capacity}</span>
                               </div>
                             </div>
                           ))}
@@ -953,10 +953,10 @@ export default function StudentsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-[#3B4B60] flex justify-end shrink-0">
               <button
                 onClick={() => setIsCapacityModalOpen(false)}
-                className="px-5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-2 bg-[#78AFFF] hover:bg-[#60A5FA] text-[#0A101D] text-xs font-bold rounded-full transition-colors cursor-pointer shadow-sm"
               >
                 Close Roster
               </button>

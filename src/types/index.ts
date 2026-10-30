@@ -24,6 +24,8 @@ export type Permission =
   | 'auditLogs.read'
   | 'settings.manage';
 
+export type AuthUser = User;
+
 export interface User {
   uid: string;
   email: string;

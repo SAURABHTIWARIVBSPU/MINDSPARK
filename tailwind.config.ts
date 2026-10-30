@@ -11,63 +11,67 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Semantic Apple-inspired design tokens
+        // Premium Dark Navy Enterprise Theme Tokens (WCAG 2.2 AA)
+        navy: {
+          bg: "#101827",          // Main application background
+          header: "#172338",      // Primary header
+          sidebar: "#141F30",     // Sidebar
+          card: "#1C2A3D",        // Main cards
+          elevated: "#24344A",    // Dialogs and elevated panels
+          softBlue: "#263D59",    // Selected / highlighted surface
+          border: "#3B4B60",      // Dividers and outlines
+          'border-subtle': "#2A3A4E",
+        },
+        text: {
+          primary: "#F4F7FC",     // Main content
+          secondary: "#C2CDDC",   // Supporting content
+          muted: "#A7B5C8",       // Metadata
+        },
+        action: {
+          blue: "#78AFFF",        // Primary action / links
+          'blue-hover': "#60A5FA",
+          'blue-active': "#3B82F6",
+          'blue-subtle': "#263D59",
+        },
+        alert: {
+          red: "#F08088",         // Destructive / critical alerts
+          'red-hover': "#E06C75",
+          'red-subtle': "#3D2428",
+        },
+        // Apple semantic tokens mapped to dark navy palette
         apple: {
-          blue: "#0066cc",
-          "blue-hover": "#0071e3",
-          "blue-active": "#005bb5",
-          "blue-subtle": "#f0f7ff",
-          "blue-border": "#cce3fd",
-          red: "#dc2626",
-          "red-hover": "#b91c1c",
-          "red-active": "#991b1b",
-          "red-subtle": "#fef2f2",
-          "red-border": "#fecaca",
-          ink: "#1d1d1f",
-          "ink-muted": "#6e6e73",
-          "ink-subtle": "#86868b",
-          canvas: "#ffffff",
-          parchment: "#f5f5f7",
-          pearl: "#fafafc",
-          hairline: "#e5e5ea",
-          border: "#d2d2d7",
+          blue: "#78AFFF",
+          "blue-hover": "#60A5FA",
+          "blue-active": "#3B82F6",
+          "blue-subtle": "#263D59",
+          "blue-border": "#3B4B60",
+          red: "#F08088",
+          "red-hover": "#E06C75",
+          "red-active": "#DC2626",
+          "red-subtle": "#3D2428",
+          "red-border": "#5A2E33",
+          ink: "#F4F7FC",
+          "ink-muted": "#C2CDDC",
+          "ink-subtle": "#A7B5C8",
+          canvas: "#1C2A3D",
+          parchment: "#101827",
+          pearl: "#24344A",
+          hairline: "#3B4B60",
+          border: "#3B4B60",
         },
-        primary: {
-          50: "#f0f7ff",
-          100: "#e0effe",
-          200: "#bae0fd",
-          300: "#7cc5fb",
-          400: "#36a6f7",
-          500: "#0066cc",
-          600: "#005bb5",
-          700: "#004b96",
-          800: "#003e7a",
-          900: "#003465",
-        },
-        maroon: {
-          50: "#fff1f2",
-          100: "#ffe4e6",
-          200: "#fecdd3",
-          300: "#fda4af",
-          400: "#fb7185",
-          500: "#9f1239",
-          600: "#881337",
-          700: "#7a0c16",
-          800: "#5c000b",
-          900: "#3f0006",
-        },
+        // Legacy portal aliases mapped to dark navy palette for seamless backward compatibility
         portal: {
-          maroon: "#7a0c16",
-          "maroon-dark": "#5c000b",
-          "maroon-light": "#881337",
-          "maroon-soft": "#fdf2f3",
-          gold: "#d97706",
-          "gold-light": "#f59e0b",
-          "gold-bg": "#fef3c7",
-          navy: "#1e3a8a",
-          slate: "#0f172a",
-          bg: "#f5f5f7",
-          border: "#e2e8f0",
+          maroon: "#78AFFF",
+          "maroon-dark": "#172338",
+          "maroon-light": "#24344A",
+          "maroon-soft": "#263D59",
+          gold: "#FBBF24",
+          "gold-light": "#FDE68A",
+          "gold-bg": "#2B2418",
+          navy: "#101827",
+          slate: "#1C2A3D",
+          bg: "#101827",
+          border: "#3B4B60",
         },
       },
       borderRadius: {
@@ -79,10 +83,10 @@ const config: Config = {
         'apple-pill': '9999px',
       },
       boxShadow: {
-        'apple-subtle': '0 1px 2px rgba(0, 0, 0, 0.04)',
-        'apple-card': '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
-        'apple-hover': '0 4px 16px rgba(0, 0, 0, 0.06)',
-        'apple-sheet': '0 12px 32px rgba(0, 0, 0, 0.08)',
+        'apple-subtle': '0 1px 2px rgba(0, 0, 0, 0.25)',
+        'apple-card': '0 2px 8px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2)',
+        'apple-hover': '0 4px 16px rgba(0, 0, 0, 0.45)',
+        'apple-sheet': '0 12px 32px rgba(0, 0, 0, 0.65)',
       },
       letterSpacing: {
         'apple-tight': '-0.022em',

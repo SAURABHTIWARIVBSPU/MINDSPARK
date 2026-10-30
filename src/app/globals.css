@@ -3,23 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: #f5f5f7;
-  --foreground: #1d1d1f;
-  --color-primary: #0066cc;
-  --color-primary-hover: #0071e3;
-  --color-primary-active: #005bb5;
-  --color-destructive: #dc2626;
-  --color-destructive-hover: #b91c1c;
-  --color-surface-canvas: #ffffff;
-  --color-surface-parchment: #f5f5f7;
-  --color-surface-pearl: #fafafc;
-  --color-text-ink: #1d1d1f;
-  --color-text-muted: #6e6e73;
-  --color-border-hairline: #e5e5ea;
+  --background: #101827;
+  --foreground: #F4F7FC;
+  --header-background: #172338;
+  --card-background: #1C2A3D;
+  --elevated-surface: #24344A;
+  --color-primary: #78AFFF;
+  --color-primary-hover: #60A5FA;
+  --color-primary-active: #3B82F6;
+  --color-destructive: #F08088;
+  --color-destructive-hover: #E06C75;
+  --color-border: #3B4B60;
+  --color-text-primary: #F4F7FC;
+  --color-text-secondary: #C2CDDC;
+  --color-text-muted: #A7B5C8;
 }
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -31,75 +33,99 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle, restrained scrollbars */
+/* Subtle, dark scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #101827;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: #3B4B60;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: #4B5E78;
+}
+
+/* Header utility */
+.header-navy {
+  background-color: #172338;
+  border-bottom: 1px solid #3B4B60;
+}
+
+/* Glass-header dark alias */
+.glass-header {
+  background-color: #172338;
+  border-bottom: 1px solid #3B4B60;
 }
 
 /* Reusable Semantic Component Styles */
 @layer components {
   /* Button Variants */
-  .btn-apple-primary {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-apple-blue hover:bg-apple-blue-hover active:bg-apple-blue-active text-white text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-2;
+  .btn-apple-primary,
+  .btn-primary {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0F172A] text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
   }
 
-  .btn-apple-secondary {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-2;
+  .btn-apple-secondary,
+  .btn-secondary {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#24344A] hover:bg-[#2A3F5B] active:bg-[#1E2E42] border border-[#3B4B60] text-[#F4F7FC] text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
   }
 
-  .btn-apple-destructive {
-    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-apple-red hover:bg-apple-red-hover active:bg-apple-red-active text-white text-xs sm:text-sm font-medium rounded-full shadow-apple-subtle transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-red focus-visible:ring-offset-2;
+  .btn-apple-destructive,
+  .btn-destructive {
+    @apply inline-flex items-center justify-center space-x-2 px-4 py-2 bg-[#F08088] hover:bg-[#E06C75] active:bg-[#DC2626] text-[#0F172A] text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F08088] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101827];
   }
 
-  .btn-apple-ghost {
-    @apply inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-apple-blue focus-visible:ring-offset-1;
+  .btn-apple-ghost,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 hover:bg-[#24344A] text-[#C2CDDC] hover:text-[#F4F7FC] text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78AFFF];
   }
 
   /* Form Input State */
-  .input-apple {
-    @apply w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-apple-subtle focus:outline-none focus:ring-2 focus:ring-apple-blue/25 focus:border-apple-blue transition-all disabled:bg-slate-50 disabled:text-slate-400;
+  .input-apple,
+  .input-dark {
+    @apply w-full bg-[#101827] border border-[#3B4B60] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-[#F4F7FC] placeholder-[#A7B5C8] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all disabled:bg-[#1C2A3D] disabled:text-[#A7B5C8]/50;
   }
 
   /* Status Badges */
-  .badge-apple-blue {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80;
+  .badge-apple-blue,
+  .badge-blue {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#263D59] text-[#78AFFF] border border-[#3B4B60];
   }
 
-  .badge-apple-red {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
+  .badge-apple-red,
+  .badge-red {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3D2428] text-[#F08088] border border-[#5A2E33];
   }
 
-  .badge-apple-emerald {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
+  .badge-apple-emerald,
+  .badge-green {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#1C3A2E] text-[#34D399] border border-[#235841];
   }
 
-  .badge-apple-amber {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
+  .badge-apple-amber,
+  .badge-amber {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3B2F17] text-[#FBBF24] border border-[#59441B];
   }
 
-  .badge-apple-neutral {
-    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/90;
+  .badge-apple-neutral,
+  .badge-neutral {
+    @apply inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#24344A] text-[#C2CDDC] border border-[#3B4B60];
   }
 
-  /* Calm Card */
-  .card-apple {
-    @apply bg-white rounded-2xl border border-slate-200/80 shadow-apple-card;
+  /* Calm Dark Card */
+  .card-apple,
+  .card-dark {
+    @apply bg-[#1C2A3D] rounded-2xl border border-[#3B4B60] shadow-md;
   }
 
   /* Dialog Sheet */
-  .dialog-apple {
-    @apply bg-white rounded-2xl border border-slate-200/80 shadow-apple-sheet max-h-[88vh] flex flex-col overflow-hidden;
+  .dialog-apple,
+  .dialog-dark {
+    @apply bg-[#24344A] rounded-2xl border border-[#3B4B60] shadow-2xl max-h-[88vh] flex flex-col overflow-hidden text-[#F4F7FC];
   }
 }
 
@@ -138,6 +164,7 @@ body {
     border-radius: 8px !important;
     box-shadow: none !important;
     background: #ffffff !important;
+    color: #0f172a !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }

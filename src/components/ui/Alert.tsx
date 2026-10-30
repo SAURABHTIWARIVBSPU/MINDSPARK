@@ -15,24 +15,24 @@ export const Alert: React.FC<AlertProps> = ({
 }) => {
   const variantStyles = {
     info: {
-      container: 'bg-blue-50/80 border-blue-200/80 text-blue-900',
-      icon: <Info className="w-4 h-4 text-apple-blue shrink-0 mt-0.5" aria-hidden="true" />,
-      titleColor: 'text-blue-950',
+      container: 'bg-[#263D59]/60 border-[#3B4B60] text-[#C2CDDC]',
+      icon: <Info className="w-4 h-4 text-[#78AFFF] shrink-0 mt-0.5" aria-hidden="true" />,
+      titleColor: 'text-[#F4F7FC]',
     },
     destructive: {
-      container: 'bg-rose-50/80 border-rose-200/80 text-rose-900',
-      icon: <AlertCircle className="w-4 h-4 text-apple-red shrink-0 mt-0.5" aria-hidden="true" />,
-      titleColor: 'text-rose-950',
+      container: 'bg-[#3D2428]/80 border-[#5A2E33] text-[#F08088]',
+      icon: <AlertCircle className="w-4 h-4 text-[#F08088] shrink-0 mt-0.5" aria-hidden="true" />,
+      titleColor: 'text-[#F4F7FC]',
     },
     success: {
-      container: 'bg-emerald-50/80 border-emerald-200/80 text-emerald-900',
-      icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />,
-      titleColor: 'text-emerald-950',
+      container: 'bg-[#1C3A2E]/80 border-[#235841] text-[#34D399]',
+      icon: <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0 mt-0.5" aria-hidden="true" />,
+      titleColor: 'text-[#F4F7FC]',
     },
     warning: {
-      container: 'bg-amber-50/80 border-amber-200/80 text-amber-900',
-      icon: <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />,
-      titleColor: 'text-amber-950',
+      container: 'bg-[#3B2F17]/80 border-[#59441B] text-[#FBBF24]',
+      icon: <AlertTriangle className="w-4 h-4 text-[#FBBF24] shrink-0 mt-0.5" aria-hidden="true" />,
+      titleColor: 'text-[#F4F7FC]',
     },
   };
 

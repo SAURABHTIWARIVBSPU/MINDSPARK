@@ -94,29 +94,29 @@ function LoginFormContent() {
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-apple-ink-muted hover:text-portal-maroon transition-colors"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#A7B5C8] hover:text-[#78AFFF] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Return to Student Portal</span>
         </Link>
-        <span className="text-[11px] text-apple-ink-muted font-medium">Authorized Staff Console</span>
+        <span className="text-[11px] text-[#A7B5C8] font-medium">Authorized Staff Console</span>
       </div>
 
       {/* Existing Active Session Notice */}
       {existingUser && !checkingAuth && (
-        <div className="bg-amber-50/70 border border-amber-300/80 rounded-2xl p-4 sm:p-5 space-y-3 shadow-apple-subtle">
-          <div className="flex items-center space-x-2 text-amber-900 text-xs font-bold">
-            <UserCheck className="w-4 h-4 text-amber-700" />
+        <div className="bg-[#1C2A3D] border border-[#3B4B60] rounded-2xl p-4 sm:p-5 space-y-3 shadow-apple-card text-[#F4F7FC]">
+          <div className="flex items-center space-x-2 text-[#F4F7FC] text-xs font-bold">
+            <UserCheck className="w-4 h-4 text-[#78AFFF]" />
             <span>Active Session Found</span>
           </div>
-          <p className="text-xs text-slate-700 leading-relaxed">
+          <p className="text-xs text-[#C2CDDC] leading-relaxed">
             You are currently signed in as <strong>{existingUser.displayName}</strong> ({existingUser.email}). Role:{' '}
-            <span className="font-mono uppercase font-bold text-portal-maroon">{existingUser.role}</span>
+            <span className="font-mono uppercase font-bold text-[#78AFFF]">{existingUser.role}</span>
           </p>
           <div className="flex items-center space-x-2.5 pt-1">
             <Link
               href="/dashboard"
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-portal-maroon hover:bg-portal-maroon-dark text-white text-xs font-bold rounded-full transition-all shadow-apple-subtle active:scale-[0.98]"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#78AFFF] hover:bg-[#60A5FA] text-[#0A101D] text-xs font-bold rounded-full transition-all shadow-sm active:scale-[0.98]"
             >
               <span>Open Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ function LoginFormContent() {
             <button
               type="button"
               onClick={handleLogout}
-              className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-full transition-colors cursor-pointer shadow-apple-subtle"
+              className="px-4 py-2 bg-[#24344A] border border-[#3B4B60] hover:bg-[#2A3F5B] text-[#F4F7FC] text-xs font-semibold rounded-full transition-colors cursor-pointer shadow-sm"
             >
               Sign Out
             </button>
@@ -133,16 +133,16 @@ function LoginFormContent() {
       )}
 
       {/* Login Card */}
-      <div className="bg-white rounded-2xl shadow-apple-card border border-slate-200/80 overflow-hidden">
+      <div className="bg-[#1C2A3D] rounded-2xl shadow-apple-card border border-[#3B4B60] overflow-hidden text-[#F4F7FC]">
         {/* Institutional Header */}
-        <div className="bg-portal-maroon p-6 sm:p-8 text-center text-white relative border-b border-amber-400/20">
-          <div className="w-12 h-12 mx-auto bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center text-amber-400 mb-3 shadow-apple-subtle">
+        <div className="bg-[#172338] p-6 sm:p-8 text-center text-[#F4F7FC] relative border-b border-[#3B4B60]">
+          <div className="w-12 h-12 mx-auto bg-[#263D59] border border-[#3B4B60] rounded-2xl flex items-center justify-center text-[#78AFFF] mb-3 shadow-sm">
             <GraduationCap className="w-6 h-6" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
             Staff & Administration Login
           </h1>
-          <p className="text-xs text-rose-200/90 mt-1">
+          <p className="text-xs text-[#C2CDDC] mt-1">
             Mind-Spark Examination & Operations Portal
           </p>
         </div>
@@ -150,8 +150,8 @@ function LoginFormContent() {
         {/* Form Body */}
         <div className="p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="flex items-start space-x-2.5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+            <div className="flex items-start space-x-2.5 p-3.5 bg-[#3D2428]/80 border border-[#5A2E33] text-[#F08088] rounded-xl text-xs font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#F08088]" />
               <div className="flex-1">
                 <span>Authentication Error: </span>
                 {error}
@@ -170,11 +170,11 @@ function LoginFormContent() {
             className="space-y-4"
           >
             <div>
-              <label htmlFor="staffEmailInput" className="block text-xs font-semibold text-apple-ink mb-1">
-                Staff Email Address <span className="text-red-500">*</span>
+              <label htmlFor="staffEmailInput" className="block text-xs font-semibold text-[#C2CDDC] mb-1">
+                Staff Email Address <span className="text-[#F08088]">*</span>
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Mail className="w-4 h-4 text-[#A7B5C8] absolute left-3.5 top-3" />
                 <input
                   id="staffEmailInput"
                   name="email"
@@ -184,17 +184,17 @@ function LoginFormContent() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="Enter authorized staff email"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="staffPasswordInput" className="block text-xs font-semibold text-apple-ink mb-1">
-                Password <span className="text-red-500">*</span>
+              <label htmlFor="staffPasswordInput" className="block text-xs font-semibold text-[#C2CDDC] mb-1">
+                Password <span className="text-[#F08088]">*</span>
               </label>
               <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <KeyRound className="w-4 h-4 text-[#A7B5C8] absolute left-3.5 top-3" />
                 <input
                   id="staffPasswordInput"
                   name="password"
@@ -204,13 +204,13 @@ function LoginFormContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Enter staff security password"
-                  className="w-full pl-10 pr-10 py-2.5 text-xs font-mono border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon focus:border-portal-maroon transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs font-mono bg-[#101827] border border-[#3B4B60] text-[#F4F7FC] placeholder-[#A7B5C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#78AFFF]/40 focus:border-[#78AFFF] transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                  className="absolute right-3.5 top-2.5 text-[#A7B5C8] hover:text-[#F4F7FC] p-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -220,16 +220,16 @@ function LoginFormContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 bg-portal-maroon hover:bg-portal-maroon-dark active:bg-portal-maroon-dark text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-apple-subtle hover:shadow-apple-card disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99] mt-2"
+              className="w-full py-3 px-6 bg-[#78AFFF] hover:bg-[#60A5FA] active:bg-[#3B82F6] text-[#0A101D] font-bold text-xs uppercase tracking-wider rounded-full transition-all shadow-sm disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99] mt-2"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#0A101D]/30 border-t-[#0A101D] rounded-full animate-spin" />
                   <span>Signing In...</span>
                 </>
               ) : (
                 <>
-                  <Lock className="w-3.5 h-3.5 text-amber-300" />
+                  <Lock className="w-3.5 h-3.5 text-[#0A101D]" />
                   <span>Sign In</span>
                 </>
               )}
@@ -237,9 +237,9 @@ function LoginFormContent() {
           </form>
 
           {/* Institutional Security Notice */}
-          <div className="border-t border-slate-100 pt-4 text-center">
-            <div className="inline-flex items-center space-x-1.5 text-[11px] text-apple-ink-muted font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-portal-maroon" />
+          <div className="border-t border-[#3B4B60] pt-4 text-center">
+            <div className="inline-flex items-center space-x-1.5 text-[11px] text-[#A7B5C8] font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#78AFFF]" />
               <span>Restricted Access: Authorized Examination Officials Only</span>
             </div>
           </div>
