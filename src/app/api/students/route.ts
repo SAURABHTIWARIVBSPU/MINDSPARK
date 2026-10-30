@@ -92,6 +92,10 @@ export async function POST(req: NextRequest) {
 
     registerCandidateInRankCache(student.competitionName, student.className, student.registrationNumber);
 
+    // Compute verified authoritative schedule for the registered candidate
+    const { getStudentEventSchedule: getAssignedSchedule } = await import('@/lib/pdf/event-schedule');
+    const assignedSchedule = getAssignedSchedule(student.competitionName, student.className, student.registrationNumber);
+
     await db.addAuditLog({
       actorUid: user!.uid,
       actorEmail: user!.email,
@@ -107,12 +111,16 @@ export async function POST(req: NextRequest) {
         competitionName: student.competitionName,
         className: student.className,
         schoolOrCollege: student.schoolOrCollege,
+        allocatedBatch: assignedSchedule.batchInfo,
+        allocatedExamTime: assignedSchedule.examTime,
+        allocatedReportingTime: assignedSchedule.reportingTime,
+        allocatedVenue: `${assignedSchedule.venueMain} - ${assignedSchedule.venueDetail}`,
         registeredByEmail: user!.email,
         registeredByRole: user!.role,
         clientIp,
         userAgent,
-        isHold: eligibility.isHold,
-        holdReason: eligibility.holdReason,
+        isHold: assignedSchedule.isHold,
+        holdReason: assignedSchedule.holdReason,
         registeredAt: new Date().toISOString(),
       },
     });
@@ -123,13 +131,13 @@ export async function POST(req: NextRequest) {
         student,
         schedule: {
           eventKey: eligibility.eventKey,
-          examDate: eligibility.schedule.examDate,
-          examTime: eligibility.schedule.examTime,
-          reportingTime: eligibility.schedule.reportingTime,
-          venue: `${eligibility.schedule.venueMain} - ${eligibility.schedule.venueDetail}`,
-          shiftBatch: eligibility.schedule.batchInfo,
-          isHold: eligibility.isHold,
-          holdReason: eligibility.holdReason,
+          examDate: assignedSchedule.examDate,
+          examTime: assignedSchedule.examTime,
+          reportingTime: assignedSchedule.reportingTime,
+          venue: `${assignedSchedule.venueMain} - ${assignedSchedule.venueDetail}`,
+          shiftBatch: assignedSchedule.batchInfo,
+          isHold: assignedSchedule.isHold,
+          holdReason: assignedSchedule.holdReason,
         },
       },
       { status: 201 }

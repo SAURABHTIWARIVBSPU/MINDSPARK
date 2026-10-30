@@ -324,7 +324,7 @@ export function resolveEventKey(competitionName?: string, className?: string): s
 
   if (comp.includes('FANCY DRESS') || comp.includes('UNIQUE')) return 'FANCY_DRESS';
   if (comp.includes('COLOUR BY NUMBER') || comp.includes('COLOR BY NUMBER')) return 'COLOUR_BY_NUMBER';
-  if (comp.includes('JOIN THE DOTS') || comp.includes('JOINT THE DOTS')) return 'JOIN_THE_DOTS';
+  if (comp.includes('JOIN') && comp.includes('DOT')) return 'JOIN_THE_DOTS';
   if (comp.includes('COMPLETE THE PICTURE') || comp.includes('COMPLETE THE DOTS')) return 'COMPLETE_THE_PICTURE';
   if (comp.includes('CLAY')) return 'CLAY_CHAMPS';
   if (comp.includes('DRESS TO IMPRESS')) return 'DRESS_TO_IMPRESS';
@@ -360,6 +360,7 @@ export function resolveEventKey(competitionName?: string, className?: string): s
 
 import { allocateStudentToBatch } from '@/lib/allocation/seating-engine';
 import authoritativeDispatchedData from '@/lib/allocation/authoritative-dispatched-schedules.json';
+import masterBaselineRankCache from '@/lib/allocation/master-baseline-rank-cache.json';
 
 // In-memory cache for deterministic rank of candidates in their respective competitions
 let candidateRankCache: Map<string, number> | null = null;
@@ -380,6 +381,20 @@ function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<st
   candidateRankCache = new Map();
   eventCandidateCountCache = new Map();
 
+  // 1. Authoritative seed from statically bundled master baseline cache (guaranteed on Vercel & serverless)
+  if (masterBaselineRankCache) {
+    if (masterBaselineRankCache.counts) {
+      for (const [key, count] of Object.entries(masterBaselineRankCache.counts)) {
+        eventCandidateCountCache.set(key, Number(count));
+      }
+    }
+    if (masterBaselineRankCache.rankMap) {
+      for (const [regOrKey, rank] of Object.entries(masterBaselineRankCache.rankMap)) {
+        candidateRankCache.set(regOrKey, Number(rank));
+      }
+    }
+  }
+
   if (typeof window !== 'undefined') {
     return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
   }
@@ -388,98 +403,30 @@ function loadCandidateCaches(): { rankMap: Map<string, number>; countMap: Map<st
     const fs = require('fs');
     const path = require('path');
 
-    // Try 1: Authoritative Master Excel Registry (6,046 verified candidates)
+    // 2. Incorporate any newly created candidates from local DB if running locally
     try {
-      const masterExcelPath = path.resolve('Master_All_Students_Registry.xlsx');
-      if (fs.existsSync(masterExcelPath)) {
-        const XLSX = require('xlsx');
-        const wb = XLSX.readFile(masterExcelPath, { sheetRows: 10000 });
-        const ws = wb.Sheets['Master All Students'] || wb.Sheets[wb.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(ws);
-
-        const groups = new Map<string, any[]>();
-        for (const s of rows) {
-          const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
-          const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
-          const key = resolveEventKey(cat, cls);
-          if (!groups.has(key)) groups.set(key, []);
-          groups.get(key)!.push(s);
-        }
-
-        for (const [key, students] of groups.entries()) {
-          eventCandidateCountCache.set(key, students.length);
-          students.forEach((s, idx) => {
-            const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
-            if (reg && candidateRankCache) {
-              candidateRankCache.set(reg, idx + 1); // 1-based rank
-              candidateRankCache.set(`${key}:${reg}`, idx + 1);
-            }
-          });
-        }
-
-        // Incorporate any active candidates registered via Admin Panel into the rank cache
-        try {
-          const dbPath = path.resolve('.data', 'mind_spark_db.json');
-          if (fs.existsSync(dbPath)) {
-            const dbContent = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-            if (Array.isArray(dbContent.students)) {
-              for (const s of dbContent.students) {
-                if (s.status === 'ARCHIVED' || s.status === 'INACTIVE') continue;
-                const reg = String(s.registrationNumber || '').trim().toUpperCase();
-                const cat = String(s.competitionName || '').trim().toUpperCase();
-                const cls = String(s.className || '').trim().toUpperCase();
-                const key = resolveEventKey(cat, cls);
-                if (reg && !candidateRankCache.has(reg)) {
-                  const currentCount = eventCandidateCountCache.get(key) || 0;
-                  const newRank = currentCount + 1;
-                  eventCandidateCountCache.set(key, newRank);
-                  candidateRankCache.set(reg, newRank);
-                  candidateRankCache.set(`${key}:${reg}`, newRank);
-                }
-              }
+      const dbPath = path.resolve('.data', 'mind_spark_db.json');
+      if (fs.existsSync(dbPath)) {
+        const dbContent = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+        if (Array.isArray(dbContent.students)) {
+          for (const s of dbContent.students) {
+            if (s.status === 'ARCHIVED' || s.status === 'INACTIVE') continue;
+            const reg = String(s.registrationNumber || '').trim().toUpperCase();
+            const cat = String(s.competitionName || '').trim().toUpperCase();
+            const cls = String(s.className || '').trim().toUpperCase();
+            const key = resolveEventKey(cat, cls);
+            if (reg && !candidateRankCache.has(reg)) {
+              const currentCount = eventCandidateCountCache.get(key) || 0;
+              const newRank = currentCount + 1;
+              eventCandidateCountCache.set(key, newRank);
+              candidateRankCache.set(reg, newRank);
+              candidateRankCache.set(`${key}:${reg}`, newRank);
             }
           }
-        } catch {
-          // silent fallback
-        }
-
-        return { rankMap: candidateRankCache, countMap: eventCandidateCountCache };
-      }
-    } catch (excelErr) {
-      console.warn('Master Excel cache load fallback:', excelErr);
-    }
-
-    // Try 2: JSON Snapshots (.data/master_students_5752_snapshot.json or .data/master_students_4887_snapshot.json)
-    try {
-      const snap5752 = path.resolve('.data', 'master_students_5752_snapshot.json');
-      const snap4887 = path.resolve('.data', 'master_students_4887_snapshot.json');
-      const activePath = fs.existsSync(snap5752) ? snap5752 : snap4887;
-
-      if (fs.existsSync(activePath)) {
-        const snap = JSON.parse(fs.readFileSync(activePath, 'utf8'));
-        const groups = new Map<string, any[]>();
-
-        for (const s of snap.students) {
-          const cat = String(s['Event Category'] || s.competitionName || '').trim().toUpperCase();
-          const cls = String(s['Class'] || s.className || '').trim().toUpperCase();
-          const key = resolveEventKey(cat, cls);
-          if (!groups.has(key)) groups.set(key, []);
-          groups.get(key)!.push(s);
-        }
-
-        for (const [key, students] of groups.entries()) {
-          eventCandidateCountCache.set(key, students.length);
-          students.forEach((s, idx) => {
-            const reg = String(s['Registration No'] || s.registrationNumber || '').trim().toUpperCase();
-            if (reg && candidateRankCache) {
-              candidateRankCache.set(reg, idx + 1); // 1-based rank
-              candidateRankCache.set(`${key}:${reg}`, idx + 1);
-            }
-          });
         }
       }
-    } catch (err) {
-      console.warn('Rank cache build fallback:', err);
+    } catch {
+      // silent fallback
     }
   } catch (outerErr) {
     console.warn('Node environment check fallback:', outerErr);
@@ -583,6 +530,27 @@ export function getStudentEventSchedule(
 
   // Use the authoritative deterministic seating engine
   const alloc = allocateStudentToBatch(competitionName, className, candidateIndex);
+
+  // Permanently lock newly allocated candidate schedule into memory map so it never drifts or reverts
+  if (typeof candidateIndexOrRegNo === 'string') {
+    const cleanReg = candidateIndexOrRegNo.trim().toUpperCase();
+    if (cleanReg && cleanReg !== 'PREVIEW') {
+      const authMap = getAuthoritativeDispatchedMap();
+      if (!authMap[cleanReg]) {
+        authMap[cleanReg] = {
+          regNo: cleanReg,
+          eventCategory: rule ? rule.eventTitle : competitionName,
+          classGrade: rule ? rule.classMatch : className,
+          examDate: officialExamDate,
+          reportingTime: alloc.reportingTime,
+          examTime: alloc.examTime,
+          batchInfo: alloc.batchName,
+          venueMain: alloc.venueMain,
+          venueDetail: alloc.venueDetail,
+        };
+      }
+    }
+  }
 
   if (!rule) {
     return {

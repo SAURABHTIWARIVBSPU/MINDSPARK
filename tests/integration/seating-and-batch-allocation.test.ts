@@ -144,7 +144,7 @@ describe('Strict Production-Grade Seating & Batch Allocation Engine', () => {
         { competition_name: 'Junior Scientist', class_name: '7' },
       ];
 
-      const metrics = calculateShiftWiseMetrics(sampleStudents);
+      const metrics = calculateShiftWiseMetrics(sampleStudents, { includeBaseline: false });
       expect(metrics.length).toBeGreaterThan(0);
 
       const cbn = metrics.find((m) => m.eventKey === 'COLOUR_BY_NUMBER');

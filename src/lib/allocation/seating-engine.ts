@@ -1,5 +1,6 @@
 import { PROGRAM_SEATING_RULES, ProgramSeatingRule, BatchDefinition } from './seating-rules';
 import { resolveEventKey } from '@/lib/pdf/event-schedule';
+import masterBaselineRankCache from './master-baseline-rank-cache.json';
 
 export interface BatchAllocationResult {
   isHold: boolean;
@@ -370,7 +371,8 @@ export function allocateStudentToBatch(
  * across all programs based on actual registered student records.
  */
 export function calculateShiftWiseMetrics(
-  students: Array<{ competition_name?: string; competitionName?: string; class_name?: string; className?: string }>
+  students: Array<{ competition_name?: string; competitionName?: string; class_name?: string; className?: string }>,
+  options: { includeBaseline?: boolean } = { includeBaseline: true }
 ): ShiftWiseSummary[] {
   // Group students by eventKey
   const counts = new Map<string, number>();
@@ -385,7 +387,9 @@ export function calculateShiftWiseMetrics(
   const summaries: ShiftWiseSummary[] = [];
 
   for (const [key, rule] of Object.entries(PROGRAM_SEATING_RULES)) {
-    const allocatedCount = counts.get(key) || 0;
+    const dbCount = counts.get(key) || 0;
+    const baseline = options.includeBaseline ? ((masterBaselineRankCache?.counts as Record<string, number>)?.[key] || 0) : 0;
+    const allocatedCount = Math.max(dbCount, baseline);
 
     if (rule.isHold) {
       summaries.push({
