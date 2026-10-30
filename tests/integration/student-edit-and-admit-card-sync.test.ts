@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { NextRequest } from 'next/server';
 import { getDb, resetDbInstance } from '@/lib/db';
 import { getStorageAdapter } from '@/lib/storage';
 import {
@@ -26,7 +27,6 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
   });
 
   it('Guarantees candidate exam timing and batch NEVER change when editing personal particulars (Name, Father, DOB, Phone, School)', async () => {
-    // 1. Create a student in a multi-shift competition (CLAY CHAMPS - 4 batches)
     const originalStudent: Student = {
       studentId: `std_shift_lock_${Date.now()}`,
       registrationNumber: 'MS26118801',
@@ -55,7 +55,6 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
     expect(initialSchedule.reportingTime).toBeDefined();
     expect(initialSchedule.batchInfo).toBeDefined();
 
-    // 2. Perform 5 successive edits simulating multiple admin edits for typos
     const edits = [
       { name: 'RAVI KUMAR SHARMA' },
       { fatherName: 'DINESH CHANDRA SHARMA' },
@@ -68,8 +67,6 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
     for (const edit of edits) {
       currentStudent = { ...currentStudent, ...edit };
 
-      // In real PUT endpoint: if event doesn't change, registerCandidateInRankCache is NOT called,
-      // but even if called, it MUST preserve the candidate rank!
       registerCandidateInRankCache(
         currentStudent.competitionName,
         currentStudent.className,
@@ -90,11 +87,10 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
   });
 
   it('Invalidates stale admit card in database and removes old PDF from storage upon student edit', async () => {
-    // 1. Create student in DB
     const student = await db.createStudent({
       registrationNumber: `MS2611${Date.now().toString().slice(-4)}`,
-      name: 'INITIAL CANDIDATE NAME',
-      fatherName: 'INITIAL FATHER NAME',
+      name: `INITIAL CANDIDATE ${Date.now()}`,
+      fatherName: `INITIAL FATHER ${Date.now()}`,
       dateOfBirth: '2016-04-15',
       phone: '9876500001',
       schoolOrCollege: 'CENTRAL ACADEMY',
@@ -107,7 +103,6 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
 
     const settings = await db.getSettings();
 
-    // 2. Generate initial admit card and save to storage & DB
     const initialPdf = await generateAdmitCardPdf(student, settings);
     const initialHash = computeStudentDataHash(student, ADMIT_CARD_TEMPLATE_VERSION);
     const { fileId, storageType } = await storage.saveFile(
@@ -128,31 +123,24 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
       updatedAt: new Date().toISOString(),
     });
 
-    // Verify admit card exists before edit
     const savedCardBefore = await db.getAdmitCardByStudentId(student.studentId);
     expect(savedCardBefore).not.toBeNull();
     expect(savedCardBefore.sourceDataHash).toBe(initialHash);
 
-    // 3. Admin edits student details
-    const updatedName = 'REVISED CANDIDATE NAME';
-    const updatedFather = 'REVISED FATHER NAME';
+    const updatedName = `REVISED CANDIDATE ${Date.now()}`;
+    const updatedFather = `REVISED FATHER ${Date.now()}`;
     const updatedStudent = await db.updateStudent(student.studentId, {
       name: updatedName,
       fatherName: updatedFather,
     });
 
-    // 4. Verify stale admit card record is invalidated in DB
     const savedCardAfter = await db.getAdmitCardByStudentId(student.studentId);
-    expect(savedCardAfter).toBeNull(); // Cleanly deleted/invalidated!
+    expect(savedCardAfter).toBeNull();
 
-    // 5. Generate fresh PDF for the updated student
     const updatedPdf = await generateAdmitCardPdf(updatedStudent, settings);
     const updatedHash = computeStudentDataHash(updatedStudent, ADMIT_CARD_TEMPLATE_VERSION);
 
-    // Verify hash changed
     expect(updatedHash).not.toBe(initialHash);
-
-    // Verify PDF is valid and has expected byte structure
     expect(updatedPdf.length).toBeGreaterThan(1000);
     const parsedPdf = await PDFDocument.load(updatedPdf);
     expect(parsedPdf.getPageCount()).toBe(1);
@@ -162,11 +150,9 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
     const oldReg = `MS26_OLD_${Date.now()}`;
     const newReg = `MS26_NEW_${Date.now()}`;
 
-    // Allocate initial rank for old registration
     const initialRank = registerCandidateInRankCache('CLAY CHAMPS', 'CLASS 1', oldReg);
     const initialSchedule = getStudentEventSchedule('CLAY CHAMPS', 'CLASS 1', oldReg);
 
-    // Transfer rank to new registration number
     transferCandidateRank(oldReg, newReg, 'CLAY CHAMPS', 'CLASS 1');
 
     const transferredSchedule = getStudentEventSchedule('CLAY CHAMPS', 'CLASS 1', newReg);
@@ -178,14 +164,96 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
   it('Recalculates schedule properly when student competition category is changed', () => {
     const regNo = `MS26_CHANGE_${Date.now()}`;
 
-    // Student starts in COLOUR BY NUMBER (NURSERY: 11:00 AM - 12:00 PM)
     const schedColour = getStudentEventSchedule('Colour by Number', 'NURSERY', regNo);
     expect(schedColour.eventName).toContain('Colour by Number');
     expect(schedColour.examTime).toContain('11:00 AM');
 
-    // Admin edits student to switch to JOIN THE DOTS (LKG: 12:00 PM - 01:00 PM)
     const schedJoin = getStudentEventSchedule('Join the Dots & Colour', 'LKG', regNo);
     expect(schedJoin.eventName).toContain('Join the Dots');
     expect(schedJoin.examTime).toContain('12:00 PM');
+  });
+
+  it('E2E API Route Verification: Admin PUT /api/students/[id] immediately updates student and reflects in admit card download', async () => {
+    const { PUT: studentPutHandler } = await import('@/app/api/students/[id]/route');
+    const { GET: admitCardDownloadHandler } = await import('@/app/api/admit-cards/download/[studentId]/route');
+    const sessionModule = await import('@/lib/auth/session');
+    const { vi } = await import('vitest');
+
+    const adminUser = await db.getUserByEmail('superadmin@mindspark.edu.in');
+    vi.spyOn(sessionModule, 'getCurrentUser').mockResolvedValue(adminUser);
+
+    const ts = Date.now();
+    const initialName = `E2E STUDENT ${ts}`;
+    const initialFather = `E2E FATHER ${ts}`;
+
+    const createdStudent = await db.createStudent({
+      registrationNumber: `MS26E2E${ts.toString().slice(-4)}`,
+      name: initialName,
+      fatherName: initialFather,
+      dateOfBirth: '2015-06-15',
+      phone: '9876543210',
+      schoolOrCollege: 'OLD PUBLIC SCHOOL',
+      className: 'CLASSES 2 & 3',
+      competitionName: 'Paint Your Imagination',
+      status: 'ACTIVE',
+      createdBy: 'admin',
+      updatedBy: 'admin',
+    });
+
+    const downloadReqInitial = new NextRequest(
+      `http://localhost:3000/api/admit-cards/download/${createdStudent.studentId}`
+    );
+    const downloadResInitial = await admitCardDownloadHandler(downloadReqInitial, {
+      params: Promise.resolve({ studentId: createdStudent.studentId }),
+    });
+    expect(downloadResInitial.status).toBe(200);
+
+    const revisedName = `REVISED STUDENT ${ts}`;
+    const revisedFather = `REVISED FATHER ${ts}`;
+    const revisedSchool = 'NEW MODERN ACADEMY';
+
+    const updatedPayload = {
+      registrationNumber: createdStudent.registrationNumber,
+      name: revisedName,
+      fatherName: revisedFather,
+      dateOfBirth: '2015-06-20',
+      phone: '9876543211',
+      schoolOrCollege: revisedSchool,
+      className: 'CLASSES 2 & 3',
+      competitionName: 'Paint Your Imagination',
+      status: 'ACTIVE',
+    };
+
+    const putReq = new NextRequest(`http://localhost:3000/api/students/${createdStudent.studentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedPayload),
+    });
+
+    const putRes = await studentPutHandler(putReq, {
+      params: Promise.resolve({ id: createdStudent.studentId }),
+    });
+    expect(putRes.status).toBe(200);
+
+    const putData = await putRes.json();
+    expect(putData.success).toBe(true);
+    expect(putData.student.name).toBe(revisedName);
+    expect(putData.student.fatherName).toBe(revisedFather);
+    expect(putData.student.schoolOrCollege).toBe(revisedSchool);
+
+    const downloadReqAfter = new NextRequest(
+      `http://localhost:3000/api/admit-cards/download/${createdStudent.studentId}`
+    );
+    const downloadResAfter = await admitCardDownloadHandler(downloadReqAfter, {
+      params: Promise.resolve({ studentId: createdStudent.studentId }),
+    });
+    expect(downloadResAfter.status).toBe(200);
+    expect(downloadResAfter.headers.get('Content-Type')).toBe('application/pdf');
+    expect(downloadResAfter.headers.get('Cache-Control')).toContain('no-cache');
+
+    const pdfBuffer = await downloadResAfter.arrayBuffer();
+    expect(pdfBuffer.byteLength).toBeGreaterThan(1000);
   });
 });
