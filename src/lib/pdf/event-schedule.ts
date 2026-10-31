@@ -98,9 +98,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     batchMode: 'SHIFTS',
     shifts: [
       { shiftNum: 1, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (BATCH 1)' },
-      { shiftNum: 2, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 2)' },
-      { shiftNum: 3, reporting: '12:00 PM', exam: '12:30 PM - 01:30 PM (BATCH 3)' },
-      { shiftNum: 4, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 4)' }
+      { shiftNum: 2, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 2)' }
     ],
     shiftCapacity: 200,
     isHold: false
@@ -145,8 +143,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     batchMode: 'SHIFTS',
     shifts: [
       { shiftNum: 1, reporting: '02:00 PM', exam: '02:30 PM - 03:30 PM (BATCH 1)' },
-      { shiftNum: 2, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 2)' },
-      { shiftNum: 3, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (BATCH 3)' }
+      { shiftNum: 2, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 2)' }
     ],
     shiftCapacity: 200,
     isHold: false
@@ -188,9 +185,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (BATCH 3)' },
       { shiftNum: 4, reporting: '11:30 AM', exam: '12:00 PM - 01:00 PM (BATCH 4)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
-      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
-      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' }
     ],
     shiftCapacity: 120,
     isHold: false
@@ -207,8 +202,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 2, reporting: '11:30 AM', exam: '12:00 PM - 01:00 PM (BATCH 2)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break
       { shiftNum: 3, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 3)' },
-      { shiftNum: 4, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 4)' },
-      { shiftNum: 5, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 5)' }
+      { shiftNum: 4, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 4)' }
     ],
     shiftCapacity: 40,
     isHold: false
@@ -225,9 +219,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 3, reporting: '10:00 AM', exam: '10:30 AM - 11:30 AM (BATCH 3)' },
       { shiftNum: 4, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 4)' },
       // Strict 1:00 PM - 2:00 PM Lunch Break as per Excel remarks
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
-      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
-      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
+      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' }
     ],
     shiftCapacity: 90,
     isHold: false
@@ -256,12 +248,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     shifts: [
       { shiftNum: 1, reporting: '08:00 AM', exam: '08:30 AM - 09:30 AM (BATCH 1)' },
       { shiftNum: 2, reporting: '09:00 AM', exam: '09:30 AM - 10:30 AM (BATCH 2)' },
-      { shiftNum: 3, reporting: '10:00 AM', exam: '10:30 AM - 11:30 AM (BATCH 3)' },
-      { shiftNum: 4, reporting: '11:00 AM', exam: '11:30 AM - 12:30 PM (BATCH 4)' },
-      // Strict 1:00 PM - 2:00 PM Lunch Break
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
-      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' },
-      { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 7)' }
+      { shiftNum: 3, reporting: '10:00 AM', exam: '10:30 AM - 11:30 AM (BATCH 3)' }
     ],
     shiftCapacity: 180,
     isHold: false
@@ -272,15 +259,14 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
     timing: '04:00 PM - 05:00 PM',
     reportingTime: '03:30 PM',
     examTime: '04:00 PM - 05:00 PM',
-    venueMain: 'MEENA SHAH PUBLIC SCHOOL',
+    venueMain: 'MSITM CAMPUS',
     venueDetail: 'MSITM LT-2, LT-3 & LT-4',
     examDate: '01 Nov 2026 (Sunday)',
-    batchMode: 'SHIFTS',
+    batchMode: 'SINGLE',
     shifts: [
-      { shiftNum: 1, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (BATCH 1)' },
-      { shiftNum: 2, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (BATCH 2)' }
+      { shiftNum: 1, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM' }
     ],
-    capacity: 200,
+    capacity: 300,
     isHold: false,
     luckyDrawNotice: 'COMPULSORY EVENT: Graduation Lucky Draw on Sunday, 01 November 2026 at 09:00 AM Sharp at MSITM Campus.'
   },
@@ -296,9 +282,7 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 1, reporting: '08:30 AM', exam: '09:00 AM - 10:00 AM (BATCH 1)' },
       { shiftNum: 2, reporting: '09:30 AM', exam: '10:00 AM - 11:00 AM (BATCH 2)' },
       { shiftNum: 3, reporting: '10:30 AM', exam: '11:00 AM - 12:00 PM (BATCH 3)' },
-      { shiftNum: 4, reporting: '12:30 PM', exam: '01:00 PM - 02:00 PM (BATCH 4)' },
-      { shiftNum: 5, reporting: '01:30 PM', exam: '02:00 PM - 03:00 PM (BATCH 5)' },
-      { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (BATCH 6)' }
+      { shiftNum: 4, reporting: '12:30 PM', exam: '01:00 PM - 02:00 PM (BATCH 4)' }
     ],
     shiftCapacity: 180,
     isHold: false,
@@ -400,6 +384,21 @@ import masterBaselineRankCache from '@/lib/allocation/master-baseline-rank-cache
 let candidateRankCache: Map<string, number> | null = null;
 let eventCandidateCountCache: Map<string, number> | null = null;
 let authoritativeDispatchedMap: Record<string, any> | null = null;
+
+export function persistAuthoritativeDispatchedMap(): void {
+  try {
+    if (typeof window === 'undefined' && authoritativeDispatchedMap) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.resolve(process.cwd(), 'src/lib/allocation/authoritative-dispatched-schedules.json');
+      if (fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(authoritativeDispatchedMap, null, 2), 'utf8');
+      }
+    }
+  } catch (err) {
+    // Non-fatal if running on serverless
+  }
+}
 
 function getAuthoritativeDispatchedMap(): Record<string, any> {
   if (authoritativeDispatchedMap) return authoritativeDispatchedMap;
@@ -526,7 +525,9 @@ export function reallocateCandidateEvent(
   }
 
   // 3. Compute and cache authoritative schedule for new event
-  return getStudentEventSchedule(newCompetitionName, newClassName, cleanReg);
+  const schedule = getStudentEventSchedule(newCompetitionName, newClassName, cleanReg);
+  persistAuthoritativeDispatchedMap();
+  return schedule;
 }
 
 export function transferCandidateRank(
@@ -552,6 +553,7 @@ export function transferCandidateRank(
   const authMap = getAuthoritativeDispatchedMap();
   if (authMap[cleanOld]) {
     authMap[cleanNew] = { ...authMap[cleanOld], regNo: cleanNew, reg: cleanNew };
+    persistAuthoritativeDispatchedMap();
   }
 }
 

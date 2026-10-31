@@ -171,9 +171,9 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
     category: 'Senior (Class 11-12)',
     eligibleClasses: ['11', '12', 'CLASS 11', 'CLASS 12', '11TH', '12TH'],
     defaultClass: '11',
-    examSlot: '08:30 AM - 04:00 PM (BATCHES 1-6)',
+    examSlot: '08:30 AM - 11:30 AM (BATCHES 1-3)',
     reportingTime: '08:00 AM',
-    venue: 'MEENA SHAH PUBLIC SCHOOL - MSITM LAB'
+    venue: 'MSITM CAMPUS - MSITM LAB'
   },
   {
     key: 'ONLINE_QUIZ_GRADUATION',
@@ -182,7 +182,7 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
     eligibleClasses: ['GRADUATION', 'GRADUTION', 'B.SC', 'BSC', 'B.A', 'BA', 'B.COM', 'BCOM', 'B COM', 'BBA', 'BCA', 'B.TECH', 'BTECH', 'MA', 'MSC', 'MCOM', 'COLLEGE', 'DEGREE'],
     defaultClass: 'GRADUATION',
     isHold: false,
-    examSlot: '09:00 AM - 02:00 PM (BATCHES 1-4, 180 PER BATCH)',
+    examSlot: '09:00 AM - 02:00 PM (BATCHES 1-4)',
     reportingTime: '08:30 AM',
     venue: 'MSITM CAMPUS - MSITM LAB'
   },
@@ -193,7 +193,7 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
     eligibleClasses: ['GRADUATION', 'GRADUTION', 'B.SC', 'BSC', 'B.A', 'BA', 'B.COM', 'BCOM', 'B COM', 'BBA', 'BCA', 'B.TECH', 'BTECH', 'MA', 'MSC', 'MCOM', 'COLLEGE', 'DEGREE'],
     defaultClass: 'GRADUATION',
     isHold: false,
-    examSlot: '04:00 PM - 05:00 PM (ALL BATCHES SIMULTANEOUS)',
+    examSlot: '04:00 PM - 05:00 PM (ALL-IN-ONE SIMULTANEOUS)',
     reportingTime: '03:30 PM',
     venue: 'MSITM CAMPUS - MSITM LT-2, LT-3 & LT-4'
   }

@@ -257,17 +257,19 @@ for (const r of masterRows) {
 
   const date = String(r['Examination Date'] || pData.examDate).trim();
   const repTime = String(r['Reporting Time'] || '09:00 AM').trim();
-  const examTime = String(r['Examination Time'] || '10:00 AM').trim();
+  const rawExamTime = String(r['Examination Time'] || '10:00 AM').trim();
+  const cleanExamBase = rawExamTime.replace(/\s*\((?:BATCH|SHIFT)\s*\d+\)/i, '').trim();
   const room = String(r['Specific Hall / Room'] || pData.room).trim();
 
   // Canonical shift key represents an actual physical sitting in the room
-  const shiftKey = `${date}|${repTime}|${examTime}|${room}`;
+  const shiftKey = `${date}|${repTime}|${cleanExamBase}|${room}`;
   if (!pData.physicalShifts.has(shiftKey)) {
     pData.physicalShifts.set(shiftKey, {
       shiftKey,
       date,
       repTime,
-      examTime,
+      cleanExamBase,
+      examTime: rawExamTime,
       room,
       campus: pData.campus,
       incharges: pData.incharges,
@@ -287,15 +289,20 @@ for (const p of programDataMap.values()) {
     return timeToMinutes(a.repTime) - timeToMinutes(b.repTime);
   });
 
-  // Assign clean display names: e.g. "Batch 1 (08:30 AM - 09:30 AM)"
+  // Assign clean display names: e.g. "Batch 1 (08:30 AM - 09:30 AM)" or "Shift 1" for Junior Scientist
+  const isScientist = p.key === 'JUNIOR_SCIENTIST';
   let bNum = 1;
   const isMultiShift = shiftList.length > 1;
 
   for (const s of shiftList) {
     if (isMultiShift) {
-      s.batchDisplayName = `Batch ${bNum++} (${s.repTime} Rep)`;
+      const prefix = isScientist ? 'Shift' : 'Batch';
+      s.batchDisplayName = `${prefix} ${bNum} (${s.repTime} Rep)`;
+      s.examTime = `${s.cleanExamBase} (${prefix.toUpperCase()} ${bNum})`;
+      bNum++;
     } else {
       s.batchDisplayName = `Main Session (${s.repTime} Rep)`;
+      s.examTime = s.cleanExamBase;
     }
   }
 

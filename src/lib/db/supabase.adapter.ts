@@ -202,11 +202,21 @@ export class SupabaseAdapter implements IDatabaseAdapter {
   }
 
   async getStudentById(studentId: string): Promise<Student | null> {
-    const { data, error } = await this.client
+    let { data, error } = await this.client
       .from('students')
       .select('*')
       .eq('student_id', studentId)
       .maybeSingle();
+
+    if (!data && !error) {
+      const fallback = await this.client
+        .from('students')
+        .select('*')
+        .eq('registration_number', studentId.trim().toUpperCase())
+        .maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) throw new Error(`Supabase error: ${error.message}`);
     return data ? this.mapRowToStudent(data) : null;
@@ -348,18 +358,29 @@ export class SupabaseAdapter implements IDatabaseAdapter {
     if (updates.whatsappSentAt !== undefined) rowUpdates.whatsapp_sent_at = updates.whatsappSentAt;
     if (updates.updatedBy !== undefined) rowUpdates.updated_by = updates.updatedBy;
 
-    const { data, error } = await this.client
+    let { data, error } = await this.client
       .from('students')
       .update(rowUpdates)
       .eq('student_id', studentId)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw new Error(`Supabase update student error: ${error.message}`);
+    if (!data && !error) {
+      const fallback = await this.client
+        .from('students')
+        .update(rowUpdates)
+        .eq('registration_number', studentId.trim().toUpperCase())
+        .select()
+        .maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
+
+    if (error || !data) throw new Error(`Supabase update student error: ${error?.message || 'Student record not found'}`);
 
     // Invalidate stale admit card in database unconditionally so all particulars refresh
     try {
-      await this.client.from('admit_cards').delete().eq('student_id', studentId);
+      await this.client.from('admit_cards').delete().eq('student_id', data.student_id);
     } catch (cardErr) {
       console.warn('Admit card invalidation note:', cardErr);
     }

@@ -94,8 +94,9 @@ export default function StudentsPage() {
   );
 
   const handleCompetitionChange = (compKeyOrTitle: string) => {
-    const comp = findCompetitionOption(compKeyOrTitle, formData.className) ||
-      APPROVED_COMPETITIONS.find(c => c.key === compKeyOrTitle || c.title === compKeyOrTitle);
+    const comp = APPROVED_COMPETITIONS.find(c => c.key === compKeyOrTitle) ||
+      findCompetitionOption(compKeyOrTitle, formData.className) ||
+      APPROVED_COMPETITIONS.find(c => c.title === compKeyOrTitle);
     if (comp) {
       setFormData(prev => {
         const isCurrentClassEligible = prev.className && comp.eligibleClasses.includes(prev.className.toUpperCase());
@@ -243,6 +244,8 @@ export default function StudentsPage() {
         const timeMsg = data.schedule?.examTime ? `\nExam Timing: ${data.schedule.examTime}` : '';
         const repMsg = data.schedule?.reportingTime ? `\nReporting Time: ${data.schedule.reportingTime}` : '';
         alert(`Student Registered Successfully!\n\nName: ${data.student.name}\nAllocated Reg No: ${data.student.registrationNumber}\nCategory: ${data.student.competitionName}${batchMsg}${timeMsg}${repMsg}`);
+      } else if (editingStudent && data.student) {
+        alert(`Student Details Updated Successfully!\n\nName: ${data.student.name}\nAllocated Reg No: ${data.student.registrationNumber}\nCategory: ${data.student.competitionName}`);
       }
     } catch (err: any) {
       setFormError(err.message);

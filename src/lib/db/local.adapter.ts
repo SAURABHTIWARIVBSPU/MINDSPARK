@@ -266,7 +266,8 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
   }
 
   async getStudentById(studentId: string): Promise<Student | null> {
-    return this.data.students.find((s) => s.studentId === studentId) || null;
+    const clean = studentId.trim().toUpperCase();
+    return this.data.students.find((s) => s.studentId === studentId || s.registrationNumber.toUpperCase() === clean) || null;
   }
 
   async getStudentByRegNo(regNo: string): Promise<Student | null> {
@@ -334,7 +335,8 @@ export class LocalJsonDbAdapter implements IDatabaseAdapter {
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>): Promise<Student> {
-    const idx = this.data.students.findIndex((s) => s.studentId === studentId);
+    const clean = studentId.trim().toUpperCase();
+    let idx = this.data.students.findIndex((s) => s.studentId === studentId || s.registrationNumber.toUpperCase() === clean);
     if (idx === -1) {
       throw new Error(`Student '${studentId}' not found`);
     }
