@@ -347,22 +347,36 @@ export function resolveEventKey(competitionName?: string, className?: string): s
   }
 
   if (comp.includes('QUIZ')) {
-    if (
+    const cleanCls = cls.replace(/[^A-Z0-9]/g, '');
+    const isGrad =
       cls.includes('GRAD') ||
-      cls.includes('BBA') ||
-      cls.includes('BCA') ||
+      cleanCls === 'BA' ||
+      cleanCls === 'BSC' ||
+      cleanCls === 'BCOM' ||
+      cleanCls === 'BBA' ||
+      cleanCls === 'BCA' ||
+      cleanCls === 'BTECH' ||
+      cleanCls === 'MA' ||
+      cleanCls === 'MSC' ||
+      cleanCls === 'MCOM' ||
+      cleanCls.startsWith('BA') ||
+      cleanCls.startsWith('BSC') ||
+      cleanCls.startsWith('BCOM') ||
+      cleanCls.startsWith('BBA') ||
+      cleanCls.startsWith('BCA') ||
+      cleanCls.startsWith('BTECH') ||
       cls.includes('COLLEGE') ||
-      cls.includes('B.SC') ||
-      cls.includes('B.A') ||
-      cls.includes('B.COM') ||
-      cls.includes('B.TECH') ||
+      cls.includes('DEGREE') ||
       comp.includes('GRAD') ||
-      comp.includes('COLLEGE')
-    ) {
+      comp.includes('COLLEGE');
+
+    if (isGrad) {
       return 'ONLINE_QUIZ_GRADUATION';
     }
     if (
       ['11', '12', '11TH', '12TH', 'CLASS 11', 'CLASS 12'].includes(cls) ||
+      cleanCls === '11' ||
+      cleanCls === '12' ||
       comp.includes('11') ||
       comp.includes('12')
     ) {
@@ -585,7 +599,7 @@ export function getStudentEventSchedule(
         return {
           eventName: rule ? rule.eventTitle : (competitionName || 'Mindspark Competition'),
           className: rule ? rule.classMatch : (className || 'General'),
-          examDate: officialExamDate,
+          examDate: auth.examDate || officialExamDate,
           rawTiming: auth.examTime,
           reportingTime: auth.reportingTime,
           examTime: auth.examTime,

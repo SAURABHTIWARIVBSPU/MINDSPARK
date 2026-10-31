@@ -550,7 +550,7 @@ export default function StudentPortalHomePage() {
                         {searchResult.schedule?.venue || "MEENA SHAH PUBLIC SCHOOL"}
                       </div>
                       <div className="text-[10px] text-slate-600 font-medium">
-                        Campus: Meena Shah Public School, Circular Road, Gonda
+                        Campus: {String(searchResult.schedule?.venue || '').toUpperCase().includes('MSITM') ? 'MSITM Campus, Lucknow Road, Gonda' : 'Meena Shah Public School, Circular Road, Gonda'}
                       </div>
                     </div>
                   </div>
@@ -561,10 +561,12 @@ export default function StudentPortalHomePage() {
                   <div className="rounded-xl p-3.5 bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 border border-amber-500/50 shadow-xs space-y-1.5">
                     <div className="flex items-center space-x-2 text-amber-900 font-black text-xs uppercase tracking-wide">
                       <Gift className="w-4 h-4 text-amber-700" />
-                      <span>MANDATORY INVITATION: GRADUATION STUDENTS&apos; LUCKY DRAW</span>
+                      <span>SPECIAL INVITATION: GRADUATION STUDENTS&apos; LUCKY DRAW</span>
                     </div>
                     <p className="text-xs text-amber-950 font-semibold leading-relaxed">
-                      All Graduation students participating in the <strong>Online Quiz</strong> and <strong>Essay Writing</strong> are invited to attend the Lucky Draw event on <strong>1 November 2026 at 09:00 AM sharp</strong> at MSITM Campus. Attendance is compulsory! Students must attend the Lucky Draw before their respective examination activities. <em>(Note: Graduation Online Quiz takes place on 2 November 2026).</em>
+                      All Graduation students are invited to attend the Grand Lucky Draw ceremony on <strong>Sunday, 01 November 2026 at 09:00 AM sharp</strong> at MSITM Campus.
+                      <br className="hidden sm:inline" />
+                      <strong>Examination Date Reminder:</strong> Essay Writing takes place on <strong>01 Nov 2026 (03:30 PM Reporting)</strong>, and Online Quiz (Graduation) takes place on <strong>Monday, 02 Nov 2026</strong> strictly at your allocated shift and reporting time shown above.
                     </p>
                   </div>
                 )}
@@ -582,7 +584,7 @@ export default function StudentPortalHomePage() {
                     <p>3. Possession of mobile phones, smart watches, calculators or any electronic equipment is strictly banned.</p>
                     <p>4. Any impersonation, unfair means, or indiscipline will result in immediate cancellation of candidature.</p>
                     <p>5. Retain this admit card safely until the announcement of official competition results and merit honors.</p>
-                    <p>6. Candidates are required to reach the examination hall 30 minutes before the reporting time.</p>
+                    <p>6. Candidates must report at the examination venue strictly by their designated Reporting Time (which is at least 30 minutes prior to exam commencement).</p>
                     <p>7. Kindly note that Mindspark 2026 is a full-day event featuring a variety of competitions, food stalls, and fun games. Participants can purchase coupons at the venue to enjoy the various activities and make the most of this exciting day.</p>
                     <p>8. It is mandatory for students to come in their school uniforms in the examination hall.</p>
                     <p>9. Participants are kindly requested to collect their participation gifts and certificates after completing the examination and before leaving the venue.</p>
