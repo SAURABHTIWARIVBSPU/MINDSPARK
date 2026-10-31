@@ -986,7 +986,7 @@ export default function StudentsPage() {
                                 }`}
                             >
                               <div>
-                                <span className="font-bold block text-apple-ink">Batch {b.batchNumber}</span>
+                                <span className="font-bold block text-apple-ink">{b.batchName || (m.eventKey === 'JUNIOR_SCIENTIST' ? `Shift ${b.batchNumber}` : `Batch ${b.batchNumber}`)}</span>
                                 <span className="text-[10px] text-apple-ink-muted">{b.examTime}</span>
                               </div>
                               <div className="text-right">

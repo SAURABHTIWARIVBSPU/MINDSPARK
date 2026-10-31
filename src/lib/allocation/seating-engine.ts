@@ -101,7 +101,7 @@ function formatTime12h(minutesFromMidnight: number): string {
 export function generateNextBatch(rule: ProgramSeatingRule, existingBatches: BatchDefinition[]): BatchDefinition {
   const lastBatch = existingBatches[existingBatches.length - 1];
   const nextBatchNumber = (lastBatch?.batchNumber || existingBatches.length) + 1;
-  const isShiftType = existingBatches.some(b => b.batchName.toLowerCase().includes('shift') || b.examTime.toLowerCase().includes('shift'));
+  const isShiftType = rule.eventKey === 'JUNIOR_SCIENTIST' || existingBatches.some(b => b.batchName.toLowerCase().includes('shift') || b.examTime.toLowerCase().includes('shift'));
 
   let prevEndMinutes = 15 * 60; // 3:00 PM fallback
   if (lastBatch) {
@@ -127,7 +127,7 @@ export function generateNextBatch(rule: ProgramSeatingRule, existingBatches: Bat
   const reportingTimeStr = formatTime12h(reportingMinutes);
 
   const labelPrefix = isShiftType ? 'Shift' : 'Batch';
-  const batchName = `${labelPrefix} ${nextBatchNumber}`;
+  const batchName = isShiftType ? `Shift ${nextBatchNumber} of 9` : `${labelPrefix} ${nextBatchNumber}`;
   const examTime = `${startTimeStr} - ${endTimeStr} (${labelPrefix.toUpperCase()} ${nextBatchNumber})`;
 
   const capacity = lastBatch?.maxCapacity || 100;
@@ -150,20 +150,32 @@ export function getExpandedBatchesForEvent(
   const batches = [...rule.batches];
   let cumulative = batches.reduce((sum, b) => sum + b.maxCapacity, 0);
 
-  // Keep adding dynamic batches until cumulative capacity exceeds required count
+  // STRICT INSTITUTIONAL DIRECTIVE:
+  // Under NO circumstances may Batch 6 or Batch 7 ever be created or allotted for any indoor competition!
+  // Indoor programs are strictly capped at maximum 5 batches (or rule.batches.length).
+  // Only Junior Scientist on MSPS Ground may have up to Shift 9.
+  const maxBatchesCap = rule.eventKey === 'JUNIOR_SCIENTIST' ? 9 : 5;
+
+  // Keep adding dynamic batches until cumulative capacity exceeds required count OR capped
   while (cumulative <= requiredCandidateCount) {
-    const nextBatch = generateNextBatch(rule, batches);
-    const times = nextBatch.examTime.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/gi);
-    const startMins = times ? parseTime12h(times[0]) : 0;
-    // Strict institutional guard: No competition (except Junior Scientist) may be scheduled
-    // at or after 6:00 PM (18:00) into the night. Expand nominal room capacity rather than night shifts.
-    if (startMins >= 18 * 60 && rule.eventKey !== 'JUNIOR_SCIENTIST') {
+    if (batches.length >= maxBatchesCap) {
+      // Expand capacity of existing approved batches (Batches 1-5) rather than creating Batch 6/7
       for (const b of batches) {
         b.maxCapacity += 50;
         cumulative += 50;
       }
       continue;
     }
+
+    const nextBatch = generateNextBatch(rule, batches);
+    if (nextBatch.batchNumber >= 6 && rule.eventKey !== 'JUNIOR_SCIENTIST') {
+      for (const b of batches) {
+        b.maxCapacity += 50;
+        cumulative += 50;
+      }
+      continue;
+    }
+
     batches.push(nextBatch);
     cumulative += nextBatch.maxCapacity;
   }
