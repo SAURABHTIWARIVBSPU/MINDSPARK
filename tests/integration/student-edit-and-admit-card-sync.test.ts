@@ -16,6 +16,7 @@ import {
 } from '@/lib/pdf/template';
 import { Student } from '@/types';
 import { PDFDocument } from 'pdf-lib';
+import { findCompetitionOption, APPROVED_COMPETITIONS } from '@/lib/constants/competitions';
 
 describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite', () => {
   let db: any;
@@ -25,7 +26,111 @@ describe('Student Admin Panel Edit & Admit Card Permanent Synchronization Suite'
     resetDbInstance();
     db = getDb();
     storage = getStorageAdapter();
+  
+  it('findCompetitionOption correctly identifies all competitions regardless of case or alias without false Colour by Number default', () => {
+    // 1. Online Quiz nursery candidate (reported by user)
+    const nurseryQuiz = findCompetitionOption('ONLINE QUIZ', 'NURSERY');
+    expect(nurseryQuiz).toBeDefined();
+    expect(nurseryQuiz?.key).toBe('ONLINE_QUIZ_9_10');
+    expect(nurseryQuiz?.title).toBe('Online Quiz (Class 9-10)');
+
+    // 2. Class 11-12 Quiz
+    const quiz11 = findCompetitionOption('ONLINE QUIZ', '11');
+    expect(quiz11).toBeDefined();
+    expect(quiz11?.key).toBe('ONLINE_QUIZ_11_12');
+
+    // 3. Graduation Quiz
+    const quizGrad = findCompetitionOption('ONLINE QUIZ', 'GRADUATION');
+    expect(quizGrad).toBeDefined();
+    expect(quizGrad?.key).toBe('ONLINE_QUIZ_GRADUATION');
+
+    // 4. Essay Writing Graduation
+    const essay = findCompetitionOption('ESSAY WRITING', 'GRADUATION');
+    expect(essay).toBeDefined();
+    expect(essay?.key).toBe('ESSAY_WRITING_GRADUATION');
+
+    // 5. Fancy Dress
+    const fancy = findCompetitionOption('FANCY DRESS', 'PLAY GROUP');
+    expect(fancy).toBeDefined();
+    expect(fancy?.key).toBe('FANCY_DRESS');
+
+    // 6. Colour by Number
+    const colour = findCompetitionOption('COLOUR BY NUMBER', 'NURSERY');
+    expect(colour).toBeDefined();
+    expect(colour?.key).toBe('COLOUR_BY_NUMBER');
+
+    // 7. Paint Your Imagination
+    const paint = findCompetitionOption('PAINT YOUR IMAGINATION', '2');
+    expect(paint).toBeDefined();
+    expect(paint?.key).toBe('PAINT_YOUR_IMAGINATION');
   });
+
+  it('Admin PUT /api/students/[id] switches candidate from ONLINE QUIZ (Nursery) to Colour by Number and refreshes admit card', async () => {
+    const { PUT: studentPutHandler } = await import('@/app/api/students/[id]/route');
+    const { GET: admitCardDownloadHandler } = await import('@/app/api/admit-cards/download/[studentId]/route');
+
+    const ts = Date.now().toString().slice(-4);
+    const manya = await db.createStudent({
+      registrationNumber: `MS2611${ts}`,
+      name: 'MANYA PRAJAPATI',
+      fatherName: 'DR ABHAY PRAJAPATI',
+      dateOfBirth: '2022-08-27',
+      phone: '9653097545',
+      schoolOrCollege: 'FATIMA SCHOOL',
+      className: 'NURSERY',
+      competitionName: 'ONLINE QUIZ',
+      status: 'ACTIVE',
+      createdBy: 'admin',
+      updatedBy: 'admin',
+    });
+
+    // Verify initial dropdown resolution in UI
+    const initialOption = findCompetitionOption(manya.competitionName, manya.className);
+    expect(initialOption?.key).toBe('ONLINE_QUIZ_9_10');
+
+    // Admin edits Manya from Online Quiz to Colour by Number
+    const putRes = await studentPutHandler(
+      new NextRequest(`http://localhost:3000/api/students/${manya.studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registrationNumber: manya.registrationNumber,
+          name: manya.name,
+          fatherName: manya.fatherName,
+          dateOfBirth: manya.dateOfBirth,
+          phone: manya.phone,
+          schoolOrCollege: manya.schoolOrCollege,
+          className: 'NURSERY',
+          competitionName: 'Colour by Number',
+          status: 'ACTIVE',
+        }),
+      }),
+      { params: Promise.resolve({ id: manya.studentId }) }
+    );
+    expect(putRes.status).toBe(200);
+
+    // Verify DB updated
+    const updatedManya = await db.getStudentById(manya.studentId);
+    expect(updatedManya?.competitionName).toBe('Colour by Number');
+
+    // Verify next time edit modal opens, it resolves to Colour by Number
+    const nextOption = findCompetitionOption(updatedManya?.competitionName, updatedManya?.className);
+    expect(nextOption?.key).toBe('COLOUR_BY_NUMBER');
+
+    // Verify fresh admit card generated reflects Colour by Number schedule
+    const dlRes = await admitCardDownloadHandler(
+      new NextRequest(`http://localhost:3000/api/admit-cards/download/${manya.studentId}`),
+      { params: Promise.resolve({ studentId: manya.studentId }) }
+    );
+    expect(dlRes.status).toBe(200);
+
+    const sched = getStudentEventSchedule('Colour by Number', 'NURSERY', manya.registrationNumber);
+    expect(sched.eventName).toBe('Colour by Number');
+    expect(sched.reportingTime).toBe('10:30 AM');
+    expect(sched.examTime).toContain('11:00 AM - 12:00 PM');
+    expect(sched.venueDetail).toContain('MSPS 1st FLOOR');
+  });
+});
 
   it('Guarantees candidate exam timing and batch NEVER change when editing personal particulars (Name, Father, DOB, Phone, School)', async () => {
     const originalStudent: Student = {

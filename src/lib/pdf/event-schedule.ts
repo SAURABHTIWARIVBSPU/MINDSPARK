@@ -322,6 +322,11 @@ export function resolveEventKey(competitionName?: string, className?: string): s
     return 'PENDING_REVIEW';
   }
 
+  // Exact rule key match
+  if (EVENT_SCHEDULE_RULES[comp]) {
+    return comp;
+  }
+
   if (comp.includes('FANCY DRESS') || comp.includes('UNIQUE')) return 'FANCY_DRESS';
   if (comp.includes('COLOUR BY NUMBER') || comp.includes('COLOR BY NUMBER')) return 'COLOUR_BY_NUMBER';
   if (comp.includes('JOIN') && comp.includes('DOT')) return 'JOIN_THE_DOTS';
@@ -342,10 +347,25 @@ export function resolveEventKey(competitionName?: string, className?: string): s
   }
 
   if (comp.includes('QUIZ')) {
-    if (cls.includes('GRAD') || cls.includes('BBA') || cls.includes('BCA') || cls.includes('COLLEGE')) {
+    if (
+      cls.includes('GRAD') ||
+      cls.includes('BBA') ||
+      cls.includes('BCA') ||
+      cls.includes('COLLEGE') ||
+      cls.includes('B.SC') ||
+      cls.includes('B.A') ||
+      cls.includes('B.COM') ||
+      cls.includes('B.TECH') ||
+      comp.includes('GRAD') ||
+      comp.includes('COLLEGE')
+    ) {
       return 'ONLINE_QUIZ_GRADUATION';
     }
-    if (['11', '12', '11TH', '12TH', 'CLASS 11', 'CLASS 12'].includes(cls)) {
+    if (
+      ['11', '12', '11TH', '12TH', 'CLASS 11', 'CLASS 12'].includes(cls) ||
+      comp.includes('11') ||
+      comp.includes('12')
+    ) {
       return 'ONLINE_QUIZ_11_12';
     }
     return 'ONLINE_QUIZ_9_10';
@@ -557,7 +577,7 @@ export function getStudentEventSchedule(
     const authMap = getAuthoritativeDispatchedMap();
     if (authMap[cleanReg]) {
       const auth = authMap[cleanReg];
-      const authKey = resolveEventKey(auth.competitionName || auth.eventCategory || '', auth.className || auth.classGrade || '');
+      const authKey = auth.eventKey || resolveEventKey(auth.competitionName || auth.eventCategory || '', auth.className || auth.classGrade || '');
       // If student was switched to another competition, immediately purge stale cache
       if (authKey && authKey !== 'PENDING_REVIEW' && authKey !== key) {
         delete authMap[cleanReg];

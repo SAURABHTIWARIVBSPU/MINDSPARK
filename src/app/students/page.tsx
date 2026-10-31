@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { Student } from '@/types';
 import { generateWhatsAppLink } from '@/lib/whatsapp/message-builder';
-import { APPROVED_COMPETITIONS, CompetitionOption } from '@/lib/constants/competitions';
+import { APPROVED_COMPETITIONS, CompetitionOption, findCompetitionOption } from '@/lib/constants/competitions';
 import { formatDobToDmy } from '@/lib/excel/normalizer';
 
 export default function StudentsPage() {
@@ -78,14 +78,13 @@ export default function StudentsPage() {
     }
   };
 
-  const selectedComp = APPROVED_COMPETITIONS.find(
-    (c) => c.title.toUpperCase() === (formData.competitionName || '').toUpperCase() || c.key === formData.competitionName
-  ) || APPROVED_COMPETITIONS.find((c) => (formData.competitionName || '').toUpperCase().includes(c.title.toUpperCase()));
+  const selectedComp = findCompetitionOption(formData.competitionName, formData.className);
 
   const selectedMetric = capacityData?.metrics?.find(
     (m: any) =>
-      m.title.toUpperCase() === (formData.competitionName || '').toUpperCase() ||
-      m.eventKey === selectedComp?.key
+      m.eventKey === selectedComp?.key ||
+      m.title.toUpperCase() === (selectedComp?.title || '').toUpperCase() ||
+      m.title.toUpperCase() === (formData.competitionName || '').toUpperCase()
   );
   const isSelectedProgramFull = Boolean(
     selectedMetric &&
@@ -94,17 +93,54 @@ export default function StudentsPage() {
     !editingStudent
   );
 
-  const handleCompetitionChange = (compTitle: string) => {
-    const comp = APPROVED_COMPETITIONS.find(c => c.title === compTitle || c.key === compTitle);
+  const handleCompetitionChange = (compKeyOrTitle: string) => {
+    const comp = findCompetitionOption(compKeyOrTitle, formData.className) ||
+      APPROVED_COMPETITIONS.find(c => c.key === compKeyOrTitle || c.title === compKeyOrTitle);
     if (comp) {
-      setFormData(prev => ({
-        ...prev,
-        competitionName: comp.title,
-        className: prev.className && comp.eligibleClasses.includes(prev.className.toUpperCase()) ? prev.className : comp.defaultClass
-      }));
+      setFormData(prev => {
+        const isCurrentClassEligible = prev.className && comp.eligibleClasses.includes(prev.className.toUpperCase());
+        return {
+          ...prev,
+          competitionName: comp.title,
+          className: isCurrentClassEligible ? prev.className : comp.defaultClass,
+        };
+      });
     } else {
-      setFormData(prev => ({ ...prev, competitionName: compTitle }));
+      setFormData(prev => ({ ...prev, competitionName: compKeyOrTitle }));
     }
+  };
+
+  const handleClassChange = (newClass: string) => {
+    setFormData((prev) => {
+      const trimmedClass = newClass.trim().toUpperCase();
+      // If student is currently in an Online Quiz tier, automatically align to the matching tier
+      if (prev.competitionName.toUpperCase().includes('QUIZ')) {
+        let targetKey = 'ONLINE_QUIZ_9_10';
+        if (['11', '12', '11TH', '12TH', 'CLASS 11', 'CLASS 12'].includes(trimmedClass)) {
+          targetKey = 'ONLINE_QUIZ_11_12';
+        } else if (
+          trimmedClass.includes('GRAD') ||
+          trimmedClass.includes('BBA') ||
+          trimmedClass.includes('BCA') ||
+          trimmedClass.includes('COLLEGE') ||
+          trimmedClass.includes('B.SC') ||
+          trimmedClass.includes('B.A') ||
+          trimmedClass.includes('B.COM') ||
+          trimmedClass.includes('B.TECH')
+        ) {
+          targetKey = 'ONLINE_QUIZ_GRADUATION';
+        }
+        const targetComp = APPROVED_COMPETITIONS.find((c) => c.key === targetKey);
+        if (targetComp) {
+          return {
+            ...prev,
+            className: newClass,
+            competitionName: targetComp.title,
+          };
+        }
+      }
+      return { ...prev, className: newClass };
+    });
   };
 
   useEffect(() => {
@@ -144,6 +180,7 @@ export default function StudentsPage() {
 
   const handleOpenCreate = () => {
     setEditingStudent(null);
+    const defaultComp = APPROVED_COMPETITIONS.find(c => c.key === 'ONLINE_QUIZ_9_10') || APPROVED_COMPETITIONS[0];
     setFormData({
       registrationNumber: '',
       name: '',
@@ -151,8 +188,8 @@ export default function StudentsPage() {
       dateOfBirth: '',
       phone: '',
       schoolOrCollege: '',
-      className: '',
-      competitionName: 'ONLINE QUIZ',
+      className: defaultComp.defaultClass,
+      competitionName: defaultComp.title,
       status: 'ACTIVE',
     });
     setFormError(null);
@@ -161,6 +198,7 @@ export default function StudentsPage() {
 
   const handleOpenEdit = (student: Student) => {
     setEditingStudent(student);
+    const matched = findCompetitionOption(student.competitionName, student.className);
     setFormData({
       registrationNumber: student.registrationNumber,
       name: student.name,
@@ -168,8 +206,8 @@ export default function StudentsPage() {
       dateOfBirth: formatDobToDmy(student.dateOfBirth),
       phone: student.phone || '',
       schoolOrCollege: student.schoolOrCollege || '',
-      className: student.className || '',
-      competitionName: student.competitionName,
+      className: student.className || (matched ? matched.defaultClass : ''),
+      competitionName: matched ? matched.title : student.competitionName,
       status: student.status,
     });
     setFormError(null);
@@ -715,7 +753,7 @@ export default function StudentsPage() {
                     type="text"
                     required
                     value={formData.className}
-                    onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                    onChange={(e) => handleClassChange(e.target.value)}
                     placeholder="e.g. NURSERY, 5, 12, GRADUATION"
                     className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon uppercase font-semibold"
                   />
@@ -759,15 +797,20 @@ export default function StudentsPage() {
                   Competition Program *
                 </label>
                 <select
-                  value={formData.competitionName}
+                  value={selectedComp ? selectedComp.key : formData.competitionName}
                   onChange={(e) => handleCompetitionChange(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-portal-maroon font-semibold text-apple-ink bg-white"
                 >
                   {APPROVED_COMPETITIONS.map((c) => (
-                    <option key={c.key} value={c.title}>
+                    <option key={c.key} value={c.key}>
                       {c.title} ({c.category})
                     </option>
                   ))}
+                  {!selectedComp && formData.competitionName && (
+                    <option value={formData.competitionName}>
+                      {formData.competitionName} (Current Assignment)
+                    </option>
+                  )}
                 </select>
               </div>
 

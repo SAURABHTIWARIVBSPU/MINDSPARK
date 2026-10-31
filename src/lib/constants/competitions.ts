@@ -1,3 +1,5 @@
+import { resolveEventKey } from '@/lib/pdf/event-schedule';
+
 export interface CompetitionOption {
   key: string;
   title: string;
@@ -113,16 +115,6 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
     venue: 'MEENA SHAH PUBLIC SCHOOL - MSPS LIBRARY'
   },
   {
-    key: 'SUDOKU',
-    title: 'Sudoku',
-    category: 'Middle (Class 6-8)',
-    eligibleClasses: ['6', '7', '8', 'CLASS 6', 'CLASS 7', 'CLASS 8', '6TH', '7TH', '8TH'],
-    defaultClass: '6',
-    examSlot: '02:00 PM - 03:00 PM',
-    reportingTime: '01:30 PM',
-    venue: 'MEENA SHAH PUBLIC SCHOOL - MSPS 1st FLOOR'
-  },
-  {
     key: 'FIRELESS_COOKING',
     title: 'Fireless Cooking',
     category: 'Middle (Class 6-8)',
@@ -206,3 +198,37 @@ export const APPROVED_COMPETITIONS: CompetitionOption[] = [
     venue: 'MSITM CAMPUS - MSITM LT-2, LT-3 & LT-4'
   }
 ];
+
+export function findCompetitionOption(
+  competitionName?: string,
+  className?: string
+): CompetitionOption | undefined {
+  if (!competitionName && !className) return undefined;
+  const rawComp = String(competitionName || '').trim();
+  const upperComp = rawComp.toUpperCase();
+  const rawCls = String(className || '').trim().toUpperCase();
+
+  // 1. Exact key match
+  const byKey = APPROVED_COMPETITIONS.find((c) => c.key.toUpperCase() === upperComp);
+  if (byKey) return byKey;
+
+  // 2. Exact title match (case-insensitive)
+  const byTitle = APPROVED_COMPETITIONS.find((c) => c.title.toUpperCase() === upperComp);
+  if (byTitle) return byTitle;
+
+  // 3. Resolve canonical event key via resolveEventKey
+  const eventKey = resolveEventKey(rawComp, rawCls);
+  if (eventKey && eventKey !== 'PENDING_REVIEW') {
+    const byResolvedKey = APPROVED_COMPETITIONS.find((c) => c.key === eventKey);
+    if (byResolvedKey) return byResolvedKey;
+  }
+
+  // 4. Loose substring match
+  const byLoose = APPROVED_COMPETITIONS.find((c) => {
+    const cUpper = c.title.toUpperCase();
+    return upperComp.includes(cUpper) || cUpper.includes(upperComp);
+  });
+  if (byLoose) return byLoose;
+
+  return undefined;
+}
