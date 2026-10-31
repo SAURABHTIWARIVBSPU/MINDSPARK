@@ -166,8 +166,6 @@ export const EVENT_SCHEDULE_RULES: Record<string, any> = {
       { shiftNum: 6, reporting: '02:30 PM', exam: '03:00 PM - 04:00 PM (SHIFT 6)' },
       { shiftNum: 7, reporting: '03:30 PM', exam: '04:00 PM - 05:00 PM (SHIFT 7)' },
       { shiftNum: 8, reporting: '04:30 PM', exam: '05:00 PM - 06:00 PM (SHIFT 8)' },
-      { shiftNum: 9, reporting: '05:30 PM', exam: '06:00 PM - 07:00 PM (SHIFT 9)' },
-      { shiftNum: 10, reporting: '06:30 PM', exam: '07:00 PM - 08:00 PM (SHIFT 10)' },
     ],
     shiftCapacity: 50,
     isHold: false

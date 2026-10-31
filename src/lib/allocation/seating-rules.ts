@@ -443,7 +443,7 @@ FIRELESS_COOKING: {
     batches: [
       {
         batchNumber: 1,
-        batchName: 'Shift 1 of 9',
+        batchName: 'Shift 1 of 8',
         reportingTime: '08:30 AM',
         examTime: '09:00 AM - 10:00 AM (SHIFT 1)',
         duration: '1 Hour',
@@ -452,7 +452,7 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 2,
-        batchName: 'Shift 2 of 9',
+        batchName: 'Shift 2 of 8',
         reportingTime: '09:30 AM',
         examTime: '10:00 AM - 11:00 AM (SHIFT 2)',
         duration: '1 Hour',
@@ -461,7 +461,7 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 3,
-        batchName: 'Shift 3 of 9',
+        batchName: 'Shift 3 of 8',
         reportingTime: '10:30 AM',
         examTime: '11:00 AM - 12:00 PM (SHIFT 3)',
         duration: '1 Hour',
@@ -470,7 +470,7 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 4,
-        batchName: 'Shift 4 of 9',
+        batchName: 'Shift 4 of 8',
         reportingTime: '11:30 AM',
         examTime: '12:00 PM - 01:00 PM (SHIFT 4)',
         duration: '1 Hour',
@@ -480,7 +480,7 @@ FIRELESS_COOKING: {
       // Strict 1:00 PM - 2:00 PM Lunch Break
       {
         batchNumber: 5,
-        batchName: 'Shift 5 of 9',
+        batchName: 'Shift 5 of 8',
         reportingTime: '01:30 PM',
         examTime: '02:00 PM - 03:00 PM (SHIFT 5)',
         duration: '1 Hour',
@@ -489,7 +489,7 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 6,
-        batchName: 'Shift 6 of 9',
+        batchName: 'Shift 6 of 8',
         reportingTime: '02:30 PM',
         examTime: '03:00 PM - 04:00 PM (SHIFT 6)',
         duration: '1 Hour',
@@ -498,7 +498,7 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 7,
-        batchName: 'Shift 7 of 9',
+        batchName: 'Shift 7 of 8',
         reportingTime: '03:30 PM',
         examTime: '04:00 PM - 05:00 PM (SHIFT 7)',
         duration: '1 Hour',
@@ -507,21 +507,12 @@ FIRELESS_COOKING: {
       },
       {
         batchNumber: 8,
-        batchName: 'Shift 8 of 9',
+        batchName: 'Shift 8 of 8',
         reportingTime: '04:30 PM',
         examTime: '05:00 PM - 06:00 PM (SHIFT 8)',
         duration: '1 Hour',
-        nominalCapacity: 38,
-        maxCapacity: 50,
-      },
-      {
-        batchNumber: 9,
-        batchName: 'Shift 9 of 9',
-        reportingTime: '05:30 PM',
-        examTime: '06:00 PM - 07:00 PM (SHIFT 9)',
-        duration: '1 Hour',
-        nominalCapacity: 10,
-        maxCapacity: 50,
+        nominalCapacity: 41,
+        maxCapacity: 60,
       },
     ],
   },

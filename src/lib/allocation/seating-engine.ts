@@ -127,7 +127,7 @@ export function generateNextBatch(rule: ProgramSeatingRule, existingBatches: Bat
   const reportingTimeStr = formatTime12h(reportingMinutes);
 
   const labelPrefix = isShiftType ? 'Shift' : 'Batch';
-  const batchName = isShiftType ? `Shift ${nextBatchNumber} of 9` : `${labelPrefix} ${nextBatchNumber}`;
+  const batchName = isShiftType ? `Shift ${nextBatchNumber} of 8` : `${labelPrefix} ${nextBatchNumber}`;
   const examTime = `${startTimeStr} - ${endTimeStr} (${labelPrefix.toUpperCase()} ${nextBatchNumber})`;
 
   const capacity = lastBatch?.maxCapacity || 100;
@@ -154,7 +154,7 @@ export function getExpandedBatchesForEvent(
   // Under NO circumstances may Batch 6 or Batch 7 ever be created or allotted for any indoor competition!
   // Indoor programs are strictly capped at maximum 5 batches (or rule.batches.length).
   // Only Junior Scientist on MSPS Ground may have up to Shift 9.
-  const maxBatchesCap = rule.eventKey === 'JUNIOR_SCIENTIST' ? 9 : 5;
+  const maxBatchesCap = rule.eventKey === 'JUNIOR_SCIENTIST' ? 8 : 5;
 
   // Keep adding dynamic batches until cumulative capacity exceeds required count OR capped
   while (cumulative <= requiredCandidateCount) {
